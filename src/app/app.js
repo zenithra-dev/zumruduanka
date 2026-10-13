@@ -42,15 +42,6 @@ function drawTab(g, W, H, now, colors){
   }
 }
 
-/* ---------- Sözler ---------- */
-const lyricEl = $("lyric"); let lyricKey = "";
-function drawLyricDom(){
-  const toks = sim.lyric, key = toks ? toks.map(x => (x.on ? "1" : "0") + x.t).join("") : "";
-  if (key === lyricKey) return;
-  lyricKey = key; lyricEl.textContent = "";
-  (toks || []).forEach(x => { const sp = document.createElement("span"); sp.textContent = x.t; if (x.on) sp.className = "on"; lyricEl.appendChild(sp); });
-}
-
 /* ---------- Kayıt ---------- */
 const recCv = document.createElement("canvas"); recCv.width = 1280; recCv.height = 720;
 const rg = recCv.getContext("2d");
@@ -120,16 +111,12 @@ SONGS.forEach(s => {
 $("play").addEventListener("click", () => startPlay(sim.current));
 $("stop").addEventListener("click", () => { sim.stop(); if (recording) stopRecording(); refreshHud(); });
 document.querySelectorAll("#ampSeg button").forEach(b => b.addEventListener("click", () => selectAmp(b.dataset.v)));
-document.querySelectorAll("#bandSeg button").forEach(b => b.addEventListener("click", () => {
-  sim.bandOn = b.dataset.v === "on";
-  document.querySelectorAll("#bandSeg button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
-}));
 document.querySelectorAll("#envSeg button").forEach(b => b.addEventListener("click", () => {
   sim.setEnv(b.dataset.v);
   document.querySelectorAll("#envSeg button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
 }));
 const camNote = $("camNote");
-const CAM_NOTE = {director: "Otomatik yönetmen: vokalde Şahmeran'a, gitar anında Claude'a, davul geçişinde Erlik'e keser; şarkının kendi çekim listesi varsa onu uygular.", group: "Geniş açı: Zümrüdüanka sahnede. Kadro şarkıya göre değişir.", stage: "Gitara yakın çekim: sürükleyerek etrafında dön, tekerlekle yakınlaş.", head: "Kamera gitarın sap kafasına kıskaçla takılı, perdelere bakıyor."};
+const CAM_NOTE = {director: "Otomatik yönetmen: yoğun pasajlarda ellere ve sap kamerasına, sakin yerlerde yüze ve geniş açıya keser; şarkının kendi çekim listesi varsa onu uygular.", group: "Geniş açı: Claude sahnede.", stage: "Gitara yakın çekim: sürükleyerek etrafında dön, tekerlekle yakınlaş.", head: "Kamera gitarın sap kafasına kıskaçla takılı, perdelere bakıyor."};
 document.querySelectorAll("#camSeg button").forEach(b => b.addEventListener("click", () => {
   sim.setCamera(b.dataset.v);
   document.querySelectorAll("#camSeg button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
@@ -155,7 +142,7 @@ const endDrag = () => { drag = null; gl.style.cursor = sim.camMode === "stage" ?
 gl.addEventListener("pointerup", endDrag); gl.addEventListener("pointercancel", endDrag);
 gl.addEventListener("wheel", e => { if (sim.camMode !== "stage") return; e.preventDefault(); const o = sim.orbit; o.r = Math.min(Math.max(o.r * (1 + e.deltaY * 0.001), 0.45), 2.2); sim.placeCams(); }, {passive: false});
 
-/* ---------- Grup kartları ve şarkı listesi ---------- */
+/* ---------- Claude kartı ve şarkı listesi ---------- */
 (function(){
   const cards = $("cards"), disco = $("disco");
   Object.keys(MEMBER).forEach(k => {
@@ -166,13 +153,11 @@ gl.addEventListener("wheel", e => { if (sim.camMode !== "stage") return; e.preve
     who.append(sw, nm);
     const role = document.createElement("div"); role.className = "role"; role.textContent = MEMBER[k].role;
     const bio = document.createElement("p"); bio.textContent = MEMBER[k].bio;
-    const inn = document.createElement("div"); inn.className = "in";
-    inn.textContent = "Çaldığı şarkılar: " + SONGS.filter(sg => (sg.members || []).includes(k)).map(sg => sg.name).join(", ");
-    c.append(who, role, bio, inn); cards.appendChild(c);
+    c.append(who, role, bio); cards.appendChild(c);
   });
   SONGS.forEach(sg => {
     const r = document.createElement("div"), a = document.createElement("b"), b = document.createElement("span");
-    a.textContent = sg.name; b.textContent = (sg.members || ["claude"]).map(k => MEMBER[k].label).join(" · ");
+    a.textContent = sg.name; b.textContent = sg.desc;
     r.append(a, b); disco.appendChild(r);
   });
 })();
@@ -194,7 +179,6 @@ function loop(){
   const a = sim.audio, now = a ? a.ctx.currentTime : 0, wall = performance.now() / 1000;
   sim.frame(now, wall);
   drawTab(tg, tabCv.width, tabCv.height, now, colors);
-  drawLyricDom();
   if (recording) sim.composite(rg, 1280, 720);
   refreshHud();
   requestAnimationFrame(loop);

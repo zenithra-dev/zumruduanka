@@ -1,24 +1,46 @@
 // Amfi zinciri, master bus, yankı ve oda. Bir AudioContext'e (gerçek ya da offline) bağlı tek motor.
 import { rand } from "../rng.js";
 
+// pickup: manyetiğin rezonans frekansı (kablo ve bobin; kısık ses = koyu), bias: lamba kademesinin asimetrisi (çift harmonikler),
+// pres: tonlamadan sonra 3.9 kHz presence, lp: kabin sonrası emniyet kesimi
 export const AMPS = {
-  clean:  {pre: 1.0, k: 1,   post: 0.9,  b: 2, m: -1, t: 3, lp: 7800, wet: 0.18, rev: 0.28},
-  crunch: {pre: 2.8, k: 30,  post: 0.4,  b: 3, m: 2,  t: 2, lp: 6200, wet: 0.1,  rev: 0.14},
-  lead:   {pre: 4.6, k: 170, post: 0.26, b: 2, m: 4,  t: 1, lp: 5600, wet: 0.28, rev: 0.22}
+  clean:  {pre: 1.0, k: 1,   post: 0.9,  b: 2, m: -1, t: 3, lp: 9000, wet: 0.18, rev: 0.28, pickup: 5000, pq: 1.6, bias: 0.0,  pres: 1},
+  crunch: {pre: 2.8, k: 30,  post: 0.4,  b: 3, m: 2,  t: 2, lp: 9000, wet: 0.1,  rev: 0.14, pickup: 4200, pq: 2.0, bias: 0.04, pres: 2},
+  lead:   {pre: 4.6, k: 170, post: 0.26, b: 2, m: 4,  t: 1, lp: 9000, wet: 0.28, rev: 0.22, pickup: 3600, pq: 2.2, bias: 0.05, pres: 3}
 };
-function curve(k){
-  const n = 4096, c = new Float32Array(n);
-  for (let i = 0; i < n; i++){ const x = i * 2 / n - 1; c[i] = k === 0 ? x : (1 + k) * x / (1 + k * Math.abs(x)); }
+// Yumuşak kırpma eğrisi; bias ile asimetrik: lamba kademesi gibi çift harmonikler üretir (DC bileşeni çıkarılır)
+function curve(k, bias = 0){
+  const n = 4096, c = new Float32Array(n), sat = x => k === 0 ? x : (1 + k) * x / (1 + k * Math.abs(x)), c0 = sat(bias);
+  for (let i = 0; i < n; i++){ const x = i * 2 / n - 1; c[i] = sat(x + bias) - c0; }
   return c;
 }
+// RBJ biquad katsayıları ve bir diziye uygulanması; kabin yanıtını tasarlamak için
+function biquad(type, sr, f, Q, dB){
+  const w = 2 * Math.PI * f / sr, cs = Math.cos(w), sn = Math.sin(w), al = sn / (2 * Q), A = Math.pow(10, (dB || 0) / 40);
+  let b0, b1, b2, a0, a1, a2;
+  if (type === "lp"){ b0 = (1 - cs) / 2; b1 = 1 - cs; b2 = b0; a0 = 1 + al; a1 = -2 * cs; a2 = 1 - al; }
+  else if (type === "hp"){ b0 = (1 + cs) / 2; b1 = -(1 + cs); b2 = b0; a0 = 1 + al; a1 = -2 * cs; a2 = 1 - al; }
+  else { b0 = 1 + al * A; b1 = -2 * cs; b2 = 1 - al * A; a0 = 1 + al / A; a1 = -2 * cs; a2 = 1 - al / A; }
+  return [b0 / a0, b1 / a0, b2 / a0, a1 / a0, a2 / a0];
+}
+function applyBiquad(d, [b0, b1, b2, a1, a2]){
+  let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+  for (let i = 0; i < d.length; i++){ const x = d[i], y = b0 * x + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2; x2 = x1; x1 = x; y2 = y1; y1 = y; d[i] = y; }
+}
 function softCurve(){ const n = 2048, c = new Float32Array(n); for (let i = 0; i < n; i++){ const x = i * 2 / n - 1; c[i] = Math.tanh(1.6 * x) / Math.tanh(1.6); } return c; }
-// 4x12 kabin yanıtı: rezonansların sönümlü toplamı
+// 4x12 kabin yanıtı: 12" gitar hoparlörünün tipik eğrisi (80 Hz altı kesik, 130 Hz tınlama, 480 Hz çukur,
+// 2.6 kHz presence tepesi, 5 kHz üstü dik düşüş) artı yakın mikrofon ve kutunun kısa yansımaları. 1 kHz'de birim kazanç.
+export const CAB = {hp: [80, 0.7], thump: [130, 1.0, 3], scoop: [480, 0.9, -3.5], pres: [2600, 1.1, 4], lp1: [4800, 0.8], lp2: [5200, 0.6],
+  refl: [[0.0007, 0.35], [0.0016, -0.25], [0.0031, 0.18], [0.0052, -0.1]]};
 function cabIR(ctx){
-  const sr = ctx.sampleRate, len = Math.floor(sr * 0.04), b = ctx.createBuffer(1, len, sr), d = b.getChannelData(0);
-  const R = [[95, 0.7, 60], [160, 0.5, 80], [420, 0.35, 140], [1150, 0.55, 260], [2300, 0.45, 420], [3400, 0.25, 700], [5200, 0.08, 1200]];
-  for (let i = 0; i < len; i++){ const t = i / sr; let v = 0; R.forEach(([f, a, dmp]) => { v += a * Math.sin(2 * Math.PI * f * t) * Math.exp(-dmp * t); }); d[i] = v + (i < 40 ? (rand() - 0.5) * 0.4 : 0); }
-  let pk = 0; for (let i = 0; i < len; i++) pk += Math.abs(d[i]); for (let i = 0; i < len; i++) d[i] *= 5 / pk;
-  d[0] += 0.7; d[1] -= 0.15;
+  const sr = ctx.sampleRate, len = Math.floor(sr * 0.03), b = ctx.createBuffer(1, len, sr), d = b.getChannelData(0);
+  d[0] = 1;
+  CAB.refl.forEach(([t, g]) => { d[Math.floor(t * sr)] += g; });
+  [biquad("hp", sr, ...CAB.hp), biquad("peak", sr, ...CAB.thump), biquad("peak", sr, ...CAB.scoop), biquad("peak", sr, ...CAB.pres),
+   biquad("lp", sr, ...CAB.lp1), biquad("lp", sr, ...CAB.lp2)].forEach(c => applyBiquad(d, c));
+  const w = 2 * Math.PI * 1000 / sr; let re = 0, im = 0;
+  for (let i = 0; i < len; i++){ re += d[i] * Math.cos(w * i); im -= d[i] * Math.sin(w * i); }
+  const g = 1 / (Math.hypot(re, im) || 1); for (let i = 0; i < len; i++) d[i] *= g;
   return b;
 }
 // Oda yanıtı: ön gecikme, erken yansımalar, kararan kuyruk (stereo)
@@ -41,21 +63,27 @@ export function createEngine(ctx, prefs = {}){
   const G = v => { const g = ctx.createGain(); if (v !== undefined) g.gain.value = v; return g; };
   const F = (type, f, q, gain) => { const x = ctx.createBiquadFilter(); x.type = type; x.frequency.value = f; if (q !== undefined) x.Q.value = q; if (gain !== undefined) x.gain.value = gain; return x; };
   const chainIn = G();
-  const highp = F("highpass", 80, 0.7);
-  const tight = F("peaking", 700, 0.8, 4);
+  // Manyetik: bobin+kablo rezonansı; tiz "cam" sesini alır, elektro gitarın tok karakterini verir
+  const pickup = F("lowpass", 3300, 2.0);
+  const highp = F("highpass", 100, 0.7);
+  const tight = F("peaking", 700, 0.8, 3);
+  // Ön vurgulama: kırpmadan önce bası kıs (çamurlanma ve intermodülasyon azalır), sonra geri ver
+  const preEmph = F("lowshelf", 180, undefined, -6), deEmph = F("lowshelf", 160, undefined, 4);
   const pre = G(), shaper = ctx.createWaveShaper(), post = G(); shaper.oversample = "4x";
-  const tBass = F("lowshelf", 120), tMid = F("peaking", 800, 0.9), tTreb = F("highshelf", 3200);
+  const couple = F("highpass", 40, 0.7), fizz = F("lowpass", 7000, 0.7);   // kademeler arası kuplaj kondansatörü ve cızırtı kesimi
+  const tBass = F("lowshelf", 120), tMid = F("peaking", 800, 0.9), tTreb = F("highshelf", 3200), presence = F("peaking", 3900, 1.0, 0);
   const power = ctx.createWaveShaper(); power.curve = softCurve(); power.oversample = "2x";
   const cab = ctx.createConvolver(); cab.normalize = false; cab.buffer = cabIR(ctx);
-  const lowp = F("lowpass", 6000, 0.7);
+  const lowp = F("lowpass", 9000, 0.7);
   const gOut = G(0.8);
-  chainIn.connect(highp); highp.connect(tight); tight.connect(pre); pre.connect(shaper); shaper.connect(post);
-  post.connect(tBass); tBass.connect(tMid); tMid.connect(tTreb); tTreb.connect(power); power.connect(cab); cab.connect(lowp); lowp.connect(gOut);
+  chainIn.connect(pickup); pickup.connect(highp); highp.connect(tight); tight.connect(preEmph); preEmph.connect(pre); pre.connect(shaper); shaper.connect(post);
+  post.connect(couple); couple.connect(fizz); fizz.connect(tBass); tBass.connect(tMid); tMid.connect(tTreb); tTreb.connect(presence); presence.connect(power);
+  power.connect(deEmph); deEmph.connect(cab); cab.connect(lowp); lowp.connect(gOut);
   const master = G();
   const glue = ctx.createDynamicsCompressor(); glue.threshold.value = -16; glue.ratio.value = 2.5; glue.knee.value = 8; glue.attack.value = 0.02; glue.release.value = 0.2;
-  const air = F("highshelf", 8000, undefined, 3);
+  const presM = F("highshelf", 3000, undefined, 2), air = F("highshelf", 8000, undefined, 3);   // karışıma açıklık
   const lim = ctx.createDynamicsCompressor(); lim.threshold.value = -6; lim.knee.value = 2; lim.ratio.value = 20; lim.attack.value = 0.002; lim.release.value = 0.12;
-  master.connect(glue); glue.connect(air); air.connect(lim); lim.connect(ctx.destination);
+  master.connect(glue); glue.connect(presM); presM.connect(air); air.connect(lim); lim.connect(ctx.destination);
   let recDest = null;
   if (ctx.createMediaStreamDestination){ recDest = ctx.createMediaStreamDestination(); lim.connect(recDest); }
   // Gitar: Haas ile çift kayıt hissi
@@ -71,8 +99,9 @@ export function createEngine(ctx, prefs = {}){
 
   function setAmp(n){
     ampName = n; const a = AMPS[n];
-    pre.gain.value = a.pre; shaper.curve = curve(a.k); post.gain.value = a.post; lowp.frequency.value = a.lp; wet.gain.value = a.wet;
-    tBass.gain.value = a.b; tMid.gain.value = a.m; tTreb.gain.value = a.t; gtrRev.gain.value = a.rev;
+    pickup.frequency.value = a.pickup; pickup.Q.value = a.pq;
+    pre.gain.value = a.pre; shaper.curve = curve(a.k, a.bias); post.gain.value = a.post; lowp.frequency.value = a.lp; wet.gain.value = a.wet;
+    tBass.gain.value = a.b; tMid.gain.value = a.m; tTreb.gain.value = a.t; presence.gain.value = a.pres; gtrRev.gain.value = a.rev;
   }
   function setRoom(sec){ roomSec = sec; reverb.buffer = roomIR(ctx, sec); }
   function setVolume(v){ master.gain.value = v * 0.62; }

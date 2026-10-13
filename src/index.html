@@ -33,8 +33,6 @@ h1{font-family:var(--f-display);font-weight:800;font-size:clamp(34px,5vw,52px);l
 #gl{cursor:grab}
 .hud{position:absolute;left:12px;top:10px;display:flex;gap:8px;align-items:center;font-family:var(--f-mono);font-size:12px;color:#f4e9dc;text-shadow:0 1px 2px #000;pointer-events:none}
 .dot{width:9px;height:9px;border-radius:50%;background:#f05a5a;box-shadow:0 0 8px #f05a5a}
-.lyric{position:absolute;left:12px;right:12px;bottom:14px;text-align:center;font-weight:600;font-size:clamp(15px,2.4vw,24px);color:#f4ece2;text-shadow:0 1px 4px #000;pointer-events:none;min-height:1.4em}
-.lyric .on{color:#7cf0b8}
 .hud .dot{animation:blink 1s steps(2) infinite}
 @keyframes blink{50%{opacity:.2}}
 @media (prefers-reduced-motion:reduce){.hud .dot{animation:none}}
@@ -62,6 +60,10 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 #clip[hidden]{display:none}
 #clip{display:grid;gap:8px}
 #clip video{width:100%;border-radius:8px;background:#000}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px 20px;margin:0}
+.facts div{display:grid;gap:2px;min-width:0}
+.facts dt{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.facts dd{margin:0;font-family:var(--f-mono);font-size:13px;font-variant-numeric:tabular-nums}
 .bandsec{display:grid;gap:14px}
 .bandsec h2{font-family:var(--f-display);font-weight:800;font-size:30px;line-height:1;margin:0;text-transform:uppercase;letter-spacing:.01em}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
@@ -84,7 +86,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 <div class="wrap">
   <header>
     <h1>Zümrüdüanka</h1>
-    <div class="spec">Sanal grup · Claude, Erlik, Umay, Şahmeran, Ülgen · ses Web Audio ile sentez, sahne three.js, kamera yönetmen</div>
+    <div class="spec">Claude ve elektro gitarı · ses Web Audio ile sentez, sahne three.js, kamera yönetmen</div>
   </header>
 
   <div class="main">
@@ -92,14 +94,13 @@ input[type=range]{width:100%;accent-color:var(--accent)}
       <div class="stage" id="stage">
         <canvas id="gl" aria-label="Zümrüdüanka sahnede"></canvas>
         <div class="hud"><span id="hudDot" class="dot" hidden></span><span id="hudText">YÖNETMEN · hazır</span></div>
-        <div class="lyric" id="lyric" aria-live="off"></div>
       </div>
       <canvas id="tab" aria-label="Claude'un çaldığı notaların tab gösterimi"></canvas>
     </div>
 
     <aside class="panel">
       <div class="group">
-        <div class="label">Zümrüdüanka ne çalsın?</div>
+        <div class="label">Claude ne çalsın?</div>
         <div class="songs" id="songs"></div>
       </div>
       <div class="row">
@@ -114,7 +115,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
           <button id="cam-stage" aria-pressed="false" data-v="stage">Sahne</button>
           <button id="cam-head" aria-pressed="false" data-v="head">Sap kamerası</button>
         </div>
-        <p class="note" id="camNote">Otomatik yönetmen: vokalde Şahmeran'a, gitar anında Claude'a, davul geçişinde Erlik'e keser; şarkının kendi çekim listesi varsa onu uygular.</p>
+        <p class="note" id="camNote">Otomatik yönetmen: yoğun pasajlarda ellere ve sap kamerasına, sakin yerlerde yüze ve geniş açıya keser; şarkının kendi çekim listesi varsa onu uygular.</p>
       </div>
       <div class="group">
         <div class="label">Mekan</div>
@@ -135,13 +136,6 @@ input[type=range]{width:100%;accent-color:var(--accent)}
         <input id="vol" type="range" min="0" max="100" value="75">
       </div>
       <div class="group">
-        <div class="label">Grup</div>
-        <div class="seg" id="bandSeg">
-          <button id="band-on" aria-pressed="true" data-v="on">Tam kadro</button>
-          <button id="band-off" aria-pressed="false" data-v="off">Sadece gitar</button>
-        </div>
-      </div>
-      <div class="group">
         <div class="label">Kayıt</div>
         <button class="btn rec" id="recBtn">● Çal ve kaydet</button>
         <p class="note" id="recNote">Seçili şarkıyı baştan sona seçili kameradan 720p video olarak kaydeder. Daha keskin ve tekrarlanabilir klip için komut satırı: npm run render.</p>
@@ -154,8 +148,16 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   </div>
 
   <section class="bandsec" aria-labelledby="bandH">
-    <h2 id="bandH">Zümrüdüanka</h2>
+    <h2 id="bandH">Claude ve gitarı</h2>
     <div class="cards" id="cards"></div>
+    <dl class="facts">
+      <div><dt>Gövde</dt><dd>Kızılağaç, 3 ton sunburst</dd></div>
+      <div><dt>Sap</dt><dd>Akçaağaç, gülağacı klavye</dd></div>
+      <div><dt>Perde konumu</dt><dd>x = 648·(1 − 2^(−n/12)) mm</dd></div>
+      <div><dt>Akort</dt><dd>E2 A2 D3 G3 B3 E4</dd></div>
+      <div><dt>Ses</dt><dd>Tel modeli → manyetik → amfi → kabin</dd></div>
+      <div><dt>Kayıt çıktısı</dt><dd>1280×720, 30 fps</dd></div>
+    </dl>
     <div class="label">Şarkılar</div>
     <div class="disco" id="disco"></div>
   </section>

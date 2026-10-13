@@ -1,5 +1,5 @@
-// Üyeleri sahneye kurar ve her karede canlandırır: nefes/salınım, göz kırpma, enstrüman pozları, ışık şovu.
-// Üyelerin kendi geometrisi ve pozu members/ altında; burası ortak olanı yapar.
+// Sahnedeki kişileri kurar ve her karede canlandırır: nefes/salınım, göz kırpma, enstrüman pozu, ışık şovu.
+// Kişinin kendi geometrisi ve pozu members/ altında; burası ortak olanı yapar.
 import * as THREE from "three";
 import { rand } from "../rng.js";
 import { FLOOR, worldOf, setFigVisible } from "./figures.js";
@@ -24,19 +24,22 @@ export function createRigs({scene, model, hemi, drawBanner}){
     const k = T >= 0 && wall < T + 0.14 ? Math.max(0.08, Math.abs((wall - T) / 0.07 - 1)) : 1;
     f.eyes.forEach((m, i) => { m.scale.y = f.eyeY[i] * k; });
   }
-  // Her üyenin tepesinde kendi renginde ışık hüzmesi
+  // Tepede renkli ışık hüzmeleri: sahneyi boş bırakmamak için kişinin üstüne ve iki yanına
+  const beamList = [];
   MEMBER_RIGS.forEach(M => {
-    const c = new THREE.Mesh(new THREE.ConeGeometry(0.65, 3.3, 28, 1, true), new THREE.MeshBasicMaterial({color: M.beam, transparent: true, opacity: 0.06, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide}));
-    const p = worldOf(FIG[M.id], new THREE.Vector3(0, 0, 0)); c.position.set(p.x, FLOOR + 1.65, p.z); scene.add(c); beams[M.id] = c;
+    const p = worldOf(FIG[M.id], new THREE.Vector3(0, 0, 0));
+    [[0, M.beam], [-1.6, 0xff3a24], [1.6, 0x9cc4ff], [-0.8, 0x47f0a2], [0.9, 0xbcd8ff]].forEach(([dx, col], i) => {
+      const c = new THREE.Mesh(new THREE.ConeGeometry(0.65, 3.3, 28, 1, true), new THREE.MeshBasicMaterial({color: col, transparent: true, opacity: 0.06, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide}));
+      c.position.set(p.x + dx, FLOOR + 1.65, p.z - (i ? 0.6 : 0)); c.userData.col = col; scene.add(c); beamList.push(c); if (i === 0) beams[M.id] = c;
+    });
   });
   let rosterKey = "";
-  // Kadroda olmayan üye, ışığı, hüzmesi ve ek dekoru gizlenir; sap kamerasında Claude'un bedeni de (kamera gitarın üstünde)
+  // Sap kamerasında Claude'un bedeni gizlenir (kamera gitarın üstünde)
   function applyRoster(roster, headCamOn){
     MEMBER_RIGS.forEach(M => {
       const on = roster.includes(M.id);
       setFigVisible(FIG[M.id], on && !(M.id === "claude" && headCamOn));
-      LIGHTS[M.id].visible = on; beams[M.id].visible = on;
-      (parts[M.id].extras || []).forEach(x => { x.visible = on; });
+      LIGHTS[M.id].visible = on; (parts[M.id].extras || []).forEach(x => { x.visible = on; });
     });
     const key = roster.join(",");
     if (key !== rosterKey){ rosterKey = key; drawBanner(roster); }
@@ -52,25 +55,24 @@ export function createRigs({scene, model, hemi, drawBanner}){
     fig.head.rotation.y = 0.16 * Math.sin(wall * 0.23 + ph) * Math.sin(wall * 0.11 + ph * 1.7);
   }
   let flash = 0; const _white = new THREE.Color(0xffffff);
-  // Her karede: üyeleri çalınan notalara göre pozlar, ışık şovunu günceller. hemiBase: mekanın temel ortam ışığı.
+  // Her karede: kişiyi çalınan notalara göre pozlar, ışık şovunu günceller. hemiBase: mekanın temel ortam ışığı.
   function updateBand(now, wall, p, hemiBase){
-    const bpm = p ? p.bpm : 90, beat = now * bpm / 60, band = !!(p && p.band);
+    const bpm = p ? p.bpm : 90, beat = now * bpm / 60;
     if (wall === undefined) wall = now;
-    MEMBER_RIGS.forEach(M => life(FIG[M.id], wall, beat, M.groove(p, band)));
+    MEMBER_RIGS.forEach(M => life(FIG[M.id], wall, beat, M.groove(p)));
     Object.values(FIG).forEach(f => blink(f, wall));
-    const ctx = {now, wall, p, beat, band};
+    const ctx = {now, wall, p, beat};
     MEMBER_RIGS.forEach(M => M.pose(parts[M.id], ctx));
-    // Işık şovu: hüzmeler ritimle salınır, kick'te parlar, crash vuruşunda sahne beyaz flaş alır
-    const ka = p && p.lastHit.kick !== undefined ? now - p.lastHit.kick : 9;
-    const ca = p && p.lastHit.crash !== undefined ? now - p.lastHit.crash : 9;
-    flash = band ? Math.exp(-ca * 4) : 0;
-    MEMBER_RIGS.forEach((M, i) => {
-      const b = beams[M.id], sw = band ? 0.16 : 0.05, ph = i * 1.3;
+    // Işık şovu: akor vuruşunda flaş, hüzmeler ritimle salınır
+    let sa = 9; if (p) for (const t of p.strums){ if (t > now) break; sa = now - t; }
+    flash = p ? Math.exp(-sa * 4) : 0;
+    beamList.forEach((b, i) => {
+      const sw = p ? 0.16 : 0.05, ph = i * 1.3;
       b.rotation.z = sw * Math.sin(beat * Math.PI / 4 + ph); b.rotation.x = sw * 0.6 * Math.cos(beat * Math.PI / 4 + ph * 0.7);
-      b.material.opacity = 0.045 + (band ? 0.06 * Math.exp(-ka * 5) + 0.02 * Math.max(0, Math.sin(beat * Math.PI / 2 + i)) + 0.1 * flash : 0);
-      b.material.color.setHex(M.beam).lerp(_white, 0.6 * flash);
+      b.material.opacity = 0.045 + (p ? 0.02 * Math.max(0, Math.sin(beat * Math.PI / 2 + i)) + 0.1 * flash : 0);
+      b.material.color.setHex(b.userData.col).lerp(_white, 0.6 * flash);
     });
-    hemi.intensity = hemiBase + 0.5 * flash;
+    hemi.intensity = hemiBase + 0.4 * flash;
   }
   return { FIG, LIGHTS, beams, parts, applyRoster, updateBand, invalidateBanner(){ rosterKey = ""; }, get flash(){ return flash; } };
 }

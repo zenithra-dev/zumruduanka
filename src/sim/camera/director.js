@@ -1,5 +1,5 @@
 // Otomatik yönetmen: şarkı başında çekim listesini çıkarır, her karede kamerayı o çekime göre yerleştirir.
-// İki kaynak: şarkı kendi çekim listesini (shots) veriyorsa o kullanılır; yoksa kim öne çıkıyorsa ona kesen otomatik plan.
+// İki kaynak: şarkı kendi çekim listesini (shots) veriyorsa o kullanılır; yoksa müziğin yoğunluğuna göre otomatik plan.
 // Zamanın fonksiyonu olarak çalışır: aynı an aynı kamerayı verir, kareler hangi sırada ya da hangi işçide işlenirse işlensin.
 //
 // Şarkı verisinde çekim (zamanlar vuruş cinsinden, len yoksa sona kadar):
@@ -28,43 +28,32 @@ export function createDirector({FIG, groupCam, orbit, placeCams}){
         cam, from: s.from || 0, to: s.to || 0, reverse: !!s.reverse, k: s.k || 3};
     });
   }
-  // Kim öne çıkıyorsa kamera ona keser: vokalde Şahmeran, gitar anında Claude (dönüşümlü sap kamerası), davul geçişinde Erlik.
-  // Uzun süredir görünmeyen üye sırasını alır; bir sonraki ölçüdeki davul geçişi önceden görülüp davulcuya erken kesilir.
-  function autoPlan(p, spb, t0, ros){
-    const bar = spb * 4, nBars = Math.ceil((p.end - t0) / bar) + 1, shots = [], shown = {};
-    const has = k => ros.includes(k) && (k === "claude" || p.band);
-    const over = (L, a, b) => (L || []).reduce((s, e) => s + Math.max(0, Math.min(b, e.end) - Math.max(a, e.t)), 0);
-    const cnt = (L, a, b, f) => (L || []).reduce((s, e) => s + (e.t >= a && e.t < b && (!f || f(e)) ? 1 : 0), 0);
-    const fillAt = b => cnt(p.drumEv, t0 + (b + 1) * bar - spb, t0 + (b + 1) * bar, e => e.k === "tom" || e.k === "snare" || e.k === "crash") >= 3;
-    let cur = null, n = 0, side = 1, gi = 0;
-    const push = (b, who, kind, len) => { side = -side; cur = {t: t0 + b * bar, end: t0 + (b + len) * bar, who, kind, side, glide: kind !== "fill" && kind !== "head" && shots.length % 3 === 2, crane: shots.filter(x => x.who === "wide").length % 2 === 1, cam: kind === "head" ? "head" : who === "wide" ? "wide" : "member"}; shown[who] = shots.length; shots.push(cur); };
-    for (let b = 0; b < nBars; b++){
-      const a = t0 + b * bar, z = a + bar;
-      if (cur && a < cur.end) continue;
-      if (b < 2){ push(b, "wide", "wide", 2); continue; }
-      const vox = over(p.voxEv, a, z + bar) / (bar * 2), gtr = cnt(p.events, a, z + bar), keys = cnt(p.keysEv, a, z + bar), bass = cnt(p.bassEv, a, z + bar);
-      const recent = k => shown[k] !== undefined && shots.length - shown[k] <= 3;
-      if (has("erlik") && !recent("erlik")){
-        if (fillAt(b)){ push(b, "erlik", "fill", 1); continue; }
-        if (fillAt(b + 1)){ push(b, "erlik", "fill", 2); continue; }
-      }
-      n++;
-      let pick;
-      if (n % 4 === 0) pick = ["wide", "wide"];
-      else {
-        const sc = [["claude", gtr * 1.2], ["umay", bass * 0.8], ["ulgen", keys * 1.5], ["erlik", cnt(p.drumEv, a, z) * 0.3]].filter(x => has(x[0]) && x[1] > 0).sort((x, y) => y[1] - x[1]);
-        const starved = sc.map(x => x[0]).filter(k => k !== "claude" && (shown[k] === undefined || shots.length - shown[k] > 5));
-        let top = sc.length ? sc[(cur && cur.who === sc[0][0] && sc.length > 1) ? 1 : 0][0] : "wide";
-        if (starved.length && n % 2 === 0) top = starved[0];
-        pick = top === "claude" ? ["claude", n % 3 === 1 ? (gi++ % 2 ? "head" : "guitar") : "close"] : top === "wide" ? ["wide", "wide"] : [top, "medium"];
-        if (vox > 0.25 && has("sahmeran")){ const others = sc.map(x => x[0]); pick = n % 4 === 1 ? ["sahmeran", "close"] : n % 4 === 3 ? ["sahmeran", "medium"] : [others[(n >> 2) % Math.max(1, others.length)] || "wide", "medium"]; }
-      }
-      push(b, pick[0], pick[1], 2);
+  // Tek kişilik sahne için otomatik plan: yoğun pasajlarda eller (gitar yakın plan, sap kamerası), sakin yerlerde yüz ve geniş açı;
+  // araya sahne çevresinde yaylar, gitara yakın sahne kamerası ve yaklaşan/uzaklaşan geniş planlar girer.
+  function autoPlan(p, spb, t0){
+    const bar = spb * 4, nBars = Math.ceil((p.end - t0) / bar) + 1, shots = [];
+    const cnt = (a, b) => p.events.reduce((s, e) => s + (e.t >= a && e.t < b ? 1 : 0), 0);
+    let side = 1, n = 0, orb = 0;
+    const push = (b, len, kind, extra) => { side = -side; const sh = Object.assign({t: t0 + b * bar, end: t0 + (b + len) * bar, who: "claude", kind, side, glide: false, crane: false, cam: "member", from: 0, to: 0, reverse: false, k: 3}, extra); shots.push(sh); };
+    const SEQ = ["close", "guitar", "wide", "head", "orbit", "close", "stage", "guitar", "wide", "head", "dolly", "close"];
+    push(0, 2, "wide", {who: "wide", cam: "dolly"});
+    for (let b = 2; b < nBars; ){
+      const dense = cnt(t0 + b * bar, t0 + (b + 2) * bar) >= 14;
+      let k = SEQ[n++ % SEQ.length];
+      if (dense && (k === "close" || k === "wide")) k = n % 2 ? "guitar" : "head";
+      let len = 2, extra = {};
+      if (k === "wide") extra = {who: "wide", cam: "wide", crane: n % 4 === 0};
+      else if (k === "orbit"){ orb++; extra = {who: "wide", cam: "orbit", from: orb % 2 ? -0.35 : 0.35, to: orb % 2 ? 0.25 : -0.25}; len = 3; }
+      else if (k === "stage") extra = {who: "wide", cam: "stage"};
+      else if (k === "dolly") extra = {who: "wide", cam: "dolly", reverse: n % 2 === 0};
+      else if (k === "head") extra = {cam: "head"};
+      else extra = {glide: n % 3 === 2};
+      push(b, len, k, extra); b += len;
     }
     return shots;
   }
-  function planShots(p, spb, t0, ros){
-    return p.song.shots ? authored(p.song.shots, spb, t0, p.end) : autoPlan(p, spb, t0, ros);
+  function planShots(p, spb, t0){
+    return p.song.shots ? authored(p.song.shots, spb, t0, p.end) : autoPlan(p, spb, t0);
   }
 
   const _H = new THREE.Vector3(), _F = new THREE.Vector3(), _R = new THREE.Vector3(), _L = new THREE.Vector3();

@@ -16,7 +16,7 @@ export function createBanner(scene){
     g.shadowBlur = 0; g.strokeStyle = "rgba(255,200,130,.6)"; g.lineWidth = 4;
     [[160, 560], [1488, 1888]].forEach(([a, b]) => { g.beginPath(); g.moveTo(a, 340); g.lineTo(b, 340); g.stroke(); });
     g.fillStyle = "rgba(255,214,160,.85)"; g.font = "500 44px 'JetBrains Mono', monospace";
-    g.fillText(roster.map(k => MEMBER[k].name).join(" · "), W / 2, 342);
+    g.fillText(roster.map(k => MEMBER[k].name + " · " + MEMBER[k].role.toLocaleUpperCase("tr")).join("   "), W / 2, 342);
     banTex.needsUpdate = true;
   }
   const banner = new THREE.Mesh(new THREE.PlaneGeometry(4.4, 0.86), new THREE.MeshBasicMaterial({map: banTex, transparent: true, fog: false}));

@@ -24,8 +24,10 @@ export function placeMidi(midi, prevFret, allowed){
   }
   return best;
 }
-// Akor: frets dizisi tel sırasıyla perde (null = çalınmaz); tellere küçük gecikmeyle vurulur.
-export function chord(ev, beat, frets, dur, strumBeats){
+// Akor: frets dizisi tel sırasıyla perde (null = çalınmaz); tellere küçük gecikmeyle vurulur. mute: palm mute (avuç köprüde).
+export function chord(ev, beat, frets, dur, strumBeats, mute){
   let k = 0;
-  frets.forEach((f, s) => { if (f !== null && f !== undefined) ev.push({b: beat + (k++) * (strumBeats || 0.02), s, f, d: dur}); });
+  frets.forEach((f, s) => { if (f !== null && f !== undefined){ const e = {b: beat + (k++) * (strumBeats || 0.02), s, f, d: dur}; if (mute) e.m = true; ev.push(e); } });
 }
+// Nota olayı alanları: b vuruş, s tel (0 kalın E), f perde, d süre (vuruş), m palm mute, v vuruş gücü 0..1, h legato (penasız),
+// bend yarım ses cinsinden bükme, sl kayarak gelinen önceki perde

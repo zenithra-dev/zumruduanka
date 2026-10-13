@@ -24,8 +24,8 @@ export function createCrowd(scene){
   const C = {P, body, head, arm, m4: new THREE.Matrix4(), q: new THREE.Quaternion(), e: new THREE.Euler(), v: new THREE.Vector3(), sc: new THREE.Vector3()};
 
   function update(now, wall, p, envName){
-    const band = p && p.band, beat = now * (p ? p.bpm : 90) / 60, theater = envName === "theater";
-    const energy = band ? 1 : p ? 0.4 : 0;
+    const beat = now * (p ? p.bpm : 90) / 60, theater = envName === "theater";
+    const energy = p ? 0.8 : 0;
     C.P.forEach((q, i) => {
       const vis = !q.seat || theater, hop = vis ? energy * (q.seat ? 0.015 : 0.05) * Math.abs(Math.sin(beat * Math.PI + q.ph * 0.15)) : 0;
       const sway = 0.04 * Math.sin(wall * 0.7 + q.ph), base = vis ? q.y : -50, ry = q.ry || 0;

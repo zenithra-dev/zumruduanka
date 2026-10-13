@@ -5,7 +5,7 @@ import { mat, glow, figure, poseArm } from "../figures.js";
 
 export default {
   id: "claude", beam: 0xffa848,
-  groove: (p, band) => p ? 0.6 : 0,
+  groove: p => p ? 0.6 : 0,
   build({scene, model}){
     const fig = figure(scene, {x: 0.2, z: -0.19, sway: 0.5, cloth: mat(0x2a2933), leg: mat(0x1b1a20), skin: mat(0xd9c4a6, {roughness: 0.5})});
     const visor = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.045, 0.06), glow(0xffa53c, 1.4)); visor.position.set(0, 0.015, 0.09); fig.head.add(visor);

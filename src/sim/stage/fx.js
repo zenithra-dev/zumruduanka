@@ -32,7 +32,7 @@ export function createFx(scene){
   const phLight = new THREE.PointLight(0xff7a20, 1.4, 3.5); phoenix.add(phLight);
 
   function update(now, wall, p){
-    const band = p && p.band, beat = now * (p ? p.bpm : 90) / 60;
+    const band = !!p, beat = now * (p ? p.bpm : 90) / 60;
     const heat = band ? 1 : 0.4;
     for (let i = 0; i < EMBERS; i++){
       const [x0, z0, ph, sp, w] = emberSeed[i], life = 3.2, u = ((wall * sp / life) + ph) % 1;

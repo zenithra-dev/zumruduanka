@@ -1,4 +1,4 @@
-// Zümrüdüanka simülasyonu: grup, sahne, ses ve kamera tek bir API arkasında.
+// Zümrüdüanka simülasyonu: Claude, elektro gitarı, sahne, ses ve kamera tek bir API arkasında.
 //
 //   const sim = createSim({canvas, audioContext?, seed?, manual?});
 //   sim.load("kaf");                 // şarkıyı ses motoruna programlar, yönetmen çekim listesini çıkarır
@@ -46,9 +46,9 @@ export function createSim(opts = {}){
   const director = createDirector({FIG: rigs.FIG, groupCam: S.groupCam, orbit: S.orbit, placeCams: () => S.placeCams(model)});
   const reduceMotion = !!(typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 
-  let camMode = "director", bandOn = true, current = SONGS[0], playing = null, lyric = null;
+  let camMode = "director", current = SONGS[0], playing = null;
 
-  function roster(){ const sg = playing ? playing.song : current; return bandOn ? (sg.members || ["claude"]) : ["claude"]; }
+  function roster(){ return ["claude"]; }
   function ensureAudio(){
     if (engine){
       if (engine.ctx.state === "suspended"){ const p = engine.ctx.resume(); if (p && p.catch) p.catch(() => {}); }
@@ -64,17 +64,9 @@ export function createSim(opts = {}){
     if (!song) throw new Error("Şarkı bulunamadı");
     ensureAudio(); stop(); current = song;
     if (song.amp) sim.setAmp(song.amp);
-    playing = schedule(song, {engine, inst, bandOn});
-    playing.shots = director.planShots(playing, 60 / playing.bpm, playing.t0, roster());
+    playing = schedule(song, {engine, inst});
+    playing.shots = director.planShots(playing, 60 / playing.bpm, playing.t0);
     return playing;
-  }
-  // O anki söz satırı: hece hece, söylenmiş olanlar işaretli
-  function lyricAt(now){
-    const ph = playing && playing.band && playing.phr ? playing.phr.find(q => now >= q.t && now < q.end) : null;
-    if (!ph) return null;
-    const toks = ph.line.split(/([ -])/); let si = 0; const out = [];
-    toks.forEach(tk => { if (tk === "-") return; if (tk === " "){ out.push({t: " ", on: false}); return; } out.push({t: tk, on: now >= ph.starts[si]}); si++; });
-    return out;
   }
   function headCamOn(){ return camMode === "head" || (camMode === "director" && director.cam === "head"); }
 
@@ -82,7 +74,6 @@ export function createSim(opts = {}){
     if (wall === undefined) wall = now;
     const act = [null,null,null,null,null,null];
     if (playing){
-      while (playing.di < playing.drumEv.length && playing.drumEv[playing.di].t <= now){ const d = playing.drumEv[playing.di++]; playing.lastHit[d.k] = d.t; }
       for (const e of playing.events) if (now >= e.t && now < e.end) act[e.s] = e;
       if (!manual && now > playing.end){ stop(); if (sim.onEnd) sim.onEnd(); }
     }
@@ -121,7 +112,6 @@ export function createSim(opts = {}){
       S.groupCam.lookAt(0, -0.05, -0.8);
     }
     rigs.applyRoster(roster(), headCamOn());
-    lyric = lyricAt(now);
   }
   function activeCam(){
     const m = camMode === "director" ? director.cam : camMode;
@@ -129,14 +119,14 @@ export function createSim(opts = {}){
   }
   function render(){
     const cam = activeCam();
-    if (S.composer){ S.renderPass.camera = cam; S.bloomPass.strength = 0.42 + (playing && playing.band ? 0.2 * rigs.flash : 0); S.composer.render(); }
+    if (S.composer){ S.renderPass.camera = cam; S.bloomPass.strength = 0.42 + (playing ? 0.2 * rigs.flash : 0); S.composer.render(); }
     else S.renderer.render(S.scene, cam);
   }
   function hudLabel(){
     const cam = CAM_LABEL[camMode] || "SAHNE";
-    return `${sim.recording ? "REC · " : ""}${cam} · ${playing ? BAND_NAME + " çalıyor: " + playing.song.name + (playing.band ? "" : " · sadece gitar") : "hazır"}`;
+    return `${sim.recording ? "REC · " : ""}${cam} · ${playing ? BAND_NAME + " çalıyor: " + playing.song.name : "hazır"}`;
   }
-  // Kayıt/video karesi: 3B görüntü + alt bant (grup, şarkı, kadro), söz satırı ve HUD. 1280×720 için tasarlandı, başka boyuta ölçeklenir.
+  // Kayıt/video karesi: 3B görüntü + alt bant (sahne adı, şarkı, çalan) ve HUD. 1280×720 için tasarlandı, başka boyuta ölçeklenir.
   function composite(g, W = 1280, H = 720){
     g.save(); g.scale(W / 1280, H / 720);
     g.drawImage(canvas, 0, 0, 1280, 720);
@@ -145,9 +135,6 @@ export function createSim(opts = {}){
     g.textAlign = "left"; g.textBaseline = "alphabetic";
     g.fillStyle = "#ffc27a"; g.font = "800 46px 'Big Shoulders Display', Impact, sans-serif"; g.fillText(BAND_NAME, 40, 672);
     g.fillStyle = "#f4ece2"; g.font = "500 20px 'JetBrains Mono', monospace"; g.fillText((playing ? playing.song.name : current.name) + "  ·  " + roster().map(k => MEMBER[k].label).join(" · "), 40, 702);
-    if (lyric){ g.font = "600 34px Figtree, system-ui, sans-serif"; g.textBaseline = "middle"; g.shadowColor = "rgba(0,0,0,.8)"; g.shadowBlur = 8;
-      const Wt = lyric.reduce((w, x) => w + g.measureText(x.t).width, 0); let x = 640 - Wt / 2;
-      lyric.forEach(pc => { g.fillStyle = pc.on ? "#7cf0b8" : "#f4ece2"; g.fillText(pc.t, x, 590); x += g.measureText(pc.t).width; }); g.shadowBlur = 0; }
     g.fillStyle = "#f05a5a"; g.beginPath(); g.arc(34, 34, 8, 0, Math.PI * 2); g.fill();
     g.fillStyle = "#f4ece2"; g.font = "500 20px JetBrains Mono, monospace"; g.textAlign = "left"; g.textBaseline = "middle";
     g.fillText(hudLabel(), 52, 35);
@@ -170,11 +157,9 @@ export function createSim(opts = {}){
     get envName(){ return venues.envName; }, setEnv(n){ venues.setEnv(n); },
     get ampName(){ return prefs.amp; }, setAmp(n){ prefs.amp = n; if (engine) engine.setAmp(n); },
     get volume(){ return prefs.volume; }, setVolume(v){ prefs.volume = v; if (engine) engine.setVolume(v); },
-    get bandOn(){ return bandOn; }, set bandOn(v){ bandOn = !!v; },
     get audio(){ return engine; },
-    get lyric(){ return lyric; },
-    songLength(song){ if (typeof song !== "object") song = findSong(song); return songLength(song, bandOn); },
-    ensureAudio, load, stop, roster, lyricAt, update, render, frame(now, wall){ update(now, wall); render(); },
+    songLength(song){ if (typeof song !== "object") song = findSong(song); return songLength(song); },
+    ensureAudio, load, stop, roster, update, render, frame(now, wall){ update(now, wall); render(); },
     resize, hudLabel, composite, placeCams(){ S.placeCams(model); }
   };
   venues.setEnv("club");
