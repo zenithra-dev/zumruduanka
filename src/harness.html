@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Zümrüdüanka harness</title>
+<!-- Araçların (render, shot, audtest) headless Chromium'da yüklediği çıplak sayfa: tek bir 1280×720 tuval. -->
+<link rel="stylesheet" href="./vendor/fonts/fonts.css">
+<style>html,body{margin:0;background:#000;overflow:hidden}#gl{display:block;width:1280px;height:720px}
+.fontload{position:absolute;left:-9999px;top:0}</style>
+<script type="importmap">{"imports": {"three": "./vendor/three/build/three.module.js"}}</script>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<!-- Yazı tiplerinin yüklenmesini tetikler; pankart ve alt bant bu aileleri kullanır. -->
+<div class="fontload"><span style="font:800 20px 'Big Shoulders Display'">A</span><span style="font:600 20px Figtree">A</span><span style="font:500 20px 'JetBrains Mono'">A</span></div>
+<script type="module">
+import { createSim } from "./sim/sim.js";
+import { encodeWav, peakOf } from "./sim/audio/wav.js";
+window.createSim = createSim; window.encodeWav = encodeWav; window.peakOf = peakOf;
+</script>
+</body>
+</html>

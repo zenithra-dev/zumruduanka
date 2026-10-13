@@ -1,0 +1,16 @@
+{
+  "name": "zumruduanka",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Zümrüdüanka: tarayıcıda sentezlenen sanal müzik grubu ve onu videoya çeken kamera hattı",
+  "scripts": {
+    "dev": "node tools/serve.js src 8080",
+    "render": "bash tools/runall.sh",
+    "shot": "node tools/shot.js",
+    "audtest": "node tools/audtest.js"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}

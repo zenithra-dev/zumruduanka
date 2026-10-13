@@ -1,7 +1,3 @@
 node_modules/
-frames/
-*.png
-*.wav
-package/
+out/
 *.tgz
-render.html
