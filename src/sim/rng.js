@@ -8,3 +8,6 @@ export function rand(){
   t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 }
+// Durumu sakla/geri al: rastgelelik tüketen bir hesabı (ör. şarkı süresi) diziyi bozmadan yapmak için
+export function getState(){ return state; }
+export function setState(s){ state = s | 0; }

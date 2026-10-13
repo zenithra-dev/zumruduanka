@@ -1,7 +1,7 @@
 // Zümrüdüanka simülasyonu: grup, sahne, ses ve kamera tek bir API arkasında.
 //
 //   const sim = createSim({canvas, audioContext?, seed?, manual?});
-//   sim.load(sim.songs[0]);          // şarkıyı ses motoruna programlar, yönetmen çekim listesini çıkarır
+//   sim.load("kaf");                 // şarkıyı ses motoruna programlar, yönetmen çekim listesini çıkarır
 //   sim.frame(now, wall);            // o ana göre sahneyi günceller ve çizer
 //   sim.composite(ctx2d, 1280, 720); // kareyi grup adı, şarkı, söz ve HUD ile 2B tuvale basar
 //
@@ -11,7 +11,7 @@ import * as THREE from "three";
 import { seed as seedRng } from "./rng.js";
 import { STR_Z, fingerX, stringY } from "./music/theory.js";
 import { SONGS, findSong } from "./band/songs/index.js";
-import { MEMBER, BIO, BAND_NAME } from "./band/members.js";
+import { MEMBER, BAND_NAME } from "./band/members.js";
 import { createScene } from "./stage/scene.js";
 import { createGuitarModel } from "./stage/guitar-model.js";
 import { createBanner } from "./stage/banner.js";
@@ -22,9 +22,9 @@ import { createCrowd } from "./stage/crowd.js";
 import { createDirector } from "./camera/director.js";
 import { createEngine, AMPS } from "./audio/engine.js";
 import { createInstruments } from "./audio/instruments.js";
-import { schedule, release } from "./audio/playback.js";
+import { schedule, release, songLength } from "./audio/playback.js";
 
-export { SONGS, findSong, MEMBER, BIO, BAND_NAME, ENVS, AMPS };
+export { SONGS, findSong, MEMBER, BAND_NAME, ENVS, AMPS, songLength };
 
 const CAM_LABEL = {head: "SAP KAMERASI", stage: "SAHNE", group: "GRUP", director: "YÖNETMEN"};
 
@@ -36,17 +36,17 @@ export function createSim(opts = {}){
   const S = createScene(canvas);
   const model = createGuitarModel(S.scene);
   const bannerKit = createBanner(S.scene);
-  const rigs = createRigs({scene: S.scene, model, riser: S.riser, hemi: S.hemi, drawBanner: bannerKit.drawBanner});
+  const rigs = createRigs({scene: S.scene, model, hemi: S.hemi, drawBanner: bannerKit.drawBanner});
   const fx = createFx(S.scene);
   const prefs = {amp: "crunch", room: 1.4, volume: 0.75};
   let engine = null, inst = null;
   const venues = createVenues({scene: S.scene, hemi: S.hemi, key: S.key, floor: S.floor, banner: bannerKit.banner, clubItems: [S.back, S.ampG, S.truss],
     onRoom(sec){ prefs.room = sec; if (engine) engine.setRoom(sec); }});
   const crowd = createCrowd(S.scene);
-  const director = createDirector({FIG: rigs.FIG, groupCam: S.groupCam});
+  const director = createDirector({FIG: rigs.FIG, groupCam: S.groupCam, orbit: S.orbit, placeCams: () => S.placeCams(model)});
   const reduceMotion = !!(typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 
-  let camMode = "head", bandOn = true, current = SONGS[0], playing = null, lyric = null;
+  let camMode = "director", bandOn = true, current = SONGS[0], playing = null, lyric = null;
 
   function roster(){ const sg = playing ? playing.song : current; return bandOn ? (sg.members || ["claude"]) : ["claude"]; }
   function ensureAudio(){
@@ -76,6 +76,7 @@ export function createSim(opts = {}){
     toks.forEach(tk => { if (tk === "-") return; if (tk === " "){ out.push({t: " ", on: false}); return; } out.push({t: tk, on: now >= ph.starts[si]}); si++; });
     return out;
   }
+  function headCamOn(){ return camMode === "head" || (camMode === "director" && director.cam === "head"); }
 
   function update(now, wall){
     if (wall === undefined) wall = now;
@@ -114,15 +115,18 @@ export function createSim(opts = {}){
     fx.update(now, wall, playing);
     venues.updateEnv(wall);
     crowd.update(now, wall, playing, venues.envName);
-    if (camMode === "director") director.direct(now, wall, playing);
+    if (camMode === "director") director.direct(now, wall, playing, roster());
     else if (camMode === "group" && !manual){
       S.groupCam.position.set(0.15 + 0.45 * Math.sin(wall * 0.12), 0.8, 4.4 + 0.25 * Math.sin(wall * 0.09));
       S.groupCam.lookAt(0, -0.05, -0.8);
     }
-    rigs.applyRoster(roster(), camMode === "head");
+    rigs.applyRoster(roster(), headCamOn());
     lyric = lyricAt(now);
   }
-  function activeCam(){ return camMode === "head" ? S.headCam : (camMode === "group" || camMode === "director") ? S.groupCam : S.stageCam; }
+  function activeCam(){
+    const m = camMode === "director" ? director.cam : camMode;
+    return m === "head" ? S.headCam : m === "stage" ? S.stageCam : S.groupCam;
+  }
   function render(){
     const cam = activeCam();
     if (S.composer){ S.renderPass.camera = cam; S.bloomPass.strength = 0.42 + (playing && playing.band ? 0.2 * rigs.flash : 0); S.composer.render(); }
@@ -132,9 +136,10 @@ export function createSim(opts = {}){
     const cam = CAM_LABEL[camMode] || "SAHNE";
     return `${sim.recording ? "REC · " : ""}${cam} · ${playing ? BAND_NAME + " çalıyor: " + playing.song.name + (playing.band ? "" : " · sadece gitar") : "hazır"}`;
   }
-  // Kayıt/video karesi: 3B görüntü + alt bant (grup, şarkı, kadro), söz satırı ve HUD. Yerleşim 1280×720 için ayarlı.
+  // Kayıt/video karesi: 3B görüntü + alt bant (grup, şarkı, kadro), söz satırı ve HUD. 1280×720 için tasarlandı, başka boyuta ölçeklenir.
   function composite(g, W = 1280, H = 720){
-    g.drawImage(canvas, 0, 0, W, H);
+    g.save(); g.scale(W / 1280, H / 720);
+    g.drawImage(canvas, 0, 0, 1280, 720);
     const grd = g.createLinearGradient(0, 600, 0, 720); grd.addColorStop(0, "rgba(10,7,5,0)"); grd.addColorStop(1, "rgba(10,7,5,.7)");
     g.fillStyle = grd; g.fillRect(0, 600, 1280, 120);
     g.textAlign = "left"; g.textBaseline = "alphabetic";
@@ -146,6 +151,7 @@ export function createSim(opts = {}){
     g.fillStyle = "#f05a5a"; g.beginPath(); g.arc(34, 34, 8, 0, Math.PI * 2); g.fill();
     g.fillStyle = "#f4ece2"; g.font = "500 20px JetBrains Mono, monospace"; g.textAlign = "left"; g.textBaseline = "middle";
     g.fillText(hudLabel(), 52, 35);
+    g.restore();
   }
   function resize(w, h){
     if (w === undefined){ const r = canvas.getBoundingClientRect(); w = r.width; h = r.height; }
@@ -155,7 +161,7 @@ export function createSim(opts = {}){
   const sim = {
     THREE, canvas, scene: S.scene, renderer: S.renderer,
     cams: {head: S.headCam, stage: S.stageCam, group: S.groupCam}, orbit: S.orbit,
-    songs: SONGS, findSong, members: MEMBER, bios: BIO, bandName: BAND_NAME, envs: ENVS, amps: AMPS,
+    songs: SONGS, findSong, members: MEMBER, bandName: BAND_NAME, envs: ENVS, amps: AMPS,
     model, rigs, fx, venues, crowd, director, FIG: rigs.FIG,
     manual, seed, recording: false, onEnd: null,
     get playing(){ return playing; },
@@ -167,6 +173,7 @@ export function createSim(opts = {}){
     get bandOn(){ return bandOn; }, set bandOn(v){ bandOn = !!v; },
     get audio(){ return engine; },
     get lyric(){ return lyric; },
+    songLength(song){ if (typeof song !== "object") song = findSong(song); return songLength(song, bandOn); },
     ensureAudio, load, stop, roster, lyricAt, update, render, frame(now, wall){ update(now, wall); render(); },
     resize, hudLabel, composite, placeCams(){ S.placeCams(model); }
   };

@@ -1,7 +1,11 @@
 // Umay'ın Ninnisi: ballad, A minör, 72 BPM. Erlik çalmıyor.
 import { chord } from "../../music/theory.js";
 
-export default {id: "ninni", name: "Umay'ın Ninnisi", desc: "Ballad · A minör · Erlik dinleniyor · 72 BPM", amp: "clean", members: ["claude", "umay", "sahmeran", "ulgen"], build(){
+export default {id: "ninni", name: "Umay'ın Ninnisi", desc: "Ballad · A minör · Erlik dinleniyor · 72 BPM", amp: "clean", members: ["claude", "umay", "sahmeran", "ulgen"], shots: [
+    {b: 0, len: 12, cam: "head"}, {b: 12, len: 8, cam: "dolly"}, {b: 20, len: 12, who: "sahmeran", kind: "close"}, {b: 32, len: 8, who: "ulgen"},
+    {b: 40, len: 8, who: "umay"}, {b: 48, len: 12, cam: "orbit", from: -0.4, to: 0.4}, {b: 60, len: 8, who: "sahmeran", kind: "close"},
+    {b: 68, len: 12, cam: "stage"}, {b: 80, len: 8, cam: "head"}, {b: 88, cam: "outro", k: 2}
+  ], build(){
     const ev = [], keys = [], vox = [], phrases = [], bass = [];
     const deg = i => [69, 71, 72, 74, 76, 77, 79][((i % 7) + 7) % 7] + 12 * Math.floor(i / 7);
     const SH = {Am: [null,0,2,2,1,0], F: [1,3,3,2,1,1], C: [null,3,2,0,1,0], G: [3,2,0,0,0,3], Dm: [null,null,0,2,3,1], E: [0,2,2,1,0,0]};

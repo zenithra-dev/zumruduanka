@@ -1,6 +1,7 @@
 // Bir şarkıyı motora programlar: gitar, davul, bas, klavye ve vokal olayları ses grafiğine bağlanır,
 // görsel katmanın izleyeceği zamanlı olay listeleri döner.
 import { OPEN } from "../music/theory.js";
+import { getState, setState } from "../rng.js";
 import { HIT } from "../band/kit.js";
 import { DRUM_PAN, DRUM_REV, drumVel } from "./drums.js";
 
@@ -47,4 +48,14 @@ export function schedule(song, {engine, inst, bandOn}){
 export function release(p, ctx){
   p.bus.gain.setTargetAtTime(0, ctx.currentTime, 0.03); p.bandBus.gain.setTargetAtTime(0, ctx.currentTime, 0.03); p.voxBus.gain.setTargetAtTime(0, ctx.currentTime, 0.03);
   p.srcs.forEach(s => { try { s.stop(ctx.currentTime + 0.2); } catch(e){} });
+}
+// Şarkının süresi (sn): başlangıç payı + son gitar notasının bitişi + kuyruk. build() çağrılır ama rastgelelik durumu geri alınır,
+// böylece hesap yapılsın yapılmasın aynı tohum aynı şarkıyı verir. Taze bir OfflineAudioContext'te schedule()'ın end değeriyle aynıdır.
+export function songLength(song, bandOn = true){
+  const st = getState();
+  const {bpm, ev, drums, vox, keys} = song.build();
+  setState(st);
+  const spb = 60 / bpm, band = bandOn && !!(drums || vox || keys);
+  let last = 0; ev.forEach(e => { last = Math.max(last, e.b + e.d); });
+  return 0.2 + last * spb + (band ? 1.4 : 0.4);
 }

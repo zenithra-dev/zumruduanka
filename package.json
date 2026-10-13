@@ -6,6 +6,7 @@
   "description": "Zümrüdüanka: tarayıcıda sentezlenen sanal müzik grubu ve onu videoya çeken kamera hattı",
   "scripts": {
     "dev": "node tools/serve.js src 8080",
+    "test": "node tools/check.js",
     "render": "bash tools/runall.sh",
     "shot": "node tools/shot.js",
     "audtest": "node tools/audtest.js"

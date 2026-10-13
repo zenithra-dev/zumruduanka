@@ -14,9 +14,10 @@
 <!-- Yazı tiplerinin yüklenmesini tetikler; pankart ve alt bant bu aileleri kullanır. -->
 <div class="fontload"><span style="font:800 20px 'Big Shoulders Display'">A</span><span style="font:600 20px Figtree">A</span><span style="font:500 20px 'JetBrains Mono'">A</span></div>
 <script type="module">
-import { createSim } from "./sim/sim.js";
+import { createSim, findSong, songLength, SONGS } from "./sim/sim.js";
 import { encodeWav, peakOf } from "./sim/audio/wav.js";
-window.createSim = createSim; window.encodeWav = encodeWav; window.peakOf = peakOf;
+window.createSim = createSim; window.findSong = findSong; window.songLength = songLength; window.SONG_IDS = SONGS.map(s => s.id);
+window.encodeWav = encodeWav; window.peakOf = peakOf;
 </script>
 </body>
 </html>

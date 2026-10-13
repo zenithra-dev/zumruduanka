@@ -2,7 +2,12 @@
 import { chord, placeMidi } from "../../music/theory.js";
 import { bassFrom } from "../../music/patterns.js";
 
-export default {id: "tepegoz", name: "Tepegöz", desc: "Enstrümantal metal · E frig · 4 kişi · 150 BPM", amp: "lead", members: ["claude", "erlik", "umay", "ulgen"], build(){
+export default {id: "tepegoz", name: "Tepegöz", desc: "Enstrümantal metal · E frig · 4 kişi · 150 BPM", amp: "lead", members: ["claude", "erlik", "umay", "ulgen"], shots: [
+    {b: 0, len: 16, cam: "dolly"}, {b: 16, len: 16, cam: "head"}, {b: 32, len: 12, who: "erlik"},
+    {b: 44, len: 4, cam: "orbit", from: -0.3, to: 0.2}, {b: 48, len: 16, cam: "orbit", from: 0.4, to: -0.4}, {b: 64, len: 16, cam: "stage"},
+    {b: 80, len: 16, cam: "head"}, {b: 96, len: 12, who: "umay"}, {b: 108, len: 10, who: "ulgen"}, {b: 118, len: 10, who: "erlik"},
+    {b: 128, cam: "outro", k: 2.5}
+  ], build(){
     const ev = [], drums = [], keys = [], bass = [];
     let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
     const E5 = [0, 2, 2], F5 = [1, 3, 3], G5 = [3, 5, 5], C5 = [null, 3, 5, 5], D5 = [null, 5, 7, 7];

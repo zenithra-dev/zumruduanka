@@ -2,7 +2,14 @@
 import { placeMidi, chord } from "../../music/theory.js";
 import { rockBeat, driveBeat, bassFrom } from "../../music/patterns.js";
 
-export default {id: "kaf", name: "Kaf Dağı", desc: "Grubun ilk şarkısı · D hicaz · 5 kişi · 96 BPM", amp: "crunch", members: ["claude", "erlik", "umay", "sahmeran", "ulgen"], build(){
+export default {id: "kaf", name: "Kaf Dağı", desc: "Grubun ilk şarkısı · D hicaz · 5 kişi · 96 BPM", amp: "crunch", members: ["claude", "erlik", "umay", "sahmeran", "ulgen"], shots: [
+    {b: 0, len: 8, cam: "head"}, {b: 8, len: 8, cam: "dolly"}, {b: 16, len: 8, who: "sahmeran", kind: "close"},
+    {b: 24, len: 8, cam: "orbit", from: -0.3, to: 0.1}, {b: 32, len: 8, who: "ulgen"}, {b: 40, len: 8, who: "umay"},
+    {b: 48, len: 8, cam: "orbit", from: 0.35, to: -0.35}, {b: 56, len: 8, who: "erlik"}, {b: 64, len: 8, who: "sahmeran", kind: "close"},
+    {b: 72, len: 8, cam: "dolly", reverse: true}, {b: 80, len: 8, cam: "stage"}, {b: 88, len: 8, cam: "head"},
+    {b: 96, len: 8, cam: "orbit", from: -0.4, to: 0.4}, {b: 104, len: 8, who: "sahmeran", kind: "close"}, {b: 112, len: 8, who: "erlik"},
+    {b: 120, len: 8, who: "umay"}, {b: 128, cam: "outro", k: 3}
+  ], build(){
     const ev = [], drums = [], keys = [], vox = [], phrases = [];
     const deg = i => [62, 63, 66, 67, 69, 70, 72][((i % 7) + 7) % 7] + 12 * Math.floor(i / 7);
     const D5 = [null, 5, 7], Eb5 = [null, 6, 8], Cm5 = [null, 3, 5];

@@ -6,6 +6,15 @@ import { startServer } from "./serve.js";
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
+async function ready(page){
+  await page.waitForFunction(() => !!window.createSim, null, {timeout: 30000});
+  // Tuvale yazılan üç yazı tipi (pankart, söz, HUD) hazır olmadan kare üretilmez; aksi halde kareler arasında yazı tipi değişir.
+  const fonts = await page.evaluate(() => Promise.race([
+    Promise.all(["800 20px 'Big Shoulders Display'", "600 20px Figtree", "500 20px 'JetBrains Mono'"].map(f => document.fonts.load(f, "ZÜMRÜDÜANKA şğıç"))).then(r => r.every(x => x.length > 0)),
+    new Promise(r => setTimeout(() => r(false), 15000))]));
+  if (!fonts) console.error("UYARI: yazı tipleri yüklenemedi (src/vendor/fonts), yedek yazı tipleriyle devam");
+}
+
 export async function openHarness({width = 1280, height = 720} = {}){
   const server = await startServer(path.join(ROOT, "src"));
   const browser = await chromium.launch({
@@ -15,14 +24,13 @@ export async function openHarness({width = 1280, height = 720} = {}){
   const page = await browser.newPage({viewport: {width, height}});
   page.on("pageerror", e => console.error("SAYFA HATASI", e.message));
   page.on("console", m => { if (m.type() === "error") console.error("KONSOL", m.text()); });
-  await page.goto(server.url + "/harness.html", {waitUntil: "domcontentloaded"});
-  await page.waitForFunction(() => !!window.createSim, null, {timeout: 30000});
-  // Tuvale yazılan üç yazı tipi (pankart, söz, HUD) hazır olmadan kare üretilmez; aksi halde kareler arasında yazı tipi değişir.
-  const fonts = await page.evaluate(() => Promise.race([
-    Promise.all(["800 20px 'Big Shoulders Display'", "600 20px Figtree", "500 20px 'JetBrains Mono'"].map(f => document.fonts.load(f, "ZÜMRÜDÜANKA şğıç"))).then(r => r.every(x => x.length > 0)),
-    new Promise(r => setTimeout(() => r(false), 15000))]));
-  if (!fonts) console.error("UYARI: yazı tipleri yüklenemedi (src/vendor/fonts), yedek yazı tipleriyle devam");
-  return { browser, page, server, async close(){ await browser.close(); server.close(); } };
+  const url = server.url + "/harness.html";
+  await page.goto(url, {waitUntil: "domcontentloaded"}); await ready(page);
+  return {
+    browser, page, server, url: server.url,
+    async fresh(){ await page.goto(url, {waitUntil: "domcontentloaded"}); await ready(page); }, // temiz sayfa: yeni bir sim için
+    async close(){ await browser.close(); server.close(); }
+  };
 }
 
 // Türkçe karakterleri sadeleştirip dosya adı üretir: "Kaf Dağı" → "kaf-dagi"

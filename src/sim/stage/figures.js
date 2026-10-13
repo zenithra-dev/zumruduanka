@@ -73,3 +73,12 @@ export function poseArm(fig, i, target, pole){
   H.quaternion.setFromUnitVectors(UP, fd); H.position.copy(T).addScaledVector(fd, -0.045);
 }
 export function setFigVisible(fig, v){ fig.g.visible = v; fig.arms.forEach(a => { a.up.visible = a.fo.visible = a.el.visible = v; }); fig.hands.forEach(h => { h.visible = v; }); }
+// Gözler ve kaşlar: insan yüzlü üyeler için
+export function addEyes(fig, color, y){
+  [-1, 1].forEach(sd => {
+    const e = new THREE.Mesh(new THREE.SphereGeometry(0.014, 10, 8), mat(color, {roughness: 0.2})); e.position.set(sd * 0.04, y || 0.02, 0.105); e.scale.z = 0.5; fig.head.add(e);
+    const br = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.006, 0.01), mat(0x2a2420)); br.position.set(sd * 0.042, (y || 0.02) + 0.03, 0.104); br.rotation.z = -sd * 0.12; fig.head.add(br);
+  });
+}
+// Zamana göre sıralı {t, end} listesinde o an etkin olan öğe
+export function activeAt(list, now){ let r = null; if (list) for (const n of list){ if (n.t <= now){ if (now < n.end) r = n; } else break; } return r; }

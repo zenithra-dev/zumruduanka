@@ -8,7 +8,7 @@ const gl = $("gl");
 const seed = +(new URLSearchParams(location.search).get("seed") || (Date.now() >>> 0));
 const sim = createSim({canvas: gl, seed});
 window.sim = sim;
-const { songs: SONGS, members: MEMBER, bios: BIO } = sim;
+const { songs: SONGS, members: MEMBER } = sim;
 
 /* ---------- HUD ---------- */
 const hudText = $("hudText"), hudDot = $("hudDot");
@@ -91,19 +91,12 @@ function stopRecording(){ if (recorder && recorder.state !== "inactive") recorde
 recBtn.addEventListener("click", () => recording ? (sim.stop(), stopRecording()) : startRecording());
 sim.onEnd = () => { if (recording) setTimeout(stopRecording, 900); };
 
-let downloads = null;
-if (window.claude && typeof window.claude.use === "function"){
-  window.claude.use("downloads").then(d => { downloads = d; }).catch(() => {});
-}
-saveBtn.addEventListener("click", async () => {
+saveBtn.addEventListener("click", () => {
   if (!recBlob) return;
-  const name = `claude-gitar-${sim.current.id}.${recExt}`;
-  if (downloads){
-    try { await downloads.save({filename: name, data: recBlob}); recNote.textContent = "Video indirildi."; }
-    catch(e){ recNote.textContent = e && e.code === "declined" ? "İndirme iptal edildi." : "Video bu görünümde indirilemiyor. Önizlemedeki oynatıcıdan izleyebilirsin."; }
-  } else {
-    recNote.textContent = "İndirme bu görünümde kullanılamıyor. Önizlemedeki oynatıcıdan izleyebilirsin.";
-  }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(recBlob); a.download = `zumruduanka-${sim.current.id}.${recExt}`; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+  recNote.textContent = "Video indiriliyor.";
 });
 
 /* ---------- Arayüz ---------- */
@@ -136,7 +129,7 @@ document.querySelectorAll("#envSeg button").forEach(b => b.addEventListener("cli
   document.querySelectorAll("#envSeg button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
 }));
 const camNote = $("camNote");
-const CAM_NOTE = {head: "Kamera gitarın sap kafasına kıskaçla takılı, perdelere bakıyor.", stage: "Gitara yakın çekim: sürükleyerek etrafında dön, tekerlekle yakınlaş.", group: "Geniş açı: Zümrüdüanka sahnede. Kadro şarkıya göre değişir.", director: "Otomatik yönetmen: vokalde Şahmeran'a, gitar anında Claude'a, davul geçişinde Erlik'e keser."};
+const CAM_NOTE = {director: "Otomatik yönetmen: vokalde Şahmeran'a, gitar anında Claude'a, davul geçişinde Erlik'e keser; şarkının kendi çekim listesi varsa onu uygular.", group: "Geniş açı: Zümrüdüanka sahnede. Kadro şarkıya göre değişir.", stage: "Gitara yakın çekim: sürükleyerek etrafında dön, tekerlekle yakınlaş.", head: "Kamera gitarın sap kafasına kıskaçla takılı, perdelere bakıyor."};
 document.querySelectorAll("#camSeg button").forEach(b => b.addEventListener("click", () => {
   sim.setCamera(b.dataset.v);
   document.querySelectorAll("#camSeg button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
@@ -168,11 +161,11 @@ gl.addEventListener("wheel", e => { if (sim.camMode !== "stage") return; e.preve
   Object.keys(MEMBER).forEach(k => {
     const c = document.createElement("div"); c.className = "card";
     const who = document.createElement("div"); who.className = "who";
-    const sw = document.createElement("span"); sw.className = "sw"; sw.style.background = BIO[k][0];
+    const sw = document.createElement("span"); sw.className = "sw"; sw.style.background = MEMBER[k].color;
     const nm = document.createElement("b"); nm.textContent = MEMBER[k].name;
     who.append(sw, nm);
     const role = document.createElement("div"); role.className = "role"; role.textContent = MEMBER[k].role;
-    const bio = document.createElement("p"); bio.textContent = BIO[k][1];
+    const bio = document.createElement("p"); bio.textContent = MEMBER[k].bio;
     const inn = document.createElement("div"); inn.className = "in";
     inn.textContent = "Çaldığı şarkılar: " + SONGS.filter(sg => (sg.members || []).includes(k)).map(sg => sg.name).join(", ");
     c.append(who, role, bio, inn); cards.appendChild(c);

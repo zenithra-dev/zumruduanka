@@ -33,8 +33,6 @@ export function createScene(canvas){
   ampG.position.set(0.25, FLOOR - 0.145, -0.75);
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(14, 9), new THREE.MeshStandardMaterial({color: 0x2b1f18, roughness: 0.85}));
   floor.rotation.x = -Math.PI / 2; floor.position.set(0, FLOOR, -1); scene.add(floor);
-  const riser = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.18, 1.5), new THREE.MeshStandardMaterial({color: 0x1d1512, roughness: 0.9}));
-  scene.add(riser);
   const truss = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.08, 0.08), new THREE.MeshStandardMaterial({color: 0x2d2d30, metalness: 0.7, roughness: 0.4}));
   truss.position.set(0, 2.45, -0.9);
 
@@ -73,5 +71,5 @@ export function createScene(canvas){
     if (composer) composer.setSize(w, h);
     [headCam, stageCam, groupCam].forEach(c => { c.aspect = w / h; c.updateProjectionMatrix(); });
   }
-  return { renderer, scene, hemi, key, rim, spot, back, ampG, floor, riser, truss, headCam, stageCam, groupCam, orbit, placeCams, composer, renderPass, bloomPass, setSize };
+  return { renderer, scene, hemi, key, rim, spot, back, ampG, floor, truss, headCam, stageCam, groupCam, orbit, placeCams, composer, renderPass, bloomPass, setSize };
 }
