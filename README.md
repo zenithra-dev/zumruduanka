@@ -62,7 +62,7 @@ src/harness.html    araçların headless Chromium'da yüklediği çıplak sayfa
 src/vendor/         three.js r128 (modül) ve bloom eklentileri, yazı tipleri
 tools/              render, duman testi, ekran görüntüsü, ses testi, statik sunucu
 out/                üretilen videolar ve ara dosyalar (git dışı)
-videolar/           eski hatla çekilmiş klipler
+videolar/           örnek klip (Kaf Dağı); tamamı npm run render ile üretilir
 ```
 
 ## Kamera
@@ -101,6 +101,12 @@ sim.songLength("kaf");            // saniye
 ```
 
 `manual: false` ile tarayıcıda gerçek zamanlı çalışır: şarkı bitince kendiliğinden durur, grup kamerası salınır.
+
+## Klipler
+
+`videolar/` altında bu hatla çekilmiş bir örnek klip var; yedi şarkının tamamı `npm run render -- <şarkı>` ile `out/` altına üretilir. Önceki sürümün beş klibi git tarihçesinde duruyor: `git checkout fd0676d -- videolar`.
+
+Testler her itmede GitHub Actions'ta da koşar (`.github/workflows/test.yml`).
 
 ## Tekrarlanabilirlik
 
