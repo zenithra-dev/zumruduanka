@@ -18,15 +18,17 @@ const V = {
   Q3: {string: {smooth: 1}, amps: {clean: {pickup: 5000}, crunch: {pickup: 4200}, lead: {pickup: 3600}}},
   D1: {double: {on: true}},                                            // çift kayıt açık
   D2: {double: {on: true, jitterMs: 8, detuneCents: 1.2}},             // daha sıkı çift kayıt
-  P4: {string: {dual: 0.2}},                                           // ikinci polarizasyon, ana telin beşte biri
-  Z1: {string: {dual: 0.1}},                                           // ölçülen değer: yatay mod 2 sent pes, manyetikte onda bir
+  P0: {string: {dual: 0}},                                             // deneme 1 öncesi: tek polarizasyon
+  P4: {string: {dual: 0.2, dualCents: -2}},                            // ikinci polarizasyon, ana telin beşte biri
+  Z1: {string: {dual: 0.1, dualCents: -2}},                            // ölçülen değer: yatay mod 2 sent pes, manyetikte onda bir
   Z2: {string: {dual: 0.1, dualCents: -5}},                            // 5 sentin üstü fiziksel değil, hafif chorus gibi
-  Z3: {string: {dual: 0.1, dualCents: -10}},
-  Z4: {string: {dual: 0.1, dualCents: -20}},
+  Z4: {string: {dual: 0.1, dualCents: -20}},                           // (Z3 = −10 sent, kulakla seçildi, artık varsayılan P)
   Z5: {string: {dual: 0.1, dualCents: 10}},                            // işaret: yatay mod tiz
-  Z7: {string: {dual: 0.1, dualDecay: 0.7}},                           // yatay mod daha uzun sürer: iki aşamalı sönüm
-  Z8: {string: {dual: -0.1}},                                          // ters faz: nota başta zayıf, sonra açılır
+  Z7: {string: {dual: 0.1, dualCents: -2, dualDecay: 0.7}},            // yatay mod daha uzun sürer: iki aşamalı sönüm
+  Z8: {string: {dual: -0.1, dualCents: -2}},                           // ters faz: nota başta zayıf, sonra açılır
   P5: {amps: {crunch: {bias: 0}, lead: {bias: 0}}},                    // simetrik kırpma
+  S1: {amps: {crunch: {bias: 0.01}, lead: {bias: 0.005}}},             // çalışma noktası eğrinin dirseğinde: küçük sinyal kazancı korunur, sürdürüm
+  S2: {amps: {crunch: {bias: 0.005}, lead: {bias: 0.0025}}},           // daha da merkezde
   N:  {string: {exciter: "noise"}},                                    // eski gürültü vuruşu (karşılaştırma)
 };
 const names = [...new Set(process.argv.slice(2).length ? process.argv.slice(2) : Object.keys(V))];

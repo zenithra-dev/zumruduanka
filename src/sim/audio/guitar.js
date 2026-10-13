@@ -7,11 +7,12 @@ import { rand } from "../rng.js";
 //   noise: darbeye katılan gürültü payı (pena sürtmesi)
 //   dual: ikinci (yatay) polarizasyonun manyetikte görünen genliği, ana tele oranla (0 kapalı; manyetik yatayı yaklaşık on kat bastırır, ~0.1;
 //         eksi: ters fazda algılanır, nota başta zayıf açılır)
-//   dualCents: onun akort farkı, sent (sabit oran: fark etkin tel boyundan gelir, ölçümlerde ~2 sent ve yatay daha pes; eksi = pes)
+//   dualCents: onun akort farkı, sent (eksi = pes). Ölçümlerde fark ~2 sent (etkin tel boyundan gelir); −10 kulakla seçildi (ses-gunlugu.md,
+//              deneme 1): fiziksel değerden büyük, hafif bir çift tel canlılığı veriyor
 //   dualDecay: onun tur başına kaybının ana tele oranı (1 aynı; solid-body'de iki düzlemin Q'su benzer, 1'den küçük daha uzun sürer)
 //   Ana tel tam akortta kalır: zayıf ikinci çizgi kısa pencerede perdeyi çekmez (yüksek harmoniklerin çapraz terimleri döner).
 //   pickupComb: manyetik konumu tarağı (0 kapalı); pickupPos: köprüden uzaklık, tel boyunun oranı
-export const STRING = {exciter: "pulse", noise: 0.08, smooth: 1, dual: 0, dualCents: -2, dualDecay: 1, pickupComb: 0, pickupPos: 0.07};
+export const STRING = {exciter: "pulse", noise: 0.08, smooth: 1, dual: 0.1, dualCents: -10, dualDecay: 1, pickupComb: 0, pickupPos: 0.07};
 
 export function createGuitar(engine){
   const { ctx } = engine, bufCache = {};
@@ -51,10 +52,11 @@ export function createGuitar(engine){
   }
   // Nota tamponu: tel modeli, isteğe bağlı ikinci polarizasyon (birkaç sent pes, harmoniklerde yavaş vuruşma; avuç ikisini de söndürür).
   // mute: palm mute, avuç köprüde; tel her turda yüzde on kaybeder (çeyrek saniyede söner), vuruş daha koyu, tampon daha kısa.
+  // Açık tel 6 sn: uzun tutulan notalar tampon bitince kesilmesin (3 sn iken ninninin arpej kökleri 3. saniyede tıkla kesiliyordu); son 0.1 sn söner.
   function ksBuffer(midi, pp0, key, mute){
     key = key || (midi + (mute ? "m" : ""));
     if (bufCache[key]) return bufCache[key];
-    const sr = ctx.sampleRate, f = 440 * Math.pow(2, (midi - 69) / 12), Nf = sr / f, len = Math.floor(sr * (mute ? 0.8 : 3.0));
+    const sr = ctx.sampleRate, f = 440 * Math.pow(2, (midi - 69) / 12), Nf = sr / f, len = Math.floor(sr * (mute ? 0.8 : 6.0));
     const buf = ctx.createBuffer(1, len, sr), out = buf.getChannelData(0);
     const decay = mute ? 0.9 : 0.9988 - (midi - 40) * 0.000055;
     const dual = STRING.dual && !mute ? {g: STRING.dual, nf: Nf * Math.pow(2, -STRING.dualCents / 1200), d: Math.min(0.9998, Math.max(0, 1 - (1 - decay) * STRING.dualDecay))} : null;
@@ -63,21 +65,29 @@ export function createGuitar(engine){
     const g = 0.55 / (peak || 1);
     for (let i = 0; i < 64; i++) out[i] *= i / 64;
     for (let i = 0; i < len; i++) out[i] *= g;
+    if (!mute){ const n = Math.floor(sr * 0.1); for (let i = 0; i < n; i++) out[len - 1 - i] *= i / n; }
     bufCache[key] = buf;
     return buf;
   }
-  // Çalış teknikleri: bend (yarım ses) teli büker; lead tonda bazı uzun notalar alttan kayar; tek uzun notalarda gecikmeli vibrato;
+  // Çalış teknikleri: bend (yarım ses) teli büker, back ile notanın sonunda geri bırakır; pre (yarım ses) tel bükülü vurulur ve
+  // aşağı bırakılır (iç çekiş); lead tonda bazı uzun notalar alttan kayar; tek uzun notalarda gecikmeli vibrato, vib derinliğinin katı;
   // palm mute (e.m ya da kalın telde çok kısa nota) koyu ve kısa; legato (e.h) pena sesi yok, yumuşak atak; her vuruşa kısa pena sesi.
   function expressNote(src, g, e, t, dur, midi, srcs){
     const pr = src.playbackRate, ampName = engine.ampName, drive = ampName !== "clean";
     const muted = !!e.m || (drive && e.s <= 2 && dur <= 0.22 && !e.h);
-    if (e.bend){ pr.setValueAtTime(1, t + Math.min(0.08, dur * 0.2)); pr.linearRampToValueAtTime(Math.pow(2, e.bend / 12), t + Math.min(0.08, dur * 0.2) + Math.min(0.18, dur * 0.4)); }
+    const b0 = t + Math.min(0.08, dur * 0.2), top = Math.pow(2, (e.pre || e.bend || 0) / 12);
+    if (e.pre){ pr.setValueAtTime(top, t); pr.setValueAtTime(top, b0 + 0.1); pr.linearRampToValueAtTime(1, b0 + 0.1 + Math.min(0.35, dur * 0.4)); }
+    else if (e.bend){
+      const up = b0 + Math.min(0.18, dur * 0.4);
+      pr.setValueAtTime(1, b0); pr.linearRampToValueAtTime(top, up);
+      if (e.back){ const r = Math.max(up, t + dur * 0.55); pr.setValueAtTime(top, r); pr.linearRampToValueAtTime(1, r + Math.max(0.15, dur * 0.3)); }
+    }
     else if (ampName === "lead" && dur >= 0.4 && !e.inChord && (e.s * 7 + e.f * 3 + Math.round(e.b * 4)) % 3 === 0){ pr.setValueAtTime(Math.pow(2, -0.3 / 12), t); pr.linearRampToValueAtTime(1, t + 0.04); }
     // Vibrato yalnız tek notalarda: akorun telleri birbirine karşı kaymasın. Geç başlar, yavaş derinleşir, hızı notadan notaya biraz değişir.
     if (!e.inChord && !muted && dur >= (ampName === "lead" ? 0.42 : 0.8)){
-      const lfo = ctx.createOscillator(), dep = ctx.createGain(), hz = (ampName === "clean" ? 4.6 : 5.0) + ((e.s * 3 + e.f) % 5) * 0.08;
+      const lfo = ctx.createOscillator(), dep = ctx.createGain(), hz = (ampName === "clean" ? 4.6 : 5.0) + ((e.s * 3 + e.f) % 5) * 0.08 - (e.vib > 1 ? 0.5 : 0);
       lfo.frequency.value = hz; dep.gain.setValueAtTime(0, t); dep.gain.setValueAtTime(0, t + 0.3);
-      dep.gain.linearRampToValueAtTime(ampName === "lead" ? 0.006 : 0.004, t + Math.min(dur, 0.9));
+      dep.gain.linearRampToValueAtTime((ampName === "lead" ? 0.006 : 0.004) * (e.vib || 1), t + Math.min(dur, 0.9));
       lfo.connect(dep); dep.connect(pr); lfo.start(t); lfo.stop(t + dur + 0.3); srcs.push(lfo);
     }
     if (muted){

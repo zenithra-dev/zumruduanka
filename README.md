@@ -13,6 +13,7 @@ Tarayıcıda çalışan, tamamen kodla üretilmiş bir elektro gitar: Claude sah
 | A Blues Shuffle | 12 ölçü boogie | 96 | otomatik yönetmen |
 | Für Elise | Beethoven, temiz ton | 72 | otomatik yönetmen |
 | Claude'un doğaçlaması | A minör pentatonik, her tohumda farklı | 100 | otomatik yönetmen |
+| Ağıt | E minör, ağlayan gitar: bükülüp bırakılan notalar, geniş vibrato | 66 | otomatik yönetmen |
 
 ## Kurulum
 
@@ -96,7 +97,7 @@ shots: [
 
 ## Şarkı yazmak
 
-`src/sim/band/songs/` altına bir dosya; `build()` nota olayları döner: `{b, s, f, d}` vuruş, tel, perde, süre; isteğe bağlı `m` palm mute, `v` vuruş gücü, `h` legato, `bend` bükme. `chord()` ile akor, `placeMidi()` ile melodi yerleşimi. `index.js` listesine ekle.
+`src/sim/band/songs/` altına bir dosya; `build()` nota olayları döner: `{b, s, f, d}` vuruş, tel, perde, süre; isteğe bağlı `m` palm mute, `v` vuruş gücü, `h` legato, `bend` bükme (`back: true` notanın sonunda geri bırakır), `pre` bükülü vurulup aşağı bırakılan bükme, `vib` vibrato derinliğinin katı. `chord()` ile akor, `placeMidi()` ile melodi yerleşimi. `index.js` listesine ekle.
 
 ## Simülasyon API'si
 

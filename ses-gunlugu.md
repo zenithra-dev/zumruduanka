@@ -48,4 +48,30 @@ Gitar sesini gerçek bir elektro gitara yaklaştırma denemeleri. Her deneme tek
 
 **Dinleme örnekleri:** `out/guitar/{kaf,riff,elise,tepegoz}-{p0,z1-fiziksel,z3-10sent,z4-20sent}.mp3`
 
-**Kulak kararı:** bekleniyor.
+**Kulak kararı (2026-10-13):** Z3 (−10 sent), Tepegöz karşılaştırmasında "3. parça daha gerçekçi". Varsayılan oldu: `dual: 0.1, dualCents: −10`. Pozitif kontrol: yeni P, eski tabana (P0) göre +74 (82/94/71/65/59, 5/5); akort 0.22.
+
+## Ara düzeltme: tel tamponu 3 sn → 6 sn (2026-10-13)
+
+Ninni'de 29, Kaf'ta 3 nota 3 sn'lik tampondan uzundu; tampon bitince nota 3. saniyede tıkla kesiliyordu. Tampon 6 sn, son 0.1 sn söner. İlk 3 sn önceki sürümle örnek örnek aynı (1 128 960 örnek, palm mute dahil), yani kısa notalar değişmedi.
+
+## Ara bulgu: kademe bias'ı sürdürümü kesiyor, `AMPS.*.bias` (2026-10-13, kulak kararı bekliyor)
+
+"Ağıt" yazılırken çıktı: lead tonda bükülüp geri bırakılan nota, bırakma anında duyulmuyordu. Kuru zincirde ölçüldü:
+
+- Lead D5, 1.0 sn ile 1.4 sn arasında −14 dB'den −37 dB'e çöküyor. E4 3. saniyede çöküyor.
+- Sebep: asimetri, çalışma noktası kaydırılarak yapılıyor (`x + bias`). Lead'de `bias: 0.05`, eğrinin dirseğinin (1/k ≈ 0.006) sekiz katı; bu noktada eğri zaten doymuş.
+- Bu yüzden küçük sinyal kazancı 171'den 1.9'a düşüyor. Nota bu seviyenin altına inince amfi "kapanıyor": giriş 10 dB düşünce çıkış 23 dB düşüyor. Crunch'ta kazanç 31'den 6.4'e iniyor.
+
+**Aday S1:** crunch `bias: 0.01`, lead `bias: 0.005`. Yalnız iki sayı değişiyor, eğri aynı.
+
+- Lead kazancı 50: giriş 40 dB düşerken çıkış 4 dB düşüyor.
+- Lead E4 3.9 sn boyunca tam seviyede kalıyor. D5 2.2 sn ayakta (eskiden 1.2); bundan sonrası ham telin hızlı sönümü, deneme 4'ün konusu.
+- Çift harmonik orta seviyede azalıyor, sönüş bölgesinde artıyor.
+
+**Kulak (5 tohum):** S1 −15 (0/5), S2 (yarısı) −17, P5 (simetrik) −17.
+
+- Kaybın çoğu kaf'tan: synth/klavye 12 → 18.
+- Riff'te tersine gitar 12 → 14, gürültü 44 → 32.
+- Yazılım kulak kapanan amfiyi seviyor; fiziksel olarak S1 doğru.
+
+**Dinleme:** `out/agit.mp3` (şu anki amfi) ve `out/agit-s1.mp3` (S1). Kulak kararı bekleniyor.
