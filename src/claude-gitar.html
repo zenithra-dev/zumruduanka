@@ -1,0 +1,1866 @@
+<title>Claude'un Stratı</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: sahne (16:9 3B görüntü) solda, amfi paneli sağda; dar ekranda alt alta. */
+:root{
+  --bg:#eceef2; --surface:#ffffff; --fg:#1a1c21; --muted:#5b6170; --line:#d5d9e0;
+  --accent:#b85c14; --accent-fg:#ffffff; --rec:#c62f2f; --stage:#16110e;
+  --f-display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --f-body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111216; --surface:#1a1c22; --fg:#eceef2; --muted:#9aa1ae; --line:#2c3039;
+  --accent:#ee9d45; --accent-fg:#1a1208; --rec:#f05a5a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111216; --surface:#1a1c22; --fg:#eceef2; --muted:#9aa1ae; --line:#2c3039;
+  --accent:#ee9d45; --accent-fg:#1a1208; --rec:#f05a5a; color-scheme:dark}
+html,body{background:var(--bg);color:var(--fg)}
+body{font-family:var(--f-body);font-size:15px;line-height:1.5;padding:20px 16px 32px}
+.wrap{max-width:1240px;margin:0 auto;display:grid;gap:20px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 24px}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(34px,5vw,52px);line-height:1;margin:0;letter-spacing:.01em;text-transform:uppercase;text-wrap:balance}
+.spec{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.02em}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:20px;align-items:start}
+@media (max-width:900px){.main{grid-template-columns:minmax(0,1fr)}}
+.stage{position:relative;aspect-ratio:16/9;max-width:100%;background:var(--stage);border-radius:10px;overflow:hidden}
+.stage canvas{display:block;width:100%;height:100%;touch-action:none}
+#gl{cursor:grab}
+.hud{position:absolute;left:12px;top:10px;display:flex;gap:8px;align-items:center;font-family:var(--f-mono);font-size:12px;color:#f4e9dc;text-shadow:0 1px 2px #000;pointer-events:none}
+.dot{width:9px;height:9px;border-radius:50%;background:#f05a5a;box-shadow:0 0 8px #f05a5a}
+.lyric{position:absolute;left:12px;right:12px;bottom:14px;text-align:center;font-weight:600;font-size:clamp(15px,2.4vw,24px);color:#f4ece2;text-shadow:0 1px 4px #000;pointer-events:none;min-height:1.4em}
+.lyric .on{color:#7cf0b8}
+.hud .dot{animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:.2}}
+@media (prefers-reduced-motion:reduce){.lyric{position:absolute;left:12px;right:12px;bottom:14px;text-align:center;font-weight:600;font-size:clamp(15px,2.4vw,24px);color:#f4ece2;text-shadow:0 1px 4px #000;pointer-events:none;min-height:1.4em}
+.lyric .on{color:#7cf0b8}
+.hud .dot{animation:none}}
+#tab{display:block;width:100%;height:132px;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:18px}
+.group{display:grid;gap:8px}
+.label{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.songs{display:grid;gap:6px}
+.song{all:unset;box-sizing:border-box;display:grid;gap:1px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;cursor:pointer}
+.song b{font-weight:600}
+.song span{font-size:12.5px;color:var(--muted)}
+.song[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.song:focus-visible,.seg button:focus-visible,.btn:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{all:unset;text-align:center;padding:7px 4px;font-size:13.5px;cursor:pointer;color:var(--muted)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);font-weight:600}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.btn{all:unset;box-sizing:border-box;flex:1 1 auto;text-align:center;padding:10px 14px;border-radius:8px;font-weight:600;cursor:pointer;border:1px solid var(--line)}
+.btn.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.btn.rec{color:var(--rec);border-color:var(--rec)}
+.btn[disabled]{opacity:.45;cursor:default}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.note{font-size:13px;color:var(--muted);margin:0}
+#clip[hidden]{display:none}
+#clip{display:grid;gap:8px}
+#clip video{width:100%;border-radius:8px;background:#000}
+.lower{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:20px}
+@media (max-width:900px){.lower{grid-template-columns:minmax(0,1fr)}}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px 20px;margin:0}
+.facts div{display:grid;gap:2px;min-width:0}
+.facts dt{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.facts dd{margin:0;font-family:var(--f-mono);font-size:13px;font-variant-numeric:tabular-nums}
+.bandsec{display:grid;gap:14px}
+.bandsec h2{font-family:var(--f-display);font-weight:800;font-size:30px;line-height:1;margin:0;text-transform:uppercase;letter-spacing:.01em}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;gap:6px;align-content:start;min-width:0}
+.card .who{display:flex;align-items:center;gap:8px}
+.card .sw{width:12px;height:12px;border-radius:50%;flex:none}
+.card b{font-family:var(--f-display);font-size:22px;font-weight:800;letter-spacing:.02em}
+.card .role{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.card p{margin:0;font-size:13.5px}
+.card .in{font-size:12px;color:var(--muted)}
+.disco{display:grid;gap:0;border:1px solid var(--line);border-radius:10px;background:var(--surface);overflow:hidden}
+.disco div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 16px;padding:10px 14px;align-items:baseline}
+.disco div+div{border-top:1px solid var(--line)}
+.disco span{font-size:12.5px;color:var(--muted);text-align:right}
+@media (max-width:560px){.disco div{grid-template-columns:minmax(0,1fr)}.disco span{text-align:left}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Claude'un Stratı</h1>
+    <div class="spec">Zümrüdüanka · Claude, Erlik, Umay, Şahmeran, Ülgen · Stratocaster tipi, sap kameralı</div>
+  </header>
+
+  <div class="main">
+    <div class="group" style="gap:12px">
+      <div class="stage" id="stage">
+        <canvas id="gl" aria-label="3B elektro gitar ve sapına takılı kamera"></canvas>
+        <div class="hud"><span id="hudDot" class="dot" hidden></span><span id="hudText">SAP KAMERASI · hazır</span></div>
+        <div class="lyric" id="lyric" aria-live="off"></div>
+      </div>
+      <canvas id="tab" aria-label="Çalınan notaların tab gösterimi"></canvas>
+    </div>
+
+    <aside class="panel">
+      <div class="group">
+        <div class="label">Zümrüdüanka ne çalsın?</div>
+        <div class="songs" id="songs"></div>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="play">▶ Çal</button>
+        <button class="btn" id="stop">■ Durdur</button>
+      </div>
+      <div class="group">
+        <div class="label">Kamera</div>
+        <div class="seg" id="camSeg">
+          <button id="cam-head" aria-pressed="true" data-v="head">Sap kamerası</button>
+          <button id="cam-stage" aria-pressed="false" data-v="stage">Sahne</button>
+          <button id="cam-group" aria-pressed="false" data-v="group">Grup</button>
+          <button id="cam-director" aria-pressed="false" data-v="director">Yönetmen</button>
+        </div>
+        <p class="note" id="camNote">Kamera gitarın sap kafasına kıskaçla takılı, perdelere bakıyor.</p>
+      </div>
+      <div class="group">
+        <div class="label">Mekan</div>
+        <div class="seg" id="envSeg">
+          <button id="env-club" aria-pressed="true" data-v="club">Kulüp</button>
+          <button id="env-theater" aria-pressed="false" data-v="theater">Antik tiyatro</button>
+          <button id="env-summit" aria-pressed="false" data-v="summit">Kaf Dağı</button>
+        </div>
+      </div>
+      <div class="group">
+        <div class="label">Amfi</div>
+        <div class="seg" id="ampSeg">
+          <button id="amp-clean" aria-pressed="false" data-v="clean">Temiz</button>
+          <button id="amp-crunch" aria-pressed="true" data-v="crunch">Crunch</button>
+          <button id="amp-lead" aria-pressed="false" data-v="lead">Lead</button>
+        </div>
+        <label class="label" for="vol" style="margin-top:4px">Ses</label>
+        <input id="vol" type="range" min="0" max="100" value="75">
+      </div>
+      <div class="group">
+        <div class="label">Grup</div>
+        <div class="seg" id="bandSeg">
+          <button id="band-on" aria-pressed="true" data-v="on">Tam kadro</button>
+          <button id="band-off" aria-pressed="false" data-v="off">Sadece gitar</button>
+        </div>
+      </div>
+      <div class="group">
+        <div class="label">Kayıt</div>
+        <button class="btn rec" id="recBtn">● Çal ve kaydet</button>
+        <p class="note" id="recNote">Seçili şarkıyı baştan sona aktif kameradan görüntü ve amfi sesiyle 720p video olarak kaydeder.</p>
+        <div id="clip" hidden>
+          <video id="clipVideo" controls playsinline></video>
+          <button class="btn primary" id="saveBtn">Videoyu indir</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <section class="bandsec" aria-labelledby="bandH">
+    <h2 id="bandH">Zümrüdüanka</h2>
+    <div class="cards" id="cards"></div>
+    <div class="label">Şarkılar</div>
+    <div class="disco" id="disco"></div>
+  </section>
+
+  <dl class="facts">
+    <div><dt>Gövde</dt><dd>Kızılağaç, 3 ton sunburst</dd></div>
+    <div><dt>Sap</dt><dd>Akçaağaç, gülağacı klavye</dd></div>
+    <div><dt>Perde konumu</dt><dd>x = 648·(1 − 2^(−n/12)) mm</dd></div>
+    <div><dt>Akort</dt><dd>E2 A2 D3 G3 B3 E4</dd></div>
+    <div><dt>Kamera</dt><dd>Aksiyon kamerası, 1080p30</dd></div>
+    <div><dt>Kayıt çıktısı</dt><dd>1280×720, 30 fps</dd></div>
+  </dl>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/GammaCorrectionShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script>
+(function(){
+"use strict";
+/* ---------- Gitar ölçüleri (metre) ---------- */
+const L = 0.648;                       // ölçek uzunluğu: eşik -> köprü
+const FRETS = 22;
+const fretX = n => L * (1 - Math.pow(2, -n / 12));
+const OPEN = [40, 45, 50, 55, 59, 64];  // E2 A2 D3 G3 B3 E4 (MIDI)
+const NAMES = ["E","A","D","G","B","e"];
+const STR_Z = 0.0595;
+function stringY(s, x){                // s=0 kalın E, üstte
+  const t = Math.min(Math.max(x / L, 0), 1);
+  const half = 0.018 + (0.02625 - 0.018) * t;
+  return half - s * (2 * half / 5);
+}
+const fingerX = f => f === 0 ? 0 : (fretX(f - 1) + fretX(f)) / 2 + (fretX(f) - fretX(f-1)) * 0.22;
+
+/* ---------- Three.js sahnesi ---------- */
+const gl = document.getElementById("gl");
+const renderer = new THREE.WebGLRenderer({canvas: gl, antialias: true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.outputEncoding = THREE.sRGBEncoding;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x16110e);
+scene.fog = new THREE.Fog(0x16110e, 1.6, 3.4);
+
+const hemi = new THREE.HemisphereLight(0xffe6c8, 0x1a1010, 0.4); scene.add(hemi);
+const key = new THREE.DirectionalLight(0xfff1dd, 0.55); key.position.set(0.6, 0.8, 1.2); scene.add(key);
+const rim = new THREE.PointLight(0xff9a3c, 1.1, 3); rim.position.set(-0.6, -0.5, 0.6); scene.add(rim);
+const spot = new THREE.SpotLight(0xffd9a8, 0.7, 4, 0.45, 0.7); spot.position.set(0.0, 0.1, 1.6); scene.add(spot);
+
+// Arka fon: amfi kabini + sahne duvarı
+const back = new THREE.Mesh(new THREE.PlaneGeometry(6, 4), new THREE.MeshStandardMaterial({color: 0x1f1611, roughness: 1}));
+back.position.z = -0.45; scene.add(back);
+const amp = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.55, 0.3), new THREE.MeshStandardMaterial({color: 0x161414, roughness: 0.9}));
+amp.position.set(0.5, 0.42, -0.3); scene.add(amp);
+const grill = new THREE.Mesh(new THREE.PlaneGeometry(0.66, 0.38), new THREE.MeshStandardMaterial({color: 0x5a4a3a, roughness: 1}));
+grill.position.set(0.5, 0.38, -0.149); scene.add(grill);
+const ampPanel = new THREE.Mesh(new THREE.PlaneGeometry(0.66, 0.08), new THREE.MeshStandardMaterial({color: 0xcfc6b5, metalness: 0.3, roughness: 0.4}));
+ampPanel.position.set(0.5, 0.64, -0.149); scene.add(ampPanel);
+
+const guitar = new THREE.Group();
+guitar.rotation.z = 0.32;
+guitar.position.set(-0.33, -0.27, 0.02);
+scene.add(guitar);
+
+// Sunburst dokusu
+function sunburstTexture(){
+  const c = document.createElement("canvas"); c.width = c.height = 512;
+  const g = c.getContext("2d");
+  const gr = g.createRadialGradient(256, 256, 30, 256, 256, 300);
+  gr.addColorStop(0, "#f2b445"); gr.addColorStop(0.42, "#d9861e"); gr.addColorStop(0.66, "#8a2a10");
+  gr.addColorStop(0.82, "#3a120a"); gr.addColorStop(1, "#140604");
+  g.fillStyle = gr; g.fillRect(0, 0, 512, 512);
+  g.globalAlpha = 0.07;
+  for (let i = 0; i < 160; i++){ g.strokeStyle = i % 2 ? "#000" : "#fff"; g.beginPath(); g.moveTo(0, i * 3.2); g.bezierCurveTo(170, i*3.2 + 12, 340, i*3.2 - 12, 512, i*3.2 + 4); g.stroke(); }
+  const t = new THREE.CanvasTexture(c);
+  t.encoding = THREE.sRGBEncoding;
+  return t;
+}
+const sb = sunburstTexture();
+// Gövde kapak UV'leri metre cinsinden: x 0.33..0.87, y -0.19..0.18
+sb.repeat.set(1 / 0.54, 1 / 0.37); sb.offset.set(-0.33 / 0.54, 0.19 / 0.37);
+
+const body = new THREE.Shape();
+body.moveTo(0.42, 0.03);
+body.bezierCurveTo(0.40, 0.06, 0.34, 0.09, 0.355, 0.118);
+body.bezierCurveTo(0.37, 0.145, 0.45, 0.15, 0.52, 0.132);
+body.bezierCurveTo(0.60, 0.115, 0.66, 0.168, 0.75, 0.162);
+body.bezierCurveTo(0.85, 0.156, 0.875, 0.02, 0.85, -0.07);
+body.bezierCurveTo(0.83, -0.17, 0.70, -0.178, 0.62, -0.152);
+body.bezierCurveTo(0.56, -0.132, 0.52, -0.152, 0.46, -0.152);
+body.bezierCurveTo(0.41, -0.152, 0.375, -0.132, 0.39, -0.11);
+body.bezierCurveTo(0.40, -0.08, 0.42, -0.05, 0.42, -0.03);
+body.lineTo(0.42, 0.03);
+const bodyGeo = new THREE.ExtrudeGeometry(body, {depth: 0.037, bevelEnabled: true, bevelThickness: 0.004, bevelSize: 0.004, bevelSegments: 3, curveSegments: 40});
+const bodyMesh = new THREE.Mesh(bodyGeo, [
+  new THREE.MeshPhysicalMaterial({map: sb, roughness: 0.25, clearcoat: 1, clearcoatRoughness: 0.08}),
+  new THREE.MeshPhysicalMaterial({color: 0x1a0704, roughness: 0.3, clearcoat: 1})
+]);
+bodyMesh.position.z = 0.004; guitar.add(bodyMesh);
+const TOP = 0.045;
+
+// Pena koruyucu
+const pg = new THREE.Shape();
+pg.moveTo(0.43, 0.035);
+pg.bezierCurveTo(0.44, 0.07, 0.50, 0.085, 0.55, 0.07);
+pg.bezierCurveTo(0.60, 0.055, 0.63, 0.045, 0.64, 0.03);
+pg.lineTo(0.64, -0.03);
+pg.bezierCurveTo(0.67, -0.04, 0.73, -0.06, 0.76, -0.10);
+pg.bezierCurveTo(0.77, -0.13, 0.72, -0.145, 0.64, -0.13);
+pg.bezierCurveTo(0.56, -0.115, 0.50, -0.14, 0.45, -0.13);
+pg.bezierCurveTo(0.41, -0.12, 0.405, -0.09, 0.43, -0.035);
+pg.lineTo(0.43, 0.035);
+const pgMesh = new THREE.Mesh(new THREE.ExtrudeGeometry(pg, {depth: 0.002, bevelEnabled: false, curveSegments: 30}),
+  new THREE.MeshStandardMaterial({color: 0xf1ece0, roughness: 0.45}));
+pgMesh.position.z = TOP; guitar.add(pgMesh);
+
+const chrome = new THREE.MeshStandardMaterial({color: 0xdfe3e8, metalness: 0.95, roughness: 0.18});
+const cream = new THREE.MeshStandardMaterial({color: 0xf3eedf, roughness: 0.5});
+// Manyetikler (tek bobin)
+[[0.488, 0], [0.548, 0], [0.606, -0.12]].forEach(([x, rot]) => {
+  const p = new THREE.Mesh(new THREE.BoxGeometry(0.019, 0.07, 0.008), cream);
+  p.position.set(x, 0, TOP + 0.006); p.rotation.z = rot; guitar.add(p);
+  for (let s = 0; s < 6; s++){
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.0022, 0.0022, 0.003, 12), chrome);
+    pole.rotation.x = Math.PI / 2;
+    const yy = stringY(s, x);
+    pole.position.set(x - Math.sin(rot) * yy, Math.cos(rot) * yy, TOP + 0.0105);
+    guitar.add(pole);
+  }
+});
+// Köprü ve eyerler
+const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.072, 0.004), chrome);
+bridge.position.set(0.66, 0, TOP + 0.004); guitar.add(bridge);
+for (let s = 0; s < 6; s++){
+  const sad = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.009, 0.01), chrome);
+  sad.position.set(L + 0.002 + s * 0.0006, stringY(s, L), TOP + 0.009); guitar.add(sad);
+}
+// Düğmeler ve seçici
+[[0.665, -0.072], [0.70, -0.088], [0.735, -0.098]].forEach(([x, y]) => {
+  const k = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.012, 0.016, 24), cream);
+  k.rotation.x = Math.PI / 2; k.position.set(x, y, TOP + 0.01); guitar.add(k);
+});
+const sw = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.01, 0.012), cream); sw.position.set(0.63, -0.075, TOP + 0.008); sw.rotation.z = 0.5; guitar.add(sw);
+
+// Sap ve klavye
+const neckGeo = new THREE.BoxGeometry(1, 1, 1);
+const maple = new THREE.MeshStandardMaterial({color: 0xb47a3c, roughness: 0.55});
+const rosewood = new THREE.MeshStandardMaterial({color: 0x3b2116, roughness: 0.75});
+const neck = new THREE.Mesh(neckGeo, maple);
+neck.scale.set(0.44, 0.05, 0.022); neck.position.set(0.215, 0, 0.042); guitar.add(neck);
+const fbShape = new THREE.Shape();
+fbShape.moveTo(-0.004, 0.0215); fbShape.lineTo(0.47, 0.0285); fbShape.lineTo(0.47, -0.0285); fbShape.lineTo(-0.004, -0.0215); fbShape.lineTo(-0.004, 0.0215);
+const fb = new THREE.Mesh(new THREE.ExtrudeGeometry(fbShape, {depth: 0.006, bevelEnabled: false}), rosewood);
+fb.position.z = 0.0505; guitar.add(fb);
+const FB_TOP = 0.0565;
+const fretMat = new THREE.MeshStandardMaterial({color: 0xc9ccd2, metalness: 0.9, roughness: 0.25});
+for (let n = 1; n <= FRETS; n++){
+  const x = fretX(n);
+  const w = 2 * (0.0215 + (0.0285 - 0.0215) * (x / 0.47));
+  const f = new THREE.Mesh(new THREE.CylinderGeometry(0.0011, 0.0011, w, 8), fretMat);
+  f.position.set(x, 0, FB_TOP); guitar.add(f);
+}
+const dotMat = new THREE.MeshStandardMaterial({color: 0xece4d0, roughness: 0.4});
+[3,5,7,9,12,15,17,19,21].forEach(n => {
+  const x = (fretX(n - 1) + fretX(n)) / 2;
+  (n === 12 ? [0.011, -0.011] : [0]).forEach(y => {
+    const d = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 0.001, 16), dotMat);
+    d.rotation.x = Math.PI / 2; d.position.set(x, y, FB_TOP + 0.0004); guitar.add(d);
+  });
+});
+const nut = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.044, 0.006), cream);
+nut.position.set(-0.002, 0, FB_TOP + 0.002); guitar.add(nut);
+
+// Sap kafası
+const hs = new THREE.Shape();
+hs.moveTo(-0.004, -0.0215);
+hs.lineTo(-0.15, -0.026);
+hs.bezierCurveTo(-0.185, -0.028, -0.2, -0.005, -0.19, 0.02);
+hs.bezierCurveTo(-0.18, 0.045, -0.15, 0.05, -0.13, 0.045);
+hs.bezierCurveTo(-0.10, 0.04, -0.06, 0.048, -0.04, 0.042);
+hs.bezierCurveTo(-0.02, 0.036, -0.01, 0.022, -0.004, 0.0215);
+hs.lineTo(-0.004, -0.0215);
+const head = new THREE.Mesh(new THREE.ExtrudeGeometry(hs, {depth: 0.014, bevelEnabled: true, bevelThickness: 0.002, bevelSize: 0.002, bevelSegments: 2, curveSegments: 24}), maple);
+head.position.z = 0.034; guitar.add(head);
+const HS_TOP = 0.05;
+const posts = [];
+for (let s = 0; s < 6; s++){
+  const px = -0.032 - s * 0.0255, py = 0.03 - (s < 3 ? 0 : 0.002);
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 0.014, 12), chrome);
+  post.rotation.x = Math.PI / 2; post.position.set(px, py, HS_TOP + 0.007); guitar.add(post);
+  const keyB = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.016, 0.004), chrome);
+  keyB.position.set(px, py + 0.028, 0.036); guitar.add(keyB);
+  posts.push(new THREE.Vector3(px, py, HS_TOP + 0.011));
+}
+
+/* ---------- Sap kafasındaki kamera ---------- */
+const camRig = new THREE.Group();
+camRig.position.set(-0.168, 0.004, HS_TOP);
+const clamp = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.05, 0.006), new THREE.MeshStandardMaterial({color: 0x222326, roughness: 0.6}));
+clamp.position.z = 0.003; camRig.add(clamp);
+const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.028, 10), new THREE.MeshStandardMaterial({color: 0x2c2d31}));
+arm.rotation.x = Math.PI / 2; arm.position.z = 0.02; camRig.add(arm);
+const camBody = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.044, 0.03), new THREE.MeshStandardMaterial({color: 0x101113, roughness: 0.35}));
+camBody.position.z = 0.045; camRig.add(camBody);
+const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.0085, 0.0095, 0.008, 24), new THREE.MeshStandardMaterial({color: 0x050505, metalness: 0.5, roughness: 0.1}));
+lens.rotation.z = Math.PI / 2; lens.position.set(0.019, 0, 0.047); camRig.add(lens);
+const recLed = new THREE.Mesh(new THREE.SphereGeometry(0.0025, 10, 10), new THREE.MeshBasicMaterial({color: 0x441111}));
+recLed.position.set(0.012, 0.016, 0.0605); camRig.add(recLed);
+guitar.add(camRig);
+
+/* ---------- Teller, parmaklar, pena ---------- */
+const SEG = 60;
+const gauges = [0.0012, 0.001, 0.0008, 0.0006, 0.00045, 0.0004];
+const strings = [];
+for (let s = 0; s < 6; s++){
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array((SEG + 1) * 3);
+  geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  const mat = new THREE.LineBasicMaterial({color: s < 3 ? 0xc8b48a : 0xe8ecf0});
+  const line = new THREE.Line(geo, mat); line.frustumCulled = false;
+  guitar.add(line);
+  // Eşikten burguya giden kısa parça
+  const tail = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, stringY(s, 0), STR_Z), posts[s]]), mat);
+  guitar.add(tail);
+  strings.push({line, pos, mat, base: mat.color.clone()});
+}
+function layoutString(s, fret, amp, phase){
+  const st = strings[s], p = st.pos;
+  const xf = fret > 0 ? fretX(fret) : 0;
+  for (let i = 0; i <= SEG; i++){
+    const x = (i / SEG) * L;
+    let z = STR_Z, y = stringY(s, x);
+    if (fret > 0 && x < xf) z = STR_Z - 0.0025 * Math.max(0, 1 - Math.abs(x - fingerX(fret)) / 0.05);
+    if (amp > 0 && x >= xf){
+      const u = (x - xf) / (L - xf);
+      const w = Math.sin(Math.PI * u) * amp * Math.cos(phase);
+      y += w; z += w * 0.5;
+    }
+    p[i*3] = x; p[i*3+1] = y; p[i*3+2] = z;
+  }
+  st.line.geometry.attributes.position.needsUpdate = true;
+}
+for (let s = 0; s < 6; s++) layoutString(s, 0, 0, 0);
+
+const fingerMat = new THREE.MeshStandardMaterial({color: 0xffb35c, emissive: 0xff7a1a, emissiveIntensity: 0.9, roughness: 0.4});
+const fingers = [];
+for (let s = 0; s < 6; s++){
+  const m = new THREE.Mesh(new THREE.SphereGeometry(0.0055, 18, 14), fingerMat);
+  m.visible = false; guitar.add(m); fingers.push(m);
+}
+const pickShape = new THREE.Shape();
+pickShape.moveTo(0, -0.012); pickShape.quadraticCurveTo(0.012, -0.004, 0.01, 0.008); pickShape.quadraticCurveTo(0, 0.014, -0.01, 0.008); pickShape.quadraticCurveTo(-0.012, -0.004, 0, -0.012);
+const pick = new THREE.Mesh(new THREE.ExtrudeGeometry(pickShape, {depth: 0.0012, bevelEnabled: false}), new THREE.MeshStandardMaterial({color: 0xe25b2a, roughness: 0.4}));
+pick.rotation.z = Math.PI / 2; pick.position.set(0.575, 0, STR_Z + 0.004); guitar.add(pick);
+
+/* ---------- Grup: sahne ve karakterler ---------- */
+const BAND_NAME = "ZÜMRÜDÜANKA";
+const FLOOR = -0.95;
+scene.fog = new THREE.Fog(0x16110e, 4, 10);
+back.position.set(0, 0.8, -3.2); back.scale.set(2.2, 1.3, 1);
+const ampG = new THREE.Group();
+[amp, grill, ampPanel].forEach(m => { scene.remove(m); ampG.add(m); });
+ampG.position.set(0.25, FLOOR - 0.145, -0.75); scene.add(ampG);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(14, 9), new THREE.MeshStandardMaterial({color: 0x2b1f18, roughness: 0.85}));
+floor.rotation.x = -Math.PI / 2; floor.position.set(0, FLOOR, -1); scene.add(floor);
+const riser = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.18, 1.5), new THREE.MeshStandardMaterial({color: 0x1d1512, roughness: 0.9}));
+scene.add(riser);
+const truss = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.08, 0.08), new THREE.MeshStandardMaterial({color: 0x2d2d30, metalness: 0.7, roughness: 0.4}));
+truss.position.set(0, 2.45, -0.9); scene.add(truss);
+
+const MEMBER = {
+  claude:   {name: "CLAUDE",   role: "gitar",  label: "Claude (gitar)"},
+  erlik:    {name: "ERLİK",    role: "davul",  label: "Erlik (davul)"},
+  umay:     {name: "UMAY",     role: "bas",    label: "Umay (bas)"},
+  sahmeran: {name: "ŞAHMERAN", role: "vokal",  label: "Şahmeran (vokal)"},
+  ulgen:    {name: "ÜLGEN",    role: "klavye", label: "Ülgen (klavye)"}
+};
+
+// Sahne pankartı
+const banCv = document.createElement("canvas"); banCv.width = 2048; banCv.height = 400;
+const banTex = new THREE.CanvasTexture(banCv); banTex.encoding = THREE.sRGBEncoding;
+let banKey = "";
+function drawBanner(roster){
+  const g = banCv.getContext("2d"), W = banCv.width, H = banCv.height;
+  g.clearRect(0, 0, W, H);
+  const gr = g.createLinearGradient(0, 60, 0, 300); gr.addColorStop(0, "#ffd58a"); gr.addColorStop(0.55, "#e0892c"); gr.addColorStop(1, "#8f2c0e");
+  g.fillStyle = gr; g.textAlign = "center"; g.textBaseline = "middle";
+  g.font = "800 230px 'Big Shoulders Display', Impact, 'Arial Narrow', sans-serif";
+  g.shadowColor = "rgba(255,120,30,.55)"; g.shadowBlur = 40;
+  g.fillText(BAND_NAME, W / 2, 175);
+  g.shadowBlur = 0; g.strokeStyle = "rgba(255,200,130,.6)"; g.lineWidth = 4;
+  [[160, 560], [1488, 1888]].forEach(([a, b]) => { g.beginPath(); g.moveTo(a, 340); g.lineTo(b, 340); g.stroke(); });
+  g.fillStyle = "rgba(255,214,160,.85)"; g.font = "500 44px 'JetBrains Mono', monospace";
+  g.fillText(roster.map(k => MEMBER[k].name).join(" · "), W / 2, 342);
+  banTex.needsUpdate = true;
+}
+const banner = new THREE.Mesh(new THREE.PlaneGeometry(4.4, 0.86), new THREE.MeshBasicMaterial({map: banTex, transparent: true, fog: false}));
+banner.position.set(0, 1.8, -3.15); scene.add(banner);
+
+const UP = new THREE.Vector3(0, 1, 0);
+const mat = (c, o) => new THREE.MeshStandardMaterial(Object.assign({color: c, roughness: 0.6}, o || {}));
+const glow = (c, i) => new THREE.MeshStandardMaterial({color: c, emissive: c, emissiveIntensity: i, roughness: 0.4});
+function limb(r, m){ const x = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 0.8, 1, 10), m); scene.add(x); return x; }
+function setLimb(m, a, b){
+  const d = new THREE.Vector3().subVectors(b, a), len = Math.max(d.length(), 1e-4);
+  m.position.copy(a).addScaledVector(d, 0.5);
+  m.quaternion.setFromUnitVectors(UP, d.divideScalar(len));
+  m.scale.set(1, len, 1);
+}
+function seg(g, r, m, a, b){ const x = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 0.85, 1, 10), m); g.add(x); setLimb(x, a, b); return x; }
+const TORSO = (() => { const pts = [[0.14, -0.04], [0.158, 0.04], [0.15, 0.14], [0.138, 0.24], [0.162, 0.36], [0.18, 0.46], [0.15, 0.54], [0.07, 0.6], [0.0, 0.61]].map(([r, y]) => new THREE.Vector2(r, y));
+  const g = new THREE.LatheGeometry(pts, 24); g.scale(1, 1, 0.74); return g; })();
+function makeHand(skin){
+  const h = new THREE.Group(); scene.add(h);
+  const palm = new THREE.Mesh(new THREE.BoxGeometry(0.068, 0.072, 0.03), skin); palm.position.y = 0.036; h.add(palm);
+  const fg = new THREE.CylinderGeometry(0.0085, 0.0075, 0.048, 6); fg.translate(0, 0.024, 0);
+  for (let k = 0; k < 4; k++){ const f = new THREE.Mesh(fg, skin); f.position.set(-0.025 + k * 0.0167, 0.07, 0.004); f.rotation.x = 0.75; f.scale.y = k === 0 || k === 3 ? 0.85 : 1; h.add(f); }
+  const th = new THREE.Mesh(fg, skin); th.position.set(0.034, 0.025, 0.008); th.rotation.set(0.5, 0, -0.9); h.add(th);
+  return h;
+}
+function figure(o){
+  const g = new THREE.Group(); g.position.set(o.x, FLOOR + (o.y || 0), o.z); g.rotation.y = o.ry || 0; scene.add(g);
+  const hip = o.seated ? 0.52 : 0.92, V = (x, y, z) => new THREE.Vector3(x, y, z);
+  const shoe = mat(0x15131a, {roughness: 0.6});
+  const foot = (x, z) => { const b = new THREE.Mesh(new THREE.BoxGeometry(0.095, 0.06, 0.2), shoe); b.position.set(x, 0.03, z); g.add(b); };
+  if (!o.noLegs) [-0.09, 0.09].forEach(x => {
+    const knee = new THREE.Mesh(new THREE.SphereGeometry(0.058, 10, 8), o.leg);
+    if (o.seated){ seg(g, 0.07, o.leg, V(x, hip, 0), V(x * 1.3, hip, 0.38)); seg(g, 0.055, o.leg, V(x * 1.3, hip, 0.38), V(x * 1.3, 0.06, 0.42)); knee.position.set(x * 1.3, hip, 0.38); foot(x * 1.3, 0.47); }
+    else { seg(g, 0.072, o.leg, V(x, hip, 0), V(x, 0.5, 0.025)); seg(g, 0.058, o.leg, V(x, 0.5, 0.025), V(x, 0.07, 0)); knee.position.set(x, 0.5, 0.025); foot(x, 0.045); }
+    g.add(knee);
+  });
+  if (o.seated){ const st = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.06, 20), mat(0x111111)); st.position.y = hip - 0.05; g.add(st);
+    const sl = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, hip - 0.05, 8), mat(0x777777, {metalness: 0.8})); sl.position.y = (hip - 0.05) / 2; g.add(sl); }
+  // Üst gövde ayrı grup: nefes ve salınım bacakları oynatmadan buraya uygulanıyor
+  const up = new THREE.Group(); up.position.y = hip; g.add(up);
+  const torso = new THREE.Mesh(TORSO, o.cloth); up.add(torso);
+  const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.152, 0.152, 0.035, 24), mat(0x1a1612, {roughness: 0.5})); belt.scale.z = 0.74; belt.position.y = 0.06; up.add(belt);
+  [-1, 1].forEach(sd => { const s = new THREE.Mesh(new THREE.SphereGeometry(0.07, 14, 10), o.cloth); s.scale.set(1, 0.85, 0.9); s.position.set(sd * 0.2, 0.52, 0); up.add(s); });
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.055, 0.1, 10), o.skin); neck.position.y = 0.62; up.add(neck);
+  const head = new THREE.Group(); head.position.y = 0.75; up.add(head);
+  const skull = new THREE.Mesh(new THREE.SphereGeometry(0.115, 24, 18), o.skin); skull.scale.set(0.95, 1.08, 1); head.add(skull);
+  [-1, 1].forEach(sd => { const ear = new THREE.Mesh(new THREE.SphereGeometry(0.024, 10, 8), o.skin); ear.scale.set(0.5, 1, 0.8); ear.position.set(sd * 0.11, 0, -0.005); head.add(ear); });
+  const arms = [0, 1].map(() => {
+    const el = new THREE.Mesh(new THREE.SphereGeometry(0.048, 10, 8), o.cloth); scene.add(el);
+    return {up: limb(0.054, o.cloth), fo: limb(0.044, o.sleeve || o.cloth), el};
+  });
+  const hands = [0, 1].map(() => makeHand(o.skin));
+  const sh = [V(0.21, 0.52, 0), V(-0.21, 0.52, 0)];
+  return {g, up, torso, head, headY: 0.75, arms, hands, sh, V, reach: o.reach || 0.31, ph: Math.random() * 6.28, sway: o.sway === undefined ? 1 : o.sway};
+}
+function worldOf(fig, v){ fig.g.updateMatrixWorld(true); return fig.g.localToWorld(v.clone()); }
+function poseArm(fig, i, target, pole){
+  fig.g.updateMatrixWorld(true); const S = fig.up.localToWorld(fig.sh[i].clone()), a = fig.reach, b = fig.reach;
+  const d = new THREE.Vector3().subVectors(target, S);
+  let len = d.length(); const dir = d.divideScalar(len || 1);
+  len = Math.min(Math.max(len, 0.05), a + b - 0.002);
+  const T = S.clone().addScaledVector(dir, len);
+  const pl = (pole ? pole.clone() : new THREE.Vector3(i === 0 ? 0.8 : -0.8, -1, -0.35)).applyQuaternion(fig.g.quaternion);
+  const perp = pl.sub(dir.clone().multiplyScalar(pl.dot(dir))).normalize();
+  const x = (a * a - b * b + len * len) / (2 * len), h = Math.sqrt(Math.max(a * a - x * x, 0));
+  const E = S.clone().addScaledVector(dir, x).addScaledVector(perp, h);
+  const A = fig.arms[i];
+  setLimb(A.up, S, E); setLimb(A.fo, E, T); A.el.position.copy(E);
+  const fd = new THREE.Vector3().subVectors(T, E).normalize(), H = fig.hands[i];
+  H.quaternion.setFromUnitVectors(UP, fd); H.position.copy(T).addScaledVector(fd, -0.045);
+}
+function setFigVisible(fig, v){ fig.g.visible = v; fig.arms.forEach(a => { a.up.visible = a.fo.visible = a.el.visible = v; }); fig.hands.forEach(h => { h.visible = v; }); }
+
+// Claude: gitar, kehribar vizörlü kam
+const claude = figure({x: 0.2, z: -0.19, sway: 0.5, cloth: mat(0x2a2933), leg: mat(0x1b1a20), skin: mat(0xd9c4a6, {roughness: 0.5})});
+const visor = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.045, 0.06), glow(0xffa53c, 1.4)); visor.position.set(0, 0.015, 0.09); claude.head.add(visor);
+const hood = new THREE.Mesh(new THREE.SphereGeometry(0.135, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.55), mat(0x2a2933)); hood.rotation.x = -0.35; hood.position.z = -0.015; claude.head.add(hood);
+const halo = new THREE.Group(); halo.position.y = 0.25; claude.head.add(halo);
+for (let i = 0; i < 6; i++){ const r = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.012, 0.012), glow(0xffb45a, 1.6)); r.rotation.z = i * Math.PI / 6; halo.add(r); }
+const clLight = new THREE.PointLight(0xffa04a, 0.8, 2.2); clLight.position.set(0.2, 0.9, 0.4); scene.add(clLight);
+
+// Erlik: davul, boynuzlu yeraltı hükümdarı
+const erlik = figure({x: -1.75, y: 0.18, z: -1.7, ry: 0.4, seated: true, cloth: mat(0x5a1014), leg: mat(0x1a0c0c), skin: mat(0x3d302c, {roughness: 0.7}), reach: 0.33});
+riser.position.set(-1.75, FLOOR + 0.09, -1.45); riser.rotation.y = 0.4;
+[-1, 1].forEach(sd => {
+  const horn = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.24, 12), mat(0xd8ccb2, {roughness: 0.4}));
+  horn.position.set(sd * 0.1, 0.12, 0); horn.rotation.z = -sd * 0.55; erlik.head.add(horn);
+  const eye = new THREE.Mesh(new THREE.SphereGeometry(0.014, 8, 8), glow(0xff2a1a, 2.2)); eye.position.set(sd * 0.04, 0.02, 0.105); erlik.head.add(eye);
+});
+const beard = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.16, 12), mat(0x161010)); beard.rotation.x = Math.PI; beard.position.set(0, -0.12, 0.06); erlik.head.add(beard);
+const chrome2 = mat(0xc7cbd1, {metalness: 0.9, roughness: 0.25}), brass = mat(0xd8a643, {metalness: 0.9, roughness: 0.3});
+const shell = mat(0x6d0d10, {roughness: 0.35}), skinHead = mat(0xeee8dc, {roughness: 0.7});
+function drum(r, h, pos, rx){ const d = new THREE.Group(); const s = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 28), [shell, skinHead, skinHead]); d.add(s); d.position.copy(pos); d.rotation.x = rx || 0; erlik.g.add(d); return d; }
+const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
+const kit = {
+  kick: drum(0.24, 0.32, V3(0, 0.26, 0.62), Math.PI / 2),
+  snare: drum(0.16, 0.09, V3(0.06, 0.64, 0.42), 0.2),
+  tom: drum(0.13, 0.13, V3(-0.12, 0.8, 0.5), 0.45)
+};
+function cymbal(r, pos, tilt){ const c = new THREE.Group(); const m = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.15, r, 0.012, 32), brass); c.add(m); c.position.copy(pos); c.rotation.x = tilt; c.userData.base = tilt; erlik.g.add(c);
+  const st = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, pos.y, 6), chrome2); st.position.set(pos.x, pos.y / 2, pos.z); erlik.g.add(st); return c; }
+kit.hat = cymbal(0.15, V3(0.36, 0.84, 0.36), 0.1);
+kit.crash = cymbal(0.24, V3(0.45, 1.18, 0.5), 0.35);
+kit.ride = cymbal(0.27, V3(-0.45, 1.02, 0.4), 0.3);
+const erLight = new THREE.PointLight(0xff3020, 1.0, 2.6); erLight.position.set(-1.6, 0.8, -0.9); scene.add(erLight);
+const HIT = {hat: [0, "hat"], crash: [0, "crash"], snare: [1, "snare"], ride: [1, "ride"], tom: [1, "tom"], kick: [-1, "kick"]};
+const idle = {0: "hat", 1: "snare"};
+function kitTop(k){ const o = kit[k]; const p = o.position.clone(); p.y += k === "kick" ? 0 : 0.03; return worldOf(erlik, p); }
+
+// Umay: bas, gümüş saçlı ana tanrıça
+const umay = figure({x: 1.55, z: -0.75, ry: -0.45, cloth: mat(0xaebdcf, {roughness: 0.5}), leg: mat(0x8796aa), skin: mat(0xead8c6, {roughness: 0.5}), reach: 0.36});
+const robe = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.8, 22, 1, true), mat(0xaebdcf, {roughness: 0.5, side: THREE.DoubleSide})); robe.position.y = 0.55; umay.g.add(robe);
+const hairM = mat(0xeef1f6, {emissive: 0x9fb4d8, emissiveIntensity: 0.25, roughness: 0.4});
+const hair = new THREE.Mesh(new THREE.SphereGeometry(0.128, 20, 16, 0, Math.PI * 2, 0, Math.PI * 0.6), hairM); hair.position.set(0, 0.012, -0.012); umay.head.add(hair);
+const hairBack = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.55, 0.05), hairM); hairBack.position.set(0, -0.26, -0.1); umay.head.add(hairBack);
+const diadem = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.009, 8, 32), brass); diadem.rotation.x = Math.PI / 2 - 0.25; diadem.position.y = 0.06; umay.head.add(diadem);
+const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.02), glow(0x7fd0ff, 2)); gem.position.set(0, 0.09, 0.11); umay.head.add(gem);
+const bass = new THREE.Group(); bass.position.set(0.04, 0.96, 0.24); bass.rotation.set(0.15, 0, 0.42); umay.g.add(bass);
+const bassBody = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.24, 0.045), mat(0x1d5a5c, {roughness: 0.3, metalness: 0.2})); bass.add(bassBody);
+const bassNeck = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.05, 0.03), mat(0x8a5a2e)); bassNeck.position.set(-0.56, 0, 0.01); bass.add(bassNeck);
+const bassHead = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.07, 0.025), mat(0x1d5a5c)); bassHead.position.set(-1.03, 0, 0.01); bass.add(bassHead);
+for (let i = 0; i < 4; i++){ const s = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.003, 0.003), mat(0xd0d4da, {metalness: 0.8})); s.position.set(-0.43, -0.018 + i * 0.012, 0.032); bass.add(s); }
+const umLight = new THREE.PointLight(0x8fb8ff, 0.9, 2.6); umLight.position.set(1.3, 0.9, 0.1); scene.add(umLight);
+function bassPoint(x, y, z){ bass.updateMatrixWorld(true); return bass.localToWorld(new THREE.Vector3(x, y, z)); }
+
+// Şahmeran: vokal, yılanların kraliçesi
+const sahmeran = figure({x: -0.7, z: 0.45, ry: 0.2, noLegs: true, cloth: mat(0x1e6b4c, {roughness: 0.35, metalness: 0.25, emissive: 0x0b2a1d, emissiveIntensity: 0.6}), skin: mat(0xc9a27e, {roughness: 0.5})});
+const scaleM = mat(0x1e6b4c, {roughness: 0.3, metalness: 0.35}), goldM = mat(0xe0b44a, {metalness: 0.85, roughness: 0.3});
+[0.3, 0.25, 0.2, 0.15].forEach((r, i) => { const c = new THREE.Mesh(new THREE.TorusGeometry(r, 0.075 - i * 0.008, 12, 36), i % 2 ? goldM : scaleM); c.rotation.x = Math.PI / 2; c.position.y = 0.08 + i * 0.13; sahmeran.g.add(c); });
+const tailUp = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.13, 0.42, 16), scaleM); tailUp.position.y = 0.72; sahmeran.g.add(tailUp);
+const tailTip = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.45, 12), goldM); tailTip.position.set(0.38, 0.07, 0.15); tailTip.rotation.z = -1.35; sahmeran.g.add(tailTip);
+const sHair = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.5, 0.05), mat(0x0d0d0f)); sHair.position.set(0, -0.2, -0.1); sahmeran.head.add(sHair);
+const sCap = new THREE.Mesh(new THREE.SphereGeometry(0.124, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.5), mat(0x0d0d0f)); sCap.position.y = 0.01; sahmeran.head.add(sCap);
+const crown = new THREE.Group(); crown.position.y = 0.08; sahmeran.head.add(crown);
+crown.add(new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.012, 8, 32), goldM)); crown.children[0].rotation.x = Math.PI / 2;
+for (let i = 0; i < 5; i++){ const sp = new THREE.Mesh(new THREE.ConeGeometry(0.016, 0.09, 8), goldM); const a = (i - 2) * 0.45; sp.position.set(Math.sin(a) * 0.11, 0.045, Math.cos(a) * 0.11); crown.add(sp); }
+[-1, 1].forEach(sd => { const e = new THREE.Mesh(new THREE.SphereGeometry(0.013, 8, 8), glow(0xffd23a, 2.2)); e.position.set(sd * 0.04, 0.015, 0.105); sahmeran.head.add(e); });
+const micStand = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 1.45, 8), chrome2); micStand.position.set(0, 0.72, 0.36); sahmeran.g.add(micStand);
+const mic = new THREE.Mesh(new THREE.SphereGeometry(0.03, 14, 12), mat(0x333336, {metalness: 0.7, roughness: 0.35})); mic.position.set(0, 1.47, 0.28); sahmeran.g.add(mic);
+const shLight = new THREE.PointLight(0x4cf0a0, 0.9, 2.4); shLight.position.set(-0.6, 1.0, 1.1); scene.add(shLight);
+
+// Ülgen: klavye, gök tanrısı
+const ulgen = figure({x: 0.95, z: -2.0, ry: -0.2, cloth: mat(0x2c4f8a, {roughness: 0.5}), leg: mat(0x1e3560), skin: mat(0xe2c9ae, {roughness: 0.5}), reach: 0.33});
+const uRobe = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.85, 22, 1, true), mat(0x2c4f8a, {roughness: 0.5, side: THREE.DoubleSide})); uRobe.position.y = 0.5; ulgen.g.add(uRobe);
+const uBeard = new THREE.Mesh(new THREE.ConeGeometry(0.085, 0.36, 14), mat(0xf2f2f2, {roughness: 0.8})); uBeard.rotation.x = Math.PI; uBeard.position.set(0, -0.2, 0.07); ulgen.head.add(uBeard);
+const uCap = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.34, 18), mat(0xf4f1e8, {roughness: 0.6})); uCap.position.y = 0.2; ulgen.head.add(uCap);
+const star = new THREE.Mesh(new THREE.OctahedronGeometry(0.045), glow(0xbfe0ff, 2.4)); star.position.y = 0.44; ulgen.head.add(star);
+const kbd = new THREE.Group(); kbd.position.set(0, 0.92, 0.42); ulgen.g.add(kbd);
+kbd.add(new THREE.Mesh(new THREE.BoxGeometry(0.98, 0.07, 0.3), mat(0x151518, {roughness: 0.4})));
+const keysWhite = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.02, 0.13), mat(0xf3f1ea, {roughness: 0.5})); keysWhite.position.set(0, 0.04, 0.07); kbd.add(keysWhite);
+for (let i = 0; i < 26; i++){ if ([2, 6, 9, 13, 16, 20, 23].includes(i)) continue; const k = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.02, 0.075), mat(0x111111)); k.position.set(-0.43 + i * 0.0345, 0.055, 0.04); kbd.add(k); }
+[-0.42, 0.42].forEach(x => { const lg = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.9, 8), chrome2); lg.position.set(x, -0.46, 0); kbd.add(lg); });
+const ulLight = new THREE.PointLight(0x9ac8ff, 0.9, 2.6); ulLight.position.set(0.9, 1.0, -1.2); scene.add(ulLight);
+function keyPoint(midi, press){ const u = Math.min(Math.max((midi - 48) / 36, 0), 1); kbd.updateMatrixWorld(true); return kbd.localToWorld(new THREE.Vector3(-0.42 + u * 0.84, 0.09 - press, 0.06)); }
+
+
+// Yüzler: gözler ve Şahmeran'ın şarkı söyleyen ağzı
+function eyes(fig, color, y){ [-1, 1].forEach(sd => { const e = new THREE.Mesh(new THREE.SphereGeometry(0.014, 10, 8), mat(color, {roughness: 0.2})); e.position.set(sd * 0.04, y || 0.02, 0.105); e.scale.z = 0.5; fig.head.add(e);
+  const br = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.006, 0.01), mat(0x2a2420)); br.position.set(sd * 0.042, (y || 0.02) + 0.03, 0.104); br.rotation.z = -sd * 0.12; fig.head.add(br); }); }
+eyes(umay, 0x2d4a78); eyes(ulgen, 0x1c1c22, 0.03);
+const sMouth = new THREE.Mesh(new THREE.SphereGeometry(0.02, 12, 8), mat(0x3a0c10)); sMouth.position.set(0, -0.045, 0.104); sMouth.scale.set(1.2, 0.3, 0.4); sahmeran.head.add(sMouth);
+const uMouth = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.006, 0.01), mat(0x7a3a3a)); uMouth.position.set(0, -0.05, 0.106); umay.head.add(uMouth);
+// Sahne ışıkları
+const FIG = {claude, erlik, umay, sahmeran, ulgen};
+// Göz kırpma: kafadaki küçük göz kürelerini bul
+Object.values(FIG).forEach(f => { f.eyes = f.head.children.filter(m => m.geometry && m.geometry.type === "SphereGeometry" && m.geometry.parameters.radius < 0.016 && m.position.z > 0.1); f.eyeY = f.eyes.map(m => m.scale.y); f.blinkAt = 1 + Math.random() * 3; });
+function blink(f, wall){
+  if (wall > f.blinkAt + 0.14){ f.blinkAt = wall + 2.2 + Math.random() * 3.5; if (Math.random() < 0.2) f.blinkAt = wall + 0.25; }
+  const k = wall >= f.blinkAt ? Math.max(0.08, Math.abs((wall - f.blinkAt) / 0.07 - 1)) : 1;
+  f.eyes.forEach((m, i) => { m.scale.y = f.eyeY[i] * k; });
+}
+const LIGHTS = {claude: clLight, erlik: erLight, umay: umLight, sahmeran: shLight, ulgen: ulLight};
+const BEAM_C = {claude: 0xffa848, erlik: 0xff3a24, umay: 0x9cc4ff, sahmeran: 0x47f0a2, ulgen: 0xbcd8ff};
+const beams = {};
+Object.keys(FIG).forEach(k => {
+  const c = new THREE.Mesh(new THREE.ConeGeometry(0.65, 3.3, 28, 1, true), new THREE.MeshBasicMaterial({color: BEAM_C[k], transparent: true, opacity: 0.06, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide}));
+  const p = worldOf(FIG[k], new THREE.Vector3(0, 0, 0)); c.position.set(p.x, FLOOR + 1.65, p.z); scene.add(c); beams[k] = c;
+});
+let rosterKey = "";
+function applyRoster(roster, headCamOn){
+  Object.keys(FIG).forEach(k => {
+    const on = roster.includes(k);
+    setFigVisible(FIG[k], on && !(k === "claude" && headCamOn));
+    LIGHTS[k].visible = on; beams[k].visible = on;
+  });
+  riser.visible = roster.includes("erlik");
+  const key = roster.join(",");
+  if (key !== rosterKey){ rosterKey = key; drawBanner(roster); }
+}
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { rosterKey = ""; });
+
+function activeAt(list, now){ let r = null; if (list) for (const n of list){ if (n.t <= now){ if (now < n.end) r = n; } else break; } return r; }
+function life(fig, wall, beat, groove){
+  const ph = fig.ph, br = Math.sin(wall * 1.55 + ph), sw = fig.sway;
+  fig.torso.scale.set(1 + 0.018 * br, 1 + 0.01 * br, 1 + 0.03 * br);
+  fig.up.position.y = (fig.up.userData.y0 === undefined ? (fig.up.userData.y0 = fig.up.position.y) : fig.up.userData.y0) + 0.004 * br - 0.012 * groove * Math.abs(Math.sin(beat * Math.PI));
+  fig.up.rotation.z = sw * (0.022 * Math.sin(wall * 0.53 + ph) + 0.02 * groove * Math.sin(beat * Math.PI));
+  fig.up.rotation.x = sw * (0.015 * Math.sin(wall * 0.41 + ph * 2) + 0.035 * groove * Math.abs(Math.sin(beat * Math.PI)));
+  fig.up.rotation.y = sw * 0.03 * Math.sin(wall * 0.29 + ph * 3);
+  fig.head.rotation.y = 0.16 * Math.sin(wall * 0.23 + ph) * Math.sin(wall * 0.11 + ph * 1.7);
+}
+let flash = 0; const _white = new THREE.Color(0xffffff);
+function updateBand(now, wall){
+  const p = playing, bpm = p ? p.bpm : 90, beat = now * bpm / 60, band = p && p.band;
+  if (wall === undefined) wall = now;
+  life(claude, wall, beat, p ? 0.6 : 0); life(erlik, wall, beat, band ? 1 : 0); life(umay, wall, beat, band ? 0.8 : 0);
+  life(sahmeran, wall, beat, band ? 0.5 : 0); life(ulgen, wall, beat, band ? 0.5 : 0);
+  // Claude
+  let fp = null;
+  for (let s = 0; s < 6; s++) if (fingers[s].visible){ fp = fingers[s].position; break; }
+  const fretT = guitar.localToWorld((fp ? fp.clone() : new THREE.Vector3(fingerX(5), 0, STR_Z)).add(new THREE.Vector3(0, 0, 0.02)));
+  poseArm(claude, 1, fretT, new THREE.Vector3(-0.3, -1, 0.2));
+  poseArm(claude, 0, guitar.localToWorld(pick.position.clone().add(new THREE.Vector3(0.012, 0, 0.02))), new THREE.Vector3(1, -0.6, -0.4));
+  halo.rotation.z = now * 0.6;
+  Object.values(FIG).forEach(f => blink(f, wall));
+  { let pk = 9; if (p) for (const e of p.events){ if (e.t > now) break; pk = now - e.t; } visor.material.emissiveIntensity = 1.2 + 0.9 * Math.exp(-pk * 9); }
+  claude.head.position.y = claude.headY + (p ? 0.012 * Math.abs(Math.sin(beat * Math.PI)) : 0);
+  // Erlik
+  const hits = band ? p.hits : null;
+  for (let h = 0; h < 2; h++){
+    let last = null, next = null;
+    if (hits){ const L = hits[h]; for (let i = 0; i < L.length; i++){ if (L[i].t <= now) last = L[i]; else { next = L[i]; break; } } }
+    const lift = new THREE.Vector3(0, 0.15, -0.05);
+    let pos;
+    if (next && next.t - now < 0.1){ const u = 1 - (next.t - now) / 0.1; pos = kitTop(next.k).add(lift.clone().multiplyScalar(1 - u)); }
+    else { const k = last ? last.k : idle[h], age = last ? now - last.t : 1; pos = kitTop(k).add(lift.clone().multiplyScalar(Math.min(1, age / 0.12))); }
+    poseArm(erlik, h, pos);
+  }
+  ["hat", "crash", "ride"].forEach(k => { const c = kit[k], a = p && p.lastHit[k] !== undefined ? now - p.lastHit[k] : 9; c.rotation.x = c.userData.base + 0.18 * Math.exp(-a * 3.5) * Math.sin(a * 22); });
+  const ka = p && p.lastHit.kick !== undefined ? now - p.lastHit.kick : 9; kit.kick.scale.set(1, 1 + 0.06 * Math.exp(-ka * 14), 1);
+  erlik.head.position.y = erlik.headY + (band ? 0.02 * Math.abs(Math.sin(beat * Math.PI)) : 0);
+  erLight.intensity = 0.8 + 1.4 * Math.exp(-ka * 6);
+  // Umay
+  const bn = band ? activeAt(p.bassEv, now) : null;
+  const u = bn ? Math.min(Math.max((bn.midi - 28) / 17, 0), 1) : 0.3;
+  poseArm(umay, 0, bassPoint(-0.22 - u * 0.5, 0, 0.05), new THREE.Vector3(0.3, -1, -0.2));
+  const pa = bn ? now - bn.t : 1;
+  poseArm(umay, 1, bassPoint(0.06, -0.01 + 0.03 * Math.exp(-pa * 10), 0.06 + 0.02 * Math.exp(-pa * 10)), new THREE.Vector3(-0.6, -1, -0.3));
+  umay.head.rotation.x = band ? 0.08 * Math.sin(beat * Math.PI * 2) : 0;
+  // Şahmeran
+  const vn = band ? activeAt(p.voxEv, now) : null;
+  poseArm(sahmeran, 1, worldOf(sahmeran, new THREE.Vector3(-0.02, 1.42, 0.25)));
+  const lift2 = vn ? 0.12 + 0.05 * Math.sin(now * 3) : 0;
+  poseArm(sahmeran, 0, worldOf(sahmeran, new THREE.Vector3(0.42, 0.95 + lift2 * 2.2, 0.22 + lift2)));
+  sahmeran.head.rotation.z = 0.06 * Math.sin(now * 1.7);
+  sahmeran.head.rotation.x = vn ? -0.12 : 0;
+  sMouth.scale.y = vn ? 0.55 + 0.45 * Math.abs(Math.sin((now - vn.t) * 9)) : 0.25;
+  shLight.intensity = 0.7 + (vn ? 0.8 : 0);
+  // Ülgen
+  const kn = band && p.keysEv ? p.keysEv.filter(k => k.t <= now && now < k.end) : [];
+  let lo = 60, hi = 72, lt = -9, ht = -9;
+  if (kn.length){ lo = Infinity; hi = -Infinity; kn.forEach(k => k.m.forEach(m => { if (m < lo){ lo = m; lt = k.t; } if (m > hi){ hi = m; ht = k.t; } })); if (lo === hi) hi = lo + 7; }
+  poseArm(ulgen, 1, keyPoint(lo, 0.02 * Math.exp(-(now - lt) * 12) - 0.03 * (kn.length ? 0 : 1)), new THREE.Vector3(-0.8, -0.6, -0.6));
+  poseArm(ulgen, 0, keyPoint(hi, 0.02 * Math.exp(-(now - ht) * 12) - 0.03 * (kn.length ? 0 : 1)), new THREE.Vector3(0.8, -0.6, -0.6));
+  star.rotation.y = now * 1.2;
+  ulgen.head.rotation.x = band ? 0.05 * Math.sin(beat * Math.PI) : 0;
+  // Işık hüzmeleri
+  // Işık şovu: hüzmeler ritimle salınır, crash vuruşunda sahne beyaz parlar
+  const ca = p && p.lastHit.crash !== undefined ? now - p.lastHit.crash : 9;
+  flash = band ? Math.exp(-ca * 4) : 0;
+  Object.keys(beams).forEach((k, i) => {
+    const b = beams[k], sw = band ? 0.16 : 0.05, ph = i * 1.3;
+    b.rotation.z = sw * Math.sin(beat * Math.PI / 4 + ph); b.rotation.x = sw * 0.6 * Math.cos(beat * Math.PI / 4 + ph * 0.7);
+    b.material.opacity = 0.045 + (band ? 0.06 * Math.exp(-ka * 5) + 0.02 * Math.max(0, Math.sin(beat * Math.PI / 2 + i)) + 0.1 * flash : 0);
+    b.material.color.setHex(BEAM_C[k]).lerp(_white, 0.6 * flash);
+  });
+  hemi.intensity = ENVS[envName].hemi[2] + 0.5 * flash;
+}
+
+
+/* ---------- Kıvılcımlar ve anka kuşu ---------- */
+const EMBERS = 260;
+const emberGeo = new THREE.BufferGeometry(), emberPos = new Float32Array(EMBERS * 3), emberSeed = [];
+for (let i = 0; i < EMBERS; i++){ emberSeed.push([Math.random() * 6 - 3, Math.random() * 2.4 - 2.2, Math.random(), 0.25 + Math.random() * 0.35, Math.random() * 6.28]); }
+emberGeo.setAttribute("position", new THREE.BufferAttribute(emberPos, 3));
+function emberSprite(){ const c = document.createElement("canvas"); c.width = c.height = 64; const g = c.getContext("2d");
+  const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, "rgba(255,240,200,1)"); r.addColorStop(0.3, "rgba(255,160,60,.8)"); r.addColorStop(1, "rgba(255,80,0,0)");
+  g.fillStyle = r; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); }
+const embers = new THREE.Points(emberGeo, new THREE.PointsMaterial({size: 0.075, map: emberSprite(), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, color: 0xffb060}));
+embers.frustumCulled = false; scene.add(embers);
+
+const phoenix = new THREE.Group(); scene.add(phoenix);
+const fireM = new THREE.MeshStandardMaterial({color: 0xff8a2a, emissive: 0xff5a10, emissiveIntensity: 1.6, roughness: 0.4, side: THREE.DoubleSide, transparent: true, opacity: 0.95});
+const goldF = new THREE.MeshStandardMaterial({color: 0xffd36a, emissive: 0xffaa30, emissiveIntensity: 1.8, roughness: 0.3, side: THREE.DoubleSide});
+const pBody = new THREE.Mesh(new THREE.SphereGeometry(0.09, 16, 12), goldF); pBody.scale.set(1, 0.8, 2.1); phoenix.add(pBody);
+const pHead = new THREE.Mesh(new THREE.SphereGeometry(0.06, 14, 10), goldF); pHead.position.set(0, 0.06, 0.2); phoenix.add(pHead);
+const beak = new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.08, 8), mat(0x3a2410)); beak.rotation.x = Math.PI / 2; beak.position.set(0, 0.05, 0.28); phoenix.add(beak);
+for (let i = 0; i < 3; i++){ const cr = new THREE.Mesh(new THREE.ConeGeometry(0.012, 0.09, 6), fireM); cr.position.set((i - 1) * 0.02, 0.12, 0.17 - i * 0.02); cr.rotation.x = -0.6; phoenix.add(cr); }
+function wingGeo(side){
+  const s = new THREE.Shape(); s.moveTo(0, 0.06); s.bezierCurveTo(0.25, 0.22, 0.55, 0.2, 0.72, 0.05);
+  s.lineTo(0.62, 0.0); s.lineTo(0.66, -0.06); s.lineTo(0.5, -0.06); s.lineTo(0.52, -0.13); s.lineTo(0.36, -0.1); s.lineTo(0.34, -0.17); s.bezierCurveTo(0.2, -0.1, 0.08, -0.08, 0, -0.06); s.lineTo(0, 0.06);
+  const g = new THREE.ShapeGeometry(s, 12); g.rotateX(-Math.PI / 2); if (side < 0) g.scale(-1, 1, 1); return g;
+}
+const wings = [1, -1].map(sd => { const w = new THREE.Group(); w.position.set(sd * 0.06, 0.03, 0.02); const m = new THREE.Mesh(wingGeo(sd), fireM); w.add(m); phoenix.add(w); return w; });
+const tail = [];
+for (let i = 0; i < 5; i++){ const t = new THREE.Mesh(new THREE.ConeGeometry(0.018, 0.55 + (i % 2) * 0.15, 8), i % 2 ? goldF : fireM); t.rotation.x = -Math.PI / 2 - 0.15; t.position.set((i - 2) * 0.03, -0.02, -0.42); phoenix.add(t); tail.push(t); }
+const phLight = new THREE.PointLight(0xff7a20, 1.4, 3.5); phoenix.add(phLight);
+
+function updateFx(now, wall){
+  const p = playing, band = p && p.band, beat = now * (p ? p.bpm : 90) / 60;
+  const heat = band ? 1 : 0.4;
+  for (let i = 0; i < EMBERS; i++){
+    const [x0, z0, ph, sp, w] = emberSeed[i], life = 3.2, u = ((wall * sp / life) + ph) % 1;
+    emberPos[i*3] = x0 + 0.12 * Math.sin(wall * 1.3 + w) + u * 0.25 * Math.sin(w);
+    emberPos[i*3+1] = FLOOR + u * 3.2;
+    emberPos[i*3+2] = z0 + 0.1 * Math.cos(wall + w);
+  }
+  emberGeo.attributes.position.needsUpdate = true;
+  embers.material.opacity = 0.35 + 0.5 * heat;
+  // Anka kuşu sahnenin üstünde sekiz çiziyor
+  const a = wall * 0.32, fx = Math.sin(a) * 1.4, fz = -1.6 + Math.sin(a * 2) * 0.5, fy = 1.35 + 0.12 * Math.sin(a * 3);
+  const dx = Math.cos(a) * 1.4 * 0.32, dz = Math.cos(a * 2) * 2 * 0.5 * 0.32;
+  phoenix.position.set(fx, fy, fz);
+  phoenix.rotation.set(0, Math.atan2(dx, dz), -dx * 0.5);
+  const flap = Math.sin(wall * (band ? 7 : 4.5));
+  wings[0].rotation.z = 0.15 + 0.55 * flap; wings[1].rotation.z = -0.15 - 0.55 * flap;
+  tail.forEach((t, i) => { t.rotation.y = 0.12 * Math.sin(wall * 2.2 + i); });
+  phLight.intensity = 1.0 + (band ? 0.8 * Math.abs(Math.sin(beat * Math.PI)) : 0);
+  fireM.emissiveIntensity = 1.3 + (band ? 0.6 * Math.abs(Math.sin(beat * Math.PI)) : 0);
+}
+
+
+/* ---------- Mekanlar ---------- */
+const ENV = {club: new THREE.Group(), theater: new THREE.Group(), summit: new THREE.Group()};
+Object.values(ENV).forEach(g => scene.add(g));
+[back, ampG, truss].forEach(m => { scene.remove(m); ENV.club.add(m); });
+// Gökyüzü: yıldızlar ve ay (tiyatro ve zirvede)
+const sky = new THREE.Group(); scene.add(sky);
+{
+  const n = 1800, pos = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++){ const u = Math.random(), v = Math.random() * 0.9 + 0.05, th = u * Math.PI * 2, ph = Math.acos(1 - v);
+    pos[i*3] = 40 * Math.sin(ph) * Math.cos(th); pos[i*3+1] = 40 * Math.cos(ph) - 2; pos[i*3+2] = 40 * Math.sin(ph) * Math.sin(th); }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  sky.add(new THREE.Points(g, new THREE.PointsMaterial({color: 0xdfe8ff, size: 0.09, fog: false, sizeAttenuation: true})));
+  const moon = new THREE.Mesh(new THREE.SphereGeometry(1.6, 32, 24), new THREE.MeshBasicMaterial({color: 0xfff3d0, fog: false}));
+  moon.position.set(-9, 10, -28); sky.add(moon);
+  const halo2 = new THREE.Mesh(new THREE.SphereGeometry(2.6, 32, 24), new THREE.MeshBasicMaterial({color: 0xfff0c0, transparent: true, opacity: 0.12, fog: false, depthWrite: false}));
+  halo2.position.copy(moon.position); sky.add(halo2);
+}
+// Antik tiyatro: taş zemin, iki katlı sütunlu sahne duvarı, basamaklı oturma yerleri, meşaleler
+const stone = mat(0x5c4a38, {roughness: 0.95}), stoneD = mat(0x3a2e22, {roughness: 0.95});
+{
+  const T = ENV.theater;
+  const fl = new THREE.Mesh(new THREE.PlaneGeometry(16, 10), stone); fl.rotation.x = -Math.PI / 2; fl.position.set(0, FLOOR, -0.5); T.add(fl);
+  const wall = new THREE.Mesh(new THREE.BoxGeometry(13, 5.2, 0.6), stoneD); wall.position.set(0, FLOOR + 2.6, -3.9); T.add(wall);
+  for (let tier = 0; tier < 2; tier++){
+    const h = tier ? 1.5 : 2.1, y0 = FLOOR + (tier ? 2.35 : 0), r = tier ? 0.13 : 0.17;
+    for (let i = -6; i <= 6; i++){
+      const c = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 1.1, h, 16), stone); c.position.set(i * 0.95, y0 + h / 2, -3.3); T.add(c);
+      if (i < 6){ const arch = new THREE.Mesh(new THREE.TorusGeometry(0.47, 0.07, 8, 20, Math.PI), stone); arch.position.set(i * 0.95 + 0.475, y0 + h - 0.05, -3.55); T.add(arch); }
+    }
+    const ent = new THREE.Mesh(new THREE.BoxGeometry(12.4, 0.25, 0.7), stone); ent.position.set(0, y0 + h + 0.12, -3.35); T.add(ent);
+  }
+  for (let k = 0; k < 7; k++){
+    const r = 6.2 + k * 0.75, y = FLOOR + 0.22 + k * 0.42, a0 = -1.15, al = 2.3;
+    const front = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.42, 64, 1, true, a0, al), stoneD); front.position.set(0, y, 1.2); T.add(front);
+    const top = new THREE.Mesh(new THREE.RingGeometry(r, r + 0.75, 64, 1, -Math.PI / 2 - 1.15, 2.3), mat(0x64523e, {roughness: 0.95, side: THREE.DoubleSide}));
+    top.rotation.x = -Math.PI / 2; top.position.set(0, y + 0.21, 1.2); T.add(top);
+  }
+}
+const torches = [];
+[-5.7, -2.85, 2.85, 5.7].forEach(x => {
+  const t = new THREE.Group(); t.position.set(x, FLOOR, -2.9);
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, 1.6, 8), mat(0x3a2a1a)); pole.position.y = 0.8; t.add(pole);
+  const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.08, 0.12, 12), mat(0x5a4632, {metalness: 0.5})); bowl.position.y = 1.62; t.add(bowl);
+  const flame = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.38, 12), new THREE.MeshBasicMaterial({color: 0xffa040, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false}));
+  flame.position.y = 1.86; t.add(flame);
+  const L = new THREE.PointLight(0xff8a30, 1.2, 4.5); L.position.y = 1.9; t.add(L);
+  ENV.theater.add(t); torches.push({flame, L, ph: Math.random() * 10});
+});
+// Kaf Dağı zirvesi: kayalık zemin ve uzak karlı tepeler
+{
+  const S = ENV.summit;
+  const g = new THREE.PlaneGeometry(60, 60, 120, 120); g.rotateX(-Math.PI / 2);
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++){
+    const x = p.getX(i), z = p.getZ(i) - 1, r = Math.hypot(x, z);
+    const n = Math.sin(x * 0.7) * Math.cos(z * 0.6) * 0.35 + Math.sin(x * 2.3 + z * 1.7) * 0.08 + Math.sin(x * 0.2 - z * 0.25) * 0.9;
+    p.setY(i, r < 3.6 ? 0 : (n + (r - 3.6) * -0.35) * Math.min(1, (r - 3.6) / 2));
+  }
+  g.computeVertexNormals();
+  const ground = new THREE.Mesh(g, mat(0x22252c, {roughness: 1, flatShading: true})); ground.position.y = FLOOR; S.add(ground);
+  const pad = new THREE.Mesh(new THREE.CircleGeometry(3.4, 48), mat(0x1d1f25, {roughness: 0.9})); pad.rotation.x = -Math.PI / 2; pad.position.set(0, FLOOR + 0.005, -1); S.add(pad);
+  [[-18, -32, 9, 12], [-6, -40, 12, 16], [9, -36, 10, 13], [22, -28, 8, 10], [-28, -18, 7, 9], [30, -14, 6, 8]].forEach(([x, z, r, h]) => {
+    const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, 7), mat(0x252a36, {roughness: 1, flatShading: true})); m.position.set(x, FLOOR - 2 + h / 2, z); S.add(m);
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(r * 0.32, h * 0.32, 7), mat(0xe8eef8, {roughness: 0.8, flatShading: true})); cap.position.set(x, FLOOR - 2 + h - h * 0.16 + 0.02, z); S.add(cap);
+  });
+  const stones = mat(0x36363e, {roughness: 1, flatShading: true});
+  for (let i = 0; i < 18; i++){ const a = i / 18 * Math.PI * 2, r = 3.5 + (i % 3) * 0.3; const st = new THREE.Mesh(new THREE.DodecahedronGeometry(0.18 + (i % 4) * 0.07), stones);
+    st.position.set(Math.cos(a) * r, FLOOR + 0.08, -1 + Math.sin(a) * r); st.rotation.set(i, i * 2, 0); S.add(st); }
+}
+const ENVS = {
+  club:    {name: "Kulüp sahnesi", bg: 0x16110e, fog: [4, 10], hemi: [0xffe6c8, 0x1a1010, 0.4], floor: true, sky: false, room: 1.3, key: [0xfff1dd, 0.55]},
+  theater: {name: "Antik tiyatro", bg: 0x0b0f1e, fog: [8, 30], hemi: [0x5a6a9c, 0x2a1d12, 0.22], floor: false, sky: true, room: 2.6, key: [0x8ea6e0, 0.12]},
+  summit:  {name: "Kaf Dağı zirvesi", bg: 0x070b18, fog: [10, 45], hemi: [0x7c96dc, 0x141820, 0.42], floor: false, sky: true, room: 3.4, key: [0x9fb4ec, 0.22]}
+};
+let envName = "club";
+function setEnv(n){
+  envName = n; const e = ENVS[n];
+  Object.keys(ENV).forEach(k => { ENV[k].visible = k === n; });
+  floor.visible = e.floor; sky.visible = e.sky;
+  scene.background.setHex(e.bg); scene.fog.color.setHex(e.bg); scene.fog.near = e.fog[0]; scene.fog.far = e.fog[1];
+  hemi.color.setHex(e.hemi[0]); hemi.groundColor.setHex(e.hemi[1]); hemi.intensity = e.hemi[2];
+  key.color.setHex(e.key[0]); key.intensity = e.key[1];
+  banner.position.set(0, n === "club" ? 1.8 : 2.2, n === "club" ? -3.15 : -3.0);
+  setRoom(e.room);
+}
+function updateEnv(wall){
+  torches.forEach(t => { const f = 0.85 + 0.15 * Math.sin(wall * 13 + t.ph) * Math.sin(wall * 7.3 + t.ph * 2); t.flame.scale.set(1, f * 1.1, 1); t.L.intensity = 1.0 * f + 0.25; });
+}
+
+/* ---------- Seyirci ---------- */
+// Instanced silüetler: sahne önünde ayakta kalabalık, tiyatroda basamaklarda oturanlar. Ritme göre zıplar, bazıları el kaldırır.
+const crowd = (() => {
+  const P = [];
+  for (let row = 0; row < 4; row++) for (let i = 0; i < 16; i++){
+    const x = -3.0 + i * 0.4 + (row % 2) * 0.2 + (Math.random() - 0.5) * 0.12, z = 2.65 + row * 0.36 + (Math.random() - 0.5) * 0.1;
+    P.push({x, z, y: FLOOR, h: 0.88 + Math.random() * 0.14, ph: Math.random() * 6.28, arm: Math.random() < 0.38, sd: Math.random() < 0.5 ? -1 : 1, seat: false});
+  }
+  for (let k = 0; k < 6; k++) for (let i = 0; i < 26; i++){
+    const r = 6.55 + k * 0.75, a = -1.05 + (i + Math.random() * 0.5) / 26 * 2.1;
+    if (Math.random() < 0.25) continue;
+    P.push({x: r * Math.sin(a), z: 1.2 + r * Math.cos(a), y: FLOOR + 0.43 + k * 0.42, h: 0.62 + Math.random() * 0.08, ph: Math.random() * 6.28, arm: Math.random() < 0.2, sd: Math.random() < 0.5 ? -1 : 1, seat: true, ry: Math.PI + a});
+  }
+  const sil = new THREE.MeshStandardMaterial({color: 0x2a2320, roughness: 1});
+  const body = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.15, 0.12, 1, 10), sil, P.length);
+  const head = new THREE.InstancedMesh(new THREE.SphereGeometry(0.1, 12, 10), sil, P.length);
+  const arm = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.022, 0.03, 0.42, 6), sil, P.length);
+  const col = new THREE.Color();
+  P.forEach((q, i) => { col.setHSL(0.05 + Math.random() * 0.08, 0.25, 0.1 + Math.random() * 0.08); body.setColorAt(i, col); head.setColorAt(i, col); arm.setColorAt(i, col); });
+  [body, head, arm].forEach(m => { m.frustumCulled = false; scene.add(m); });
+  return {P, body, head, arm, m4: new THREE.Matrix4(), q: new THREE.Quaternion(), e: new THREE.Euler(), v: new THREE.Vector3(), sc: new THREE.Vector3()};
+})();
+function updateCrowd(now, wall){
+  const C = crowd, p = playing, band = p && p.band, beat = now * (p ? p.bpm : 90) / 60, theater = envName === "theater";
+  const energy = band ? 1 : p ? 0.4 : 0;
+  C.P.forEach((q, i) => {
+    const vis = !q.seat || theater, hop = vis ? energy * (q.seat ? 0.015 : 0.05) * Math.abs(Math.sin(beat * Math.PI + q.ph * 0.15)) : 0;
+    const sway = 0.04 * Math.sin(wall * 0.7 + q.ph), base = vis ? q.y : -50, ry = q.ry || 0;
+    const bh = q.h * 0.78;
+    C.e.set(0, ry, sway); C.q.setFromEuler(C.e);
+    C.m4.compose(C.v.set(q.x, base + hop + bh / 2, q.z), C.q, C.sc.set(1, bh, 1)); C.body.setMatrixAt(i, C.m4);
+    C.m4.compose(C.v.set(q.x + Math.sin(-sway) * bh, base + hop + bh + 0.1, q.z), C.q, C.sc.set(1, 1.1, 1)); C.head.setMatrixAt(i, C.m4);
+    if (q.arm && vis){
+      const pump = energy * 0.35 * Math.max(0, Math.sin(beat * Math.PI * 2 + q.ph));
+      C.e.set(0, ry, q.sd * (0.25 + 0.2 * (1 - energy)) - q.sd * pump * 0.4); C.q.setFromEuler(C.e);
+      const ax = q.x + q.sd * 0.14 * Math.cos(ry), az = q.z - q.sd * 0.14 * Math.sin(ry);
+      C.m4.compose(C.v.set(ax, base + hop + bh + 0.15 + pump * 0.08, az), C.q, C.sc.set(1, 1, 1));
+    } else C.m4.compose(C.v.set(0, -50, 0), C.q, C.sc.set(1, 1, 1));
+    C.arm.setMatrixAt(i, C.m4);
+  });
+  C.body.instanceMatrix.needsUpdate = C.head.instanceMatrix.needsUpdate = C.arm.instanceMatrix.needsUpdate = true;
+}
+
+/* ---------- Kameralar ---------- */
+const headCam = new THREE.PerspectiveCamera(62, 16/9, 0.005, 10);
+const stageCam = new THREE.PerspectiveCamera(38, 16/9, 0.01, 20);
+const groupCam = new THREE.PerspectiveCamera(40, 16/9, 0.05, 30);
+let camMode = "head";
+const orbit = {theta: -0.15, phi: 1.32, r: 1.2, target: new THREE.Vector3(-0.02, -0.16, 0.05)};
+function placeCams(){
+  guitar.updateMatrixWorld(true);
+  headCam.position.copy(guitar.localToWorld(new THREE.Vector3(-0.12, 0.0, HS_TOP + 0.085)));
+  headCam.up.set(0, 0, 1).applyQuaternion(guitar.quaternion);
+  headCam.lookAt(guitar.localToWorld(new THREE.Vector3(0.5, -0.01, 0.045)));
+  const t = orbit.target;
+  stageCam.position.set(
+    t.x + orbit.r * Math.sin(orbit.phi) * Math.sin(orbit.theta),
+    t.y - orbit.r * Math.cos(orbit.phi),
+    t.z + orbit.r * Math.sin(orbit.phi) * Math.cos(orbit.theta));
+  stageCam.up.set(0, 1, 0);
+  stageCam.lookAt(t);
+}
+placeCams();
+let drag = null;
+gl.addEventListener("pointerdown", e => { if (camMode !== "stage") return; drag = {x: e.clientX, y: e.clientY}; gl.setPointerCapture(e.pointerId); gl.style.cursor = "grabbing"; });
+gl.addEventListener("pointermove", e => {
+  if (!drag) return;
+  orbit.theta -= (e.clientX - drag.x) * 0.006;
+  orbit.phi = Math.min(Math.max(orbit.phi + (e.clientY - drag.y) * 0.006, 0.45), 1.75);
+  drag = {x: e.clientX, y: e.clientY}; placeCams();
+});
+const endDrag = () => { drag = null; gl.style.cursor = camMode === "stage" ? "grab" : "default"; };
+gl.addEventListener("pointerup", endDrag); gl.addEventListener("pointercancel", endDrag);
+gl.addEventListener("wheel", e => { if (camMode !== "stage") return; e.preventDefault(); orbit.r = Math.min(Math.max(orbit.r * (1 + e.deltaY * 0.001), 0.45), 2.2); placeCams(); }, {passive: false});
+
+/* ---------- Işıma (bloom) ---------- */
+// Parlayan yüzeyler (vizör, meşale, anka kuşu, gözler) etrafına ışık saçar. Kütüphane yüklenemezse düz render'a döner.
+let composer = null, renderPass = null, bloomPass = null;
+try {
+  if (THREE.EffectComposer && THREE.UnrealBloomPass && THREE.GammaCorrectionShader){
+    composer = new THREE.EffectComposer(renderer);
+    renderPass = new THREE.RenderPass(scene, groupCam); composer.addPass(renderPass);
+    bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(640, 360), 0.45, 0.35, 0.9); composer.addPass(bloomPass);
+    composer.addPass(new THREE.ShaderPass(THREE.GammaCorrectionShader));
+  }
+} catch (err){ composer = null; }
+function resize(){
+  const r = gl.getBoundingClientRect();
+  renderer.setSize(Math.max(1, r.width), Math.max(1, r.height), false);
+  if (composer) composer.setSize(Math.max(1, r.width), Math.max(1, r.height));
+  headCam.aspect = stageCam.aspect = groupCam.aspect = r.width / Math.max(1, r.height);
+  headCam.updateProjectionMatrix(); stageCam.updateProjectionMatrix(); groupCam.updateProjectionMatrix();
+  const t = tabCv.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
+  tabCv.width = Math.round(t.width * dpr); tabCv.height = Math.round(t.height * dpr);
+}
+
+/* ---------- Ses motoru (Karplus-Strong + amfi) ---------- */
+let ctx = null, chainIn, pre, shaper, post, lowp, highp, master, delay, fbk, wet, recDest;
+let tBass, tMid, tTreb, power, cab, gtrRev, revIn, reverb, revOut;
+const AMPS = {
+  clean:  {pre: 1.0, k: 1,   post: 0.9,  b: 2, m: -1, t: 3, lp: 7800, wet: 0.18, rev: 0.28},
+  crunch: {pre: 2.8, k: 30,  post: 0.4,  b: 3, m: 2,  t: 2, lp: 6200, wet: 0.1,  rev: 0.14},
+  lead:   {pre: 4.6, k: 170, post: 0.26, b: 2, m: 4,  t: 1, lp: 5600, wet: 0.28, rev: 0.22}
+};
+let ampName = "crunch", roomSec = 1.4;
+function curve(k){
+  const n = 4096, c = new Float32Array(n);
+  for (let i = 0; i < n; i++){ const x = i * 2 / n - 1; c[i] = k === 0 ? x : (1 + k) * x / (1 + k * Math.abs(x)); }
+  return c;
+}
+function softCurve(){ const n = 2048, c = new Float32Array(n); for (let i = 0; i < n; i++){ const x = i * 2 / n - 1; c[i] = Math.tanh(1.6 * x) / Math.tanh(1.6); } return c; }
+// 4x12 kabin yanıtı: rezonansların sönümlü toplamı
+function cabIR(){
+  const sr = ctx.sampleRate, len = Math.floor(sr * 0.04), b = ctx.createBuffer(1, len, sr), d = b.getChannelData(0);
+  const R = [[95, 0.7, 60], [160, 0.5, 80], [420, 0.35, 140], [1150, 0.55, 260], [2300, 0.45, 420], [3400, 0.25, 700], [5200, 0.08, 1200]];
+  for (let i = 0; i < len; i++){ const t = i / sr; let v = 0; R.forEach(([f, a, dmp]) => { v += a * Math.sin(2 * Math.PI * f * t) * Math.exp(-dmp * t); }); d[i] = v + (i < 40 ? (Math.random() - 0.5) * 0.4 : 0); }
+  let pk = 0; for (let i = 0; i < len; i++) pk += Math.abs(d[i]); for (let i = 0; i < len; i++) d[i] *= 5 / pk;
+  d[0] += 0.7; d[1] -= 0.15;
+  return b;
+}
+// Oda yanıtı: ön gecikme, erken yansımalar, kararan kuyruk (stereo)
+function roomIR(sec){
+  const sr = ctx.sampleRate, len = Math.floor(sr * sec), b = ctx.createBuffer(2, len, sr), pd = Math.floor(sr * 0.018);
+  for (let ch = 0; ch < 2; ch++){
+    const d = b.getChannelData(ch); let lp = 0;
+    for (let i = pd; i < len; i++){
+      const t = (i - pd) / sr, a = Math.min(0.85, 0.2 + t * 6);
+      lp = lp * a + (Math.random() * 2 - 1) * (1 - a);
+      d[i] = lp * Math.exp(-6.9 * t / sec) * 1.6;
+    }
+    [0.007, 0.013, 0.021, 0.029, 0.041].forEach((e, k) => { const j = pd + Math.floor(sr * (e + ch * 0.0023)); if (j < len) d[j] += 0.5 / (k + 1); });
+  }
+  return b;
+}
+function setRoom(sec){ roomSec = sec; if (reverb) reverb.buffer = roomIR(sec); }
+function ensureAudio(){
+  if (ctx) { if (ctx.state === "suspended") ctx.resume(); return; }
+  ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const G = v => { const g = ctx.createGain(); if (v !== undefined) g.gain.value = v; return g; };
+  const F = (type, f, q, gain) => { const x = ctx.createBiquadFilter(); x.type = type; x.frequency.value = f; if (q !== undefined) x.Q.value = q; if (gain !== undefined) x.gain.value = gain; return x; };
+  chainIn = G();
+  highp = F("highpass", 80, 0.7);
+  const tight = F("peaking", 700, 0.8, 4);
+  pre = G(); shaper = ctx.createWaveShaper(); shaper.oversample = "4x"; post = G();
+  tBass = F("lowshelf", 120); tMid = F("peaking", 800, 0.9); tTreb = F("highshelf", 3200);
+  power = ctx.createWaveShaper(); power.curve = softCurve(); power.oversample = "2x";
+  cab = ctx.createConvolver(); cab.normalize = false; cab.buffer = cabIR();
+  lowp = F("lowpass", 6000, 0.7);
+  const gOut = G(0.8);
+  chainIn.connect(highp); highp.connect(tight); tight.connect(pre); pre.connect(shaper); shaper.connect(post);
+  post.connect(tBass); tBass.connect(tMid); tMid.connect(tTreb); tTreb.connect(power); power.connect(cab); cab.connect(lowp); lowp.connect(gOut);
+  master = G();
+  const glue = ctx.createDynamicsCompressor(); glue.threshold.value = -16; glue.ratio.value = 2.5; glue.knee.value = 8; glue.attack.value = 0.02; glue.release.value = 0.2;
+  const air = F("highshelf", 8000, undefined, 3);
+  const lim = ctx.createDynamicsCompressor(); lim.threshold.value = -6; lim.knee.value = 2; lim.ratio.value = 20; lim.attack.value = 0.002; lim.release.value = 0.12;
+  master.connect(glue); glue.connect(air); air.connect(lim); lim.connect(ctx.destination);
+  if (ctx.createMediaStreamDestination){ recDest = ctx.createMediaStreamDestination(); lim.connect(recDest); }
+  // Gitar: Haas ile çift kayıt hissi
+  const pL = ctx.createStereoPanner(); pL.pan.value = -0.65; const pR = ctx.createStereoPanner(); pR.pan.value = 0.65;
+  const haas = ctx.createDelay(0.05); haas.delayTime.value = 0.014;
+  gOut.connect(pL); pL.connect(master); gOut.connect(haas); haas.connect(pR); pR.connect(master);
+  // Yankı ve oda
+  delay = ctx.createDelay(1); delay.delayTime.value = 0.31; fbk = G(0.3); wet = G();
+  const dHi = F("lowpass", 3500); gOut.connect(delay); delay.connect(dHi); dHi.connect(fbk); fbk.connect(delay); dHi.connect(wet); wet.connect(master);
+  revIn = G(); reverb = ctx.createConvolver(); reverb.buffer = roomIR(roomSec); revOut = G(0.9);
+  const revHp = F("highpass", 220); revIn.connect(revHp); revHp.connect(reverb); reverb.connect(revOut); revOut.connect(master);
+  gtrRev = G(); gOut.connect(gtrRev); gtrRev.connect(revIn);
+  setAmp(ampName); setVol();
+}
+function setAmp(n){
+  ampName = n;
+  if (!ctx) return;
+  const a = AMPS[n];
+  pre.gain.value = a.pre; shaper.curve = curve(a.k); post.gain.value = a.post; lowp.frequency.value = a.lp; wet.gain.value = a.wet;
+  tBass.gain.value = a.b; tMid.gain.value = a.m; tTreb.gain.value = a.t; gtrRev.gain.value = a.rev;
+}
+const vol = document.getElementById("vol");
+function setVol(){ if (master) master.gain.value = (vol.value / 100) * 0.62; }
+vol.addEventListener("input", setVol);
+
+const bufCache = {};
+// Karplus-Strong: pena konumu tarağı, pena sertliği ve tel sertliği
+function ksBuffer(midi, pp0, key){
+  key = key || midi;
+  if (bufCache[key] && bufCache[key].ctx === ctx) return bufCache[key].b;
+  const sr = ctx.sampleRate, f = 440 * Math.pow(2, (midi - 69) / 12);
+  const Nf = sr / f, N = Math.max(2, Math.floor(Nf)), frac = Nf - N, len = Math.floor(sr * 3.0);
+  const buf = ctx.createBuffer(1, len, sr), out = buf.getChannelData(0);
+  const ring = new Float32Array(N + 1), ex = new Float32Array(N + 1);
+  let prev = 0;
+  for (let i = 0; i <= N; i++){ const r = Math.random() * 2 - 1; prev = prev * 0.45 + r * 0.55; ex[i] = prev; }
+  const pp = Math.max(1, Math.floor(N * (pp0 || 0.14)));
+  for (let i = 0; i <= N; i++) ring[i] = ex[i] - 0.85 * ex[(i - pp + N + 1) % (N + 1)];
+  const decay = 0.9988 - (midi - 40) * 0.000055, M = N + 1;
+  let idx = 0, peak = 0, ap = 0, lastIn = 0;
+  const c = (1 - frac) / (1 + frac);
+  for (let i = 0; i < len; i++){
+    const a = ring[idx], b = ring[(idx + 1) % M];
+    const y = c * (a - ap) + lastIn; lastIn = a; ap = y;
+    out[i] = a;
+    ring[idx] = decay * (0.5 * (a + b) * 0.92 + y * 0.08);
+    idx = (idx + 1) % M;
+    if (Math.abs(a) > peak) peak = Math.abs(a);
+  }
+  const g = 0.55 / (peak || 1);
+  for (let i = 0; i < 64; i++) out[i] *= i / 64;
+  for (let i = 0; i < len; i++) out[i] *= g;
+  bufCache[key] = {ctx, b: buf};
+  return buf;
+}
+
+/* ---------- Çalma teknikleri ---------- */
+// Uzun notalarda gecikmeli vibrato, lead tonda bazı notalara aşağıdan kayma, kalın tellerde kısa notalara palm mute,
+// her vuruşa kısa bir pena sesi. Şarkı verisinde bend (yarım ses) varsa teli büker.
+function expressNote(src, g, e, t, dur, midi, srcs){
+  const pr = src.playbackRate, drive = ampName !== "clean";
+  if (e.bend){ pr.setValueAtTime(1, t + Math.min(0.08, dur * 0.2)); pr.linearRampToValueAtTime(Math.pow(2, e.bend / 12), t + Math.min(0.08, dur * 0.2) + Math.min(0.18, dur * 0.4)); }
+  else if (ampName === "lead" && dur >= 0.3 && (e.s * 7 + e.f * 3 + Math.round(e.b * 4)) % 3 === 0){ pr.setValueAtTime(Math.pow(2, -1 / 12), t); pr.linearRampToValueAtTime(1, t + 0.06); }
+  if (dur >= 0.42){
+    const lfo = ctx.createOscillator(), dep = ctx.createGain(), hz = ampName === "clean" ? 4.8 : 5.6;
+    lfo.frequency.value = hz; dep.gain.setValueAtTime(0, t); dep.gain.setValueAtTime(0, t + 0.22);
+    dep.gain.linearRampToValueAtTime(ampName === "lead" ? 0.013 : 0.007, t + Math.min(dur, 0.7));
+    lfo.connect(dep); dep.connect(pr); lfo.start(t); lfo.stop(t + dur + 0.3); srcs.push(lfo);
+  }
+  if (drive && e.s <= 2 && dur <= 0.3){
+    const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 650 + e.s * 150; lp.Q.value = 0.9;
+    g.gain.setTargetAtTime(0, t + 0.03, 0.07); e.mute = lp;
+  }
+  const ns = noiseSrc(), hp = ctx.createBiquadFilter(), ng = ctx.createGain();
+  hp.type = "bandpass"; hp.frequency.value = 2600 + e.s * 300; hp.Q.value = 1.4;
+  ng.gain.setValueAtTime(0.0001, t); ng.gain.exponentialRampToValueAtTime(drive ? 0.05 : 0.08, t + 0.002); ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.018);
+  ns.connect(hp); hp.connect(ng); ng.connect(g); ns.start(t, Math.random() * 0.5); ns.stop(t + 0.03); srcs.push(ns);
+}
+
+/* ---------- Şarkılar ---------- */
+function placeMidi(midi, prevFret, allowed){
+  let best = null;
+  for (const s of allowed){
+    const f = midi - OPEN[s];
+    if (f < 0 || f > 17) continue;
+    const cost = Math.abs(f - prevFret) + (f === 0 ? 1.5 : 0);
+    if (!best || cost < best.cost) best = {s, f, cost};
+  }
+  return best;
+}
+function chord(ev, beat, frets, dur, strumBeats){
+  let k = 0;
+  frets.forEach((f, s) => { if (f !== null && f !== undefined) ev.push({b: beat + (k++) * (strumBeats || 0.02), s, f, d: dur}); });
+}
+/* ---------- Grup: davul kalıpları ve bas ---------- */
+function rockBeat(d, b0, beats){
+  for (let x = 0; x < beats; x++){
+    const b = b0 + x, inBar = x % 4;
+    if (x === 0) d.push({b, k: "crash"});
+    if (x === beats - 1){ [0, 0.25, 0.5, 0.75].forEach(o => d.push({b: b + o, k: "snare"})); d.push({b, k: "kick"}); continue; }
+    if (x !== 0) d.push({b, k: "hat"});
+    d.push({b: b + 0.5, k: "hat"});
+    if (inBar === 0 || inBar === 2) d.push({b, k: "kick"});
+    if (inBar === 2) d.push({b: b + 0.5, k: "kick"});
+    if (inBar === 1 || inBar === 3) d.push({b, k: "snare"});
+  }
+}
+function driveBeat(d, b0, beats){
+  for (let x = 0; x < beats; x++){
+    const b = b0 + x, inBar = x % 4;
+    d.push({b, k: x % 8 === 0 ? "crash" : "ride"}); d.push({b: b + 0.5, k: "ride"});
+    d.push({b, k: "kick"});
+    if (inBar === 1 || inBar === 3) d.push({b, k: "snare"});
+    if (x === beats - 1){ d.push({b: b + 0.5, k: "snare"}); d.push({b: b + 0.75, k: "snare"}); }
+  }
+}
+function shuffleBeat(d, b0, beats){
+  for (let x = 0; x < beats; x++){
+    const b = b0 + x, inBar = x % 4;
+    if (x % 16 === 0) d.push({b, k: "crash"}); else d.push({b, k: "ride"});
+    d.push({b: b + 2/3, k: "ride"});
+    if (inBar === 0 || inBar === 2) d.push({b, k: "kick"});
+    if (inBar === 2) d.push({b: b + 2/3, k: "kick"});
+    if (inBar === 1 || inBar === 3) d.push({b, k: "snare"});
+  }
+}
+function bassFrom(ev, from, to){
+  const sorted = ev.slice().sort((a, b) => a.b - b.b), groups = [];
+  for (const e of sorted){
+    const g = groups[groups.length - 1];
+    if (g && e.b - g.b < 0.1){ g.midi = Math.min(g.midi, OPEN[e.s] + e.f); g.d = Math.min(g.d, e.d); }
+    else groups.push({b: e.b, midi: OPEN[e.s] + e.f, d: e.d});
+  }
+  return groups.filter(g => g.b >= from && g.b < to).map((g, i, a) => ({b: g.b, midi: g.midi - 12, d: Math.min(g.d, a[i+1] ? a[i+1].b - g.b - 0.03 : g.d)}));
+}
+let bandOn = true, noiseBuf = null;
+function noiseSrc(){
+  if (!noiseBuf || noiseBuf.ctx !== ctx){
+    const b = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    noiseBuf = {ctx, b};
+  }
+  const s = ctx.createBufferSource(); s.buffer = noiseBuf.b; return s;
+}
+function env(t, peak, decay){ const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, t + decay); return g; }
+// Metal zil örnekleri bir kez hesaplanır (kare dalga yığını + yüksek geçiren + zarf)
+let cymCache = null;
+function cymBuf(kind){
+  if (!cymCache || cymCache.ctx !== ctx){
+    const make = (base, dec, noiseAmt, len) => {
+      const sr = ctx.sampleRate, n = Math.floor(sr * len), b = ctx.createBuffer(1, n, sr), d = b.getChannelData(0);
+      const fr = [2, 3, 4.16, 5.43, 6.79, 8.21].map(r => r * base), ph = fr.map(() => Math.random());
+      let x1 = 0, x2 = 0, y1 = 0, y2 = 0, pk = 0;
+      for (let i = 0; i < n; i++){
+        const t = i / sr; let v = 0;
+        fr.forEach((f, k) => { v += ((t * f + ph[k]) % 1) < 0.5 ? 1 : -1; });
+        v = v / 6 + (Math.random() * 2 - 1) * noiseAmt;
+        const h1 = v - x1; x1 = v; const h2 = h1 - x2; x2 = h1;
+        y1 = 0.6 * y1 + 0.4 * h2; y2 = h2 - 0.3 * y1;
+        d[i] = y2 * Math.exp(-t / dec) * Math.min(1, i / 30);
+        pk = Math.max(pk, Math.abs(d[i]));
+      }
+      for (let i = 0; i < n; i++) d[i] /= pk || 1;
+      return b;
+    };
+    cymCache = {ctx, hat: make(460, 0.022, 0.5, 0.2), open: make(460, 0.12, 0.5, 0.6), ride: make(380, 0.32, 0.25, 1.4), crash: make(330, 0.55, 0.8, 2.6)};
+  }
+  return cymCache[kind];
+}
+function playBuf(b, t, gain, out, srcs, rate){ const s = ctx.createBufferSource(); s.buffer = b; if (rate) s.playbackRate.value = rate; const g = ctx.createGain(); g.gain.value = gain; s.connect(g); g.connect(out); s.start(t); srcs.push(s); }
+// Davul örnekleri: zar modları (Bessel oranları), tel hışırtısı ve tokmak darbesi örnek örnek hesaplanır.
+// Her parçanın birkaç varyasyonu var; vuruşlar sırayla bunlardan birini çalar, böylece makine gibi tekrar etmez.
+let drumCache = null;
+function drumBufs(){
+  if (drumCache && drumCache.ctx === ctx) return drumCache;
+  const sr = ctx.sampleRate, rnd = () => Math.random() * 2 - 1;
+  const mk = (len, fn) => { const n = Math.floor(sr * len), b = ctx.createBuffer(1, n, sr), d = b.getChannelData(0); fn(d, n); let pk = 0; for (let i = 0; i < n; i++) pk = Math.max(pk, Math.abs(d[i])); for (let i = 0; i < n; i++) d[i] /= pk || 1; return b; };
+  const kick = v => mk(0.6, (d, n) => { let ph = 0, lp = 0, hp = 0; const f1 = 46 + v * 3, f0 = 150 + v * 12;
+    for (let i = 0; i < n; i++){ const t = i / sr, f = f1 + (f0 - f1) * Math.exp(-t / 0.032); ph += 2 * Math.PI * f / sr;
+      const body = Math.tanh(1.8 * Math.sin(ph) * Math.exp(-t / 0.3)) / Math.tanh(1.8);
+      const r = rnd(); lp += 0.02 * (r - lp); const x = r - hp; hp = r;
+      d[i] = body + 0.45 * x * Math.exp(-t / 0.0016) + 2.2 * lp * Math.exp(-t / 0.025); } });
+  const SN = [1, 1.59, 2.14, 2.3, 2.65, 2.92], SA = [1, 0.6, 0.45, 0.35, 0.3, 0.25], SD = [0.16, 0.1, 0.08, 0.07, 0.06, 0.05];
+  const snare = v => mk(0.45, (d, n) => { const base = 182 * (1 + (Math.random() - 0.5) * 0.04), ph = SN.map(() => Math.random() * 6.28); let lp = 0, prev = 0;
+    for (let i = 0; i < n; i++){ const t = i / sr, bend = 1 + 0.08 * Math.exp(-t / 0.01); let m = 0;
+      for (let k = 0; k < 6; k++){ ph[k] += 2 * Math.PI * base * SN[k] * bend / sr; m += SA[k] * Math.sin(ph[k]) * Math.exp(-t / SD[k]); }
+      const r = rnd(), h = r - prev; prev = r; lp += 0.55 * (h - lp);
+      const wire = t < 0.002 ? 0 : lp * (1 - Math.exp(-(t - 0.002) / 0.002)) * Math.exp(-(t - 0.002) / (0.11 + v * 0.015));
+      d[i] = 0.55 * m + 1.1 * wire + 0.5 * r * Math.exp(-t / 0.0009); } });
+  const TM = [1, 1.59, 2.14, 2.65], TA = [1, 0.45, 0.3, 0.18], TD = [0.45, 0.25, 0.17, 0.11];
+  const tom = v => mk(0.9, (d, n) => { const base = 118 * (1 + (v - 1) * 0.015), ph = TM.map(() => 0); let lp = 0;
+    for (let i = 0; i < n; i++){ const t = i / sr, bend = 1 + 0.22 * Math.exp(-t / 0.07); let m = 0;
+      for (let k = 0; k < 4; k++){ ph[k] += 2 * Math.PI * base * TM[k] * bend / sr; m += TA[k] * Math.sin(ph[k]) * Math.exp(-t / TD[k]); }
+      lp += 0.08 * (rnd() - lp); d[i] = Math.tanh(1.3 * m) + 1.4 * lp * Math.exp(-t / 0.012); } });
+  drumCache = {ctx, kick: [0, 1, 2].map(kick), snare: [0, 1, 2, 3].map(snare), tom: [0, 1, 2].map(tom), rr: {kick: 0, snare: 0, tom: 0}};
+  return drumCache;
+}
+function drumHit(kind, t, out, srcs, gain, vel){
+  const D = drumBufs(), L = D[kind], b = L[D.rr[kind]++ % L.length];
+  playBuf(b, t + (Math.random() - 0.5) * 0.003, gain * (vel || 1), out, srcs, 1 + (Math.random() - 0.5) * 0.01);
+}
+const DRUM = {
+  kick(t, out, srcs, vel){ drumHit("kick", t, out, srcs, 1.05, vel); },
+  snare(t, out, srcs, vel){ drumHit("snare", t, out, srcs, 0.85, vel); },
+  hat(t, out, srcs, vel){ playBuf(cymBuf("hat"), t + (Math.random() - 0.5) * 0.004, 0.32 * (vel || 1), out, srcs, 1 + (Math.random() - 0.5) * 0.04); },
+  ride(t, out, srcs, vel){ playBuf(cymBuf("ride"), t, 0.2 * (vel || 1), out, srcs, 1 + (Math.random() - 0.5) * 0.02); },
+  crash(t, out, srcs){ playBuf(cymBuf("crash"), t, 0.42, out, srcs, 1 + (Math.random() - 0.5) * 0.03); },
+  tom(t, out, srcs, vel){ drumHit("tom", t, out, srcs, 0.8, vel); }
+};
+// Vuruş gücü: ölçü başı en güçlü, ara vuruşlar daha yumuşak, küçük rastgele sapma
+function drumVel(b){ const fr = ((b % 1) + 1) % 1, base = fr < 0.01 ? (b % 4 < 0.01 ? 1 : 0.93) : Math.abs(fr - 0.5) < 0.01 ? 0.8 : 0.66; return base * (0.94 + Math.random() * 0.08); }
+const DRUM_PAN = {kick: 0, snare: 0.05, hat: 0.35, ride: -0.4, crash: 0.45, tom: -0.25};
+const DRUM_REV = {kick: 0.04, snare: 0.35, hat: 0.08, ride: 0.15, crash: 0.25, tom: 0.3};
+// Bas: parmakla çekilmiş tel (Karplus-Strong, telin ortasına yakın çekim noktası) + alt oktav desteği + hafif overdrive
+let bassShaper = null;
+function bassNote(t, dur, midi, out, srcs){
+  const f0 = 440 * Math.pow(2, (midi - 69) / 12);
+  if (!bassShaper || bassShaper.context !== ctx){ bassShaper = ctx.createWaveShaper(); const c = new Float32Array(1024); for (let i = 0; i < 1024; i++){ const x = i / 511.5 - 1; c[i] = Math.tanh(1.6 * x) / Math.tanh(1.6); } bassShaper.curve = c; bassShaper.connect(out); bassShaper.__out = out; }
+  const dst = bassShaper.__out === out ? bassShaper : out;
+  const src = ctx.createBufferSource(); src.buffer = ksBuffer(midi, 0.3, "b" + midi);
+  const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.Q.value = 0.8;
+  lp.frequency.setValueAtTime(1700, t); lp.frequency.exponentialRampToValueAtTime(650, t + 0.35);
+  const sub = ctx.createOscillator(); sub.frequency.value = f0; const sg = ctx.createGain(); sg.gain.value = 0.5;
+  const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(1.0, t + 0.005);
+  g.gain.setTargetAtTime(0.75, t + 0.06, 0.25); g.gain.setTargetAtTime(0.0001, t + dur, 0.035);
+  src.connect(lp); sub.connect(sg); sg.connect(lp); lp.connect(g); g.connect(dst);
+  src.start(t); sub.start(t); src.stop(t + dur + 0.2); sub.stop(t + dur + 0.2); srcs.push(src, sub);
+}
+
+/* ---------- Klavye (Ülgen) ve vokal (Şahmeran) ---------- */
+const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+function keysNote(t, dur, midi, out, srcs){
+  const f = mtof(midi), g = ctx.createGain(), lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 2400;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.09, t + 0.012); g.gain.setTargetAtTime(0.055, t + 0.03, 0.2); g.gain.setTargetAtTime(0.0001, t + dur, 0.07);
+  [[1, "sine", 1], [2, "sine", 0.45], [3, "triangle", 0.18], [0.5, "sine", 0.25]].forEach(([mul, type, amt]) => {
+    const o = ctx.createOscillator(); o.type = type; o.frequency.value = f * mul; o.detune.value = (Math.random() - 0.5) * 6;
+    const a = ctx.createGain(); a.gain.value = amt; o.connect(a); a.connect(lp); o.start(t); o.stop(t + dur + 0.5); srcs.push(o);
+  });
+  lp.connect(g); g.connect(out);
+}
+const FORMANT = {a: [800, 1150, 2900], e: [500, 1700, 2500], "ı": [350, 1350, 2500], i: [290, 2250, 2900], o: [450, 800, 2830], "ö": [400, 1550, 2400], u: [330, 700, 2530], "ü": [300, 1650, 2300]};
+function vowelOf(s){ const l = s.toLocaleLowerCase("tr"); for (let i = l.length - 1; i >= 0; i--) if (FORMANT[l[i]]) return l[i]; return "a"; }
+// Ses kaynağı: gırtlak darbesine benzeyen yumuşak spektrum (testere değil), legato geçişler,
+// doğal titreme, dört formant (şarkıcı formantı dahil) ve hecenin başındaki ünsüze göre kısa sürtünme/patlama sesi.
+let glottal = null;
+const CONS = {s: [6500, 0.07, 0.16], "ş": [3400, 0.08, 0.16], z: [5200, 0.06, 0.1], "ç": [3800, 0.05, 0.14], c: [3600, 0.04, 0.1], f: [7000, 0.06, 0.09], h: [1600, 0.06, 0.07],
+  k: [2100, 0.016, 0.22], t: [4600, 0.014, 0.2], p: [900, 0.012, 0.18], d: [3500, 0.01, 0.12], b: [700, 0.01, 0.12], g: [1900, 0.012, 0.14]};
+function voiceNote(t, dur, midi, vowel, out, srcs, prev, syl){
+  if (!glottal || glottal.ctx !== ctx){ const N = 48, re = new Float32Array(N), im = new Float32Array(N); for (let n = 1; n < N; n++) im[n] = Math.pow(n, -1.3) * (n % 2 ? 1 : 0.85); glottal = {ctx, w: ctx.createPeriodicWave(re, im)}; }
+  const f0 = mtof(midi), o = ctx.createOscillator(); o.setPeriodicWave(glottal.w);
+  if (prev){ o.frequency.setValueAtTime(mtof(prev), t); o.frequency.exponentialRampToValueAtTime(f0, t + 0.07); }
+  else { o.frequency.setValueAtTime(f0 * 0.97, t); o.frequency.exponentialRampToValueAtTime(f0, t + 0.08); }
+  const lfo = ctx.createOscillator(); lfo.frequency.value = 5.2 + Math.random() * 0.5; const lg = ctx.createGain();
+  lg.gain.setValueAtTime(0, t); lg.gain.setValueAtTime(0, t + Math.min(0.25, dur * 0.5)); lg.gain.linearRampToValueAtTime(f0 * 0.016, t + Math.min(0.6, dur)); lfo.connect(lg); lg.connect(o.frequency);
+  const jit = ctx.createOscillator(); jit.frequency.value = 0.9 + Math.random() * 0.8; const jg = ctx.createGain(); jg.gain.value = f0 * 0.004; jit.connect(jg); jg.connect(o.frequency);
+  const sum = ctx.createGain(), F = (FORMANT[vowel] || FORMANT.a).concat([3300]);
+  F.forEach((fr, i) => { const bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = fr; bp.Q.value = fr / [80, 100, 150, 320][i];
+    const g = ctx.createGain(); g.gain.value = [2.4, 1.7, 0.9, 0.7][i]; o.connect(bp); bp.connect(g); g.connect(sum); });
+  const breath = noiseSrc(), bf = ctx.createBiquadFilter(); bf.type = "bandpass"; bf.frequency.value = 2600; bf.Q.value = 0.8;
+  const bg = ctx.createGain(); bg.gain.value = 0.02; breath.connect(bf); bf.connect(bg); bg.connect(sum);
+  const e = ctx.createGain(); e.gain.setValueAtTime(0.0001, t); e.gain.exponentialRampToValueAtTime(0.42, t + (prev ? 0.03 : 0.06)); e.gain.setTargetAtTime(0.0001, t + Math.max(0.05, dur - 0.03), 0.06);
+  sum.connect(e); e.connect(out);
+  const ss = [o, lfo, jit, breath];
+  const c0 = syl ? CONS[syl.toLocaleLowerCase("tr")[0]] : null;
+  if (c0){ const ns = noiseSrc(), cf = ctx.createBiquadFilter(), cg = ctx.createGain(); cf.type = "bandpass"; cf.frequency.value = c0[0]; cf.Q.value = 1.6;
+    const ct = Math.max(0, t - c0[1] * 0.6); cg.gain.setValueAtTime(0.0001, ct); cg.gain.exponentialRampToValueAtTime(c0[2], ct + 0.004); cg.gain.exponentialRampToValueAtTime(0.0001, ct + c0[1]);
+    ns.connect(cf); cf.connect(cg); cg.connect(out); ns.start(ct, Math.random() * 0.5); ns.stop(ct + c0[1] + 0.02); srcs.push(ns); }
+  o.start(t); lfo.start(t); jit.start(t); breath.start(t, Math.random() * 0.4); ss.forEach(x => { x.stop(t + dur + 0.4); srcs.push(x); });
+}
+
+const SONGS = [
+  {id: "kaf", name: "Kaf Dağı", desc: "Grubun ilk şarkısı · D hicaz · 5 kişi · 96 BPM", amp: "crunch", members: ["claude", "erlik", "umay", "sahmeran", "ulgen"], build(){
+    const ev = [], drums = [], keys = [], vox = [], phrases = [];
+    const deg = i => [62, 63, 66, 67, 69, 70, 72][((i % 7) + 7) % 7] + 12 * Math.floor(i / 7);
+    const D5 = [null, 5, 7], Eb5 = [null, 6, 8], Cm5 = [null, 3, 5];
+    const PC = {D: [null, 5, 7, 7], Eb: [null, 6, 8, 8], Cm: [null, 3, 5, 5], Gm: [3, 5, 5]};
+    const CH = {D: [62, 66, 69], Eb: [63, 67, 70], Cm: [60, 63, 67], Gm: [62, 67, 70]};
+    const pad = (b, c, d) => keys.push({b, m: CH[c], d});
+    const arp = (b, c, beats) => { const m = CH[c], sq = [m[0], m[1], m[2], m[0] + 12, m[2], m[1]]; for (let k = 0; k < beats * 2; k++) keys.push({b: b + k * 0.5, m: [sq[k % sq.length]], d: 0.45}); };
+    const riff = [[50,.5],[51,.5],[54,.5],[55,.5],[57,.5],[55,.5],[54,.5],[51,.5],[50,1],[50,.5],[51,.5],[50,.5],[48,.5],[50,1]];
+    const playRiff = b0 => { let b = b0, pf = 5; riff.forEach(([m, d]) => { const p = placeMidi(m, pf, [0, 1, 2, 3]); pf = p.f; ev.push({b, s: p.s, f: p.f, d: d * 0.95}); b += d; }); };
+    const sing = (b0, lines, mel) => lines.forEach((line, pi) => {
+      const syl = line.split(/[ -]/), n = syl.length, step = n <= 8 ? 0.75 : 0.5, pb = b0 + pi * 8, starts = [];
+      let t = pb;
+      syl.forEach((s, i) => { const d = i === n - 1 ? (pb + 7) - t : step; vox.push({b: t, midi: deg(mel[pi][i]), d: d * 0.94, syl: s}); starts.push(t); t += d; });
+      phrases.push({b: pb - 0.5, end: pb + 7.7, line, starts});
+    });
+    const VL = ["Kaf Da-ğı'-nın ar-dın-da", "Kül-le-rin-den bir ses ge-lir", "Göz-le-ri a-teş ka-nat-la-rı yel", "U-ya-nır şim-di Züm-rü-dü-an-ka"];
+    const VM = [[4,4,5,4,3,2,1], [2,3,4,3,2,1,1,0], [4,4,5,6,5,4,3,4,5,4], [3,2,1,2,3,2,1,1,0,0]];
+    const CL = ["Yan-dık ve yi-ne doğ-duk", "Kül-den bir ka-nat aç-tık", "Er-lik da-vul-da U-may ya-nın-da", "Züm-rü-dü-an-ka, gök-le-re!"];
+    const CM = [[7,7,6,5,6,5,4], [4,5,6,7,6,5,4], [4,4,5,4,3,4,5,6,5,4], [7,6,5,4,3,2,1,0]];
+    const verse = b0 => {
+      ["D","D","Eb","D","Cm","Cm","D","D"].forEach((c, i) => { pad(b0 + i*4, c, 3.9);
+        const pw = c === "Eb" ? Eb5 : c === "Cm" ? Cm5 : D5;
+        for (let k = 0; k < 8; k++) chord(ev, b0 + i*4 + k*0.5, k === 7 && i % 2 ? Eb5 : pw, 0.4, 0.01); });
+      sing(b0, VL, VM); rockBeat(drums, b0, 32);
+    };
+    const chorus = b0 => {
+      ["D","Eb","D","Cm","Gm","Cm","D","D"].forEach((c, i) => { pad(b0 + i*4, c, 3.9); for (let k = 0; k < 8; k++) chord(ev, b0 + i*4 + k*0.5, PC[c], 0.45, 0.015); });
+      sing(b0, CL, CM); driveBeat(drums, b0, 32);
+    };
+    const solo = b0 => {
+      ["D","Eb","D","D"].forEach((c, i) => arp(b0 + i*4, c, 4));
+      const L = [[69,.5],[70,.5],[72,.5],[74,1],[72,.5],[70,.5],[69,.5], [67,.5],[66,.5],[67,.5],[69,1],[66,.5],[63,.5],[62,.5],
+                 [74,.25],[75,.25],[74,.5],[72,.5],[70,.5],[69,.5],[67,.5],[66,.5],[67,.5], [69,.5],[66,.5],[63,.5],[62,2.5]];
+      let t = b0, pf = 10; L.forEach(([m, d]) => { const p = placeMidi(m, pf, [2, 3, 4, 5]); pf = p.f; ev.push({b: t, s: p.s, f: p.f, d: d * 0.95}); t += d; });
+      driveBeat(drums, b0, 16);
+    };
+    arp(0, "D", 4); arp(4, "Eb", 4); playRiff(0);
+    arp(8, "D", 4); arp(12, "Eb", 4); playRiff(8);
+    [12, 12.5, 13, 13.5].forEach(x => drums.push({b: x, k: "tom"}));
+    [14, 14.5, 15, 15.25, 15.5, 15.75].forEach(x => drums.push({b: x, k: "snare"}));
+    verse(16); chorus(48); solo(80); chorus(96);
+    chord(ev, 128, PC.D, 6, 0.06); pad(128, "D", 6); drums.push({b: 128, k: "kick"}, {b: 128, k: "crash"});
+    const bass = [...bassFrom(ev, 8, 80), ...bassFrom(ev, 96, 129)];
+    [38, 39, 38, 38].forEach((m, i) => { for (let q = 0; q < 8; q++) bass.push({b: 80 + i*4 + q*0.5, midi: m, d: 0.45}); });
+    return {bpm: 96, ev, drums, bass, keys, vox, phrases};
+  }},
+  {id: "ninni", name: "Umay'ın Ninnisi", desc: "Ballad · A minör · Erlik dinleniyor · 72 BPM", amp: "clean", members: ["claude", "umay", "sahmeran", "ulgen"], build(){
+    const ev = [], keys = [], vox = [], phrases = [], bass = [];
+    const deg = i => [69, 71, 72, 74, 76, 77, 79][((i % 7) + 7) % 7] + 12 * Math.floor(i / 7);
+    const SH = {Am: [null,0,2,2,1,0], F: [1,3,3,2,1,1], C: [null,3,2,0,1,0], G: [3,2,0,0,0,3], Dm: [null,null,0,2,3,1], E: [0,2,2,1,0,0]};
+    const PAD = {Am: [57,60,64], F: [57,60,65], C: [55,60,64], G: [55,59,62], Dm: [57,62,65], E: [56,59,64]};
+    const ROOT = {Am: 33, F: 29, C: 36, G: 31, Dm: 38, E: 28};
+    const bar = (b0, c) => {
+      const sh = SH[c], strs = sh.map((f, s) => f === null ? -1 : s).filter(s => s >= 0), r = strs[0];
+      const order = [r, strs[1], strs[2], strs[3], strs[strs.length - 1], strs[3], strs[2], strs[1]];
+      order.forEach((s, k) => ev.push({b: b0 + k * 0.5, s, f: sh[s], d: k === 0 ? 3.8 : 1.4}));
+      keys.push({b: b0, m: PAD[c], d: 3.9});
+      bass.push({b: b0, midi: ROOT[c], d: 1.9}, {b: b0 + 2, midi: ROOT[c] + (c === "E" ? 7 : 12), d: 1.9});
+    };
+    const sing = (b0, lines, mel) => lines.forEach((line, pi) => {
+      const syl = line.split(/[ -]/), n = syl.length, step = 0.75, pb = b0 + pi * 8, starts = [];
+      let t = pb;
+      syl.forEach((s, i) => { const d = i === n - 1 ? (pb + 7) - t : step; vox.push({b: t, midi: deg(mel[pi][i]), d: d * 0.94, syl: s}); starts.push(t); t += d; });
+      phrases.push({b: pb - 0.5, end: pb + 7.7, line, starts});
+    });
+    const VL = ["U-yu yav-rum, gök u-yu-sun", "Ay ı-şı-ğı kun-da-ğın-da", "Ka-nat-la-rım ü-stün-de-dir", "Kork-ma, U-may ya-nın-da"];
+    const VM = [[2,2,1,0,4,3,2,1], [0,1,2,3,4,3,2,2], [4,5,4,3,2,1,2,1], [2,1,0,-1,-2,-1,0]];
+    const CL = ["Ka-ran-lık kül o-lur gi-der", "Sa-ba-ha bir kuş u-ya-nır", "Ne-fe-sin-de rüz-gâr, ı-şık", "U-yu, u-yu, sa-bah ya-kın"];
+    const CM = [[5,5,4,3,4,3,2,2], [2,3,4,5,4,3,2,1], [5,6,5,4,3,4,5,4], [4,3,2,1,2,1,0,0]];
+    ["Am","F","C","G"].forEach((c, i) => bar(i * 4, c));
+    ["Am","F","C","G","Am","F","E","E"].forEach((c, i) => bar(16 + i * 4, c)); sing(16, VL, VM);
+    ["F","G","C","Am","Dm","E","Am","Am"].forEach((c, i) => bar(48 + i * 4, c)); sing(48, CL, CM);
+    ["Am","F","Dm","E"].forEach((c, i) => bar(80 + i * 4, c));
+    chord(ev, 96, SH.Am, 6, 0.12); keys.push({b: 96, m: PAD.Am, d: 6}); bass.push({b: 96, midi: 33, d: 5});
+    return {bpm: 72, ev, drums: [], bass, keys, vox, phrases};
+  }},
+  {id: "tepegoz", name: "Tepegöz", desc: "Enstrümantal metal · E frig · 4 kişi · 150 BPM", amp: "lead", members: ["claude", "erlik", "umay", "ulgen"], build(){
+    const ev = [], drums = [], keys = [], bass = [];
+    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const E5 = [0, 2, 2], F5 = [1, 3, 3], G5 = [3, 5, 5], C5 = [null, 3, 5, 5], D5 = [null, 5, 7, 7];
+    const gallop = b => [0, 0.5, 0.75].forEach(o => chord(ev, b + o, [0, 2], 0.2, 0.006));
+    const metal = (b0, bars) => { for (let x = 0; x < bars * 4; x++){ const b = b0 + x;
+      if (x % 4 === 0) drums.push({b, k: "crash"}); else drums.push({b, k: "ride"});
+      drums.push({b, k: "kick"}, {b: b + 0.5, k: "kick"}, {b: b + 0.75, k: "kick"});
+      if (x % 2 === 1) drums.push({b, k: "snare"}); } };
+    const riffA = b0 => { for (let r = 0; r < 4; r++){ const b = b0 + r * 8;
+      gallop(b); gallop(b + 1); chord(ev, b + 2, F5, 0.45, 0.01); chord(ev, b + 2.5, F5, 0.4, 0.01); gallop(b + 3);
+      gallop(b + 4); gallop(b + 5); chord(ev, b + 6, G5, 0.45, 0.01); chord(ev, b + 6.5, F5, 0.4, 0.01); chord(ev, b + 7, E5, 0.9, 0.02); } metal(b0, 8); };
+    // Giriş: Ülgen'in uğursuz org akorları, Erlik'in tomları
+    [[52,55,59],[53,57,60],[52,55,59],[53,57,60]].forEach((m, i) => keys.push({b: i * 4, m, d: 3.9}));
+    for (let x = 0; x < 16; x++) if (x % 4 === 0 || x >= 12) drums.push({b: x, k: "tom"});
+    drums.push({b: 14, k: "snare"}, {b: 14.5, k: "snare"}, {b: 15, k: "snare"}, {b: 15.5, k: "snare"});
+    chord(ev, 8, E5, 3.8, 0.04); chord(ev, 12, F5, 3.8, 0.04);
+    riffA(16);
+    // Köprü: ağır, yarım tempo
+    [E5, C5, D5, F5].forEach((c, i) => { const b = 48 + i * 4; chord(ev, b, c, 3.7, 0.05); keys.push({b, m: [[52,55,59],[48,52,55],[50,54,57],[53,57,60]][i], d: 3.9});
+      drums.push({b, k: "crash"}, {b, k: "kick"}, {b: b + 2, k: "snare"}, {b: b + 1, k: "ride"}, {b: b + 3, k: "ride"}); });
+    // Solo: E frig koşuları
+    const scale = [64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81];
+    let idx = 4, pf = 12;
+    for (let x = 0; x < 128; x++){
+      const b = 64 + x * 0.25;
+      if (x % 16 === 15){ continue; }
+      idx = Math.min(Math.max(idx + (rnd() < 0.5 ? -1 : 1) * (rnd() < 0.2 ? 2 : 1), 0), scale.length - 1);
+      const p = placeMidi(scale[idx], pf, [3, 4, 5]); pf = p.f; ev.push({b, s: p.s, f: p.f, d: 0.24});
+    }
+    for (let x = 0; x < 32; x++){ bass.push({b: 64 + x, midi: 28, d: 0.45}, {b: 64 + x + 0.5, midi: 28, d: 0.45}); }
+    [[52,55,59],[53,57,60]].forEach((m, i) => { for (let r = 0; r < 4; r++) keys.push({b: 64 + (r * 2 + i) * 4, m, d: 3.9}); });
+    metal(64, 8);
+    riffA(96);
+    chord(ev, 128, E5, 5, 0.06); keys.push({b: 128, m: [40, 52, 55, 59], d: 5}); drums.push({b: 128, k: "kick"}, {b: 128, k: "crash"});
+    bass.push(...bassFrom(ev, 8, 64), ...bassFrom(ev, 96, 129));
+    return {bpm: 150, ev, drums, bass, keys};
+  }},
+  {id: "riff", name: "Sahne Açılışı", desc: "Enstrümantal · E · 3 kişi · 128 BPM", amp: "crunch", members: ["claude", "erlik", "umay"], build(){
+    const ev = [], drums = [], E5 = [0,2,2], G5 = [3,5,5], A5 = [5,7,7], D5 = [null,5,7,7], C5 = [null,3,5,5], B5 = [7,9,9];
+    const bar = (b0, x, y, long) => {
+      [0, 0.5, 1, 1.5].forEach(t => chord(ev, b0 + t, [0, 2], 0.32, 0.01));
+      if (long){ chord(ev, b0 + 2, x, 1.9, 0.03); return; }
+      chord(ev, b0 + 2, x, 0.9, 0.03); chord(ev, b0 + 3, y, 0.45, 0.03); chord(ev, b0 + 3.5, y, 0.45, 0.03);
+    };
+    const verse = b0 => { bar(b0, G5, A5); bar(b0 + 4, D5, C5); bar(b0 + 8, G5, A5); bar(b0 + 12, B5, null, true); };
+    let b = 0;
+    bar(0, G5, A5); bar(4, D5, C5);                       // intro: gitar tek başına
+    drums.push({b: 7, k: "snare"}, {b: 7.25, k: "snare"}, {b: 7.5, k: "snare"}, {b: 7.75, k: "snare"});
+    b = 8;
+    for (let r = 0; r < 2; r++){ verse(b); rockBeat(drums, b, 16); b += 16; }
+    const cho = [E5, D5, A5, C5, E5, D5, A5, B5];          // nakarat
+    for (let r = 0; r < 2; r++){
+      cho.forEach((c, i) => { for (let k = 0; k < 4; k++) chord(ev, b + i*2 + k*0.5, c, 0.45, 0.015); });
+      driveBeat(drums, b, 16); b += 16;
+    }
+    verse(b); rockBeat(drums, b, 16); b += 16;
+    chord(ev, b, E5, 4, 0.05); drums.push({b, k: "kick"}, {b, k: "crash"});
+    return {bpm: 128, ev, drums, bass: bassFrom(ev, 8, b + 1)};
+  }},
+  {id: "blues", name: "A Blues Shuffle", desc: "12 ölçü boogie · A · 3 kişi · 96 BPM", amp: "crunch", members: ["claude", "erlik", "umay"], build(){
+    const ev = [], roots = {A: 1, D: 2, E: 0}, prog = "AAAADDAAEDAE".split("");
+    const pat = [2,2,4,4,5,5,4,4], times = [0, 2/3, 1, 5/3, 2, 8/3, 3, 11/3];
+    prog.forEach((c, i) => { const s = roots[c]; times.forEach((t, j) => { ev.push({b: i*4 + t, s, f: 0, d: 0.55}); ev.push({b: i*4 + t + 0.01, s: s + 1, f: pat[j], d: 0.55}); }); });
+    chord(ev, 48, [null, 0, 2, 0, 2, 0], 3.5, 0.04);
+    const drums = []; shuffleBeat(drums, 0, 48); drums.push({b: 48, k: "kick"}, {b: 48, k: "crash"});
+    return {bpm: 96, ev, drums, bass: bassFrom(ev, 0, 49)};
+  }},
+  {id: "elise", name: "Für Elise", desc: "Beethoven · Claude solo · temiz ton", amp: "clean", members: ["claude"], build(){
+    const ev = []; let b = 0, prev = 9;
+    const mel = [[76,1],[75,1],[76,1],[75,1],[76,1],[71,1],[74,1],[72,1],[69,3,45],[60,1],[64,1],[69,1],[71,3,40],[64,1],[68,1],[71,1],[72,3,45],[64,1],
+                 [76,1],[75,1],[76,1],[75,1],[76,1],[71,1],[74,1],[72,1],[69,3,45],[60,1],[64,1],[69,1],[71,3,40],[64,1],[72,1],[71,1],[69,5,45]];
+    mel.forEach(([m, d, bass]) => {
+      const p = placeMidi(m, prev, [2,3,4,5]); prev = p.f;
+      ev.push({b, s: p.s, f: p.f, d: d * 0.25 + 0.1});
+      if (bass) ev.push({b, s: bass === 45 ? 1 : 0, f: 0, d: d * 0.25 + 0.2});
+      b += d * 0.25;
+    });
+    return {bpm: 72, ev};
+  }},
+  {id: "improv", name: "Claude'un doğaçlaması", desc: "Her seferinde yeni · A minör pentatonik · lead", amp: "lead", members: ["claude", "erlik", "umay"], build(){
+    const box = [[0,5],[0,8],[1,5],[1,7],[2,5],[2,7],[3,5],[3,7],[4,5],[4,8],[5,5],[5,8],[3,9],[4,10],[5,10],[5,12]];
+    box.sort((a, b) => (OPEN[a[0]] + a[1]) - (OPEN[b[0]] + b[1]));
+    const ev = []; let idx = 6;
+    chord(ev, 0, [5,7,7], 1.8, 0.04);
+    let b = 2;
+    for (let bar = 0; bar < 4; bar++){
+      let t = 0;
+      while (t < 4 - 1e-6){
+        let d = [0.5,0.5,0.25,0.25,1,0.75][Math.floor(Math.random() * 6)];
+        if (t + d > 4) d = 4 - t;
+        idx = Math.min(Math.max(idx + [-2,-1,-1,1,1,2,3][Math.floor(Math.random() * 7)], 0), box.length - 1);
+        const [s, f] = box[idx];
+        ev.push({b: b + t, s, f, d: d + 0.05});
+        if (Math.random() < 0.12 && s < 5){ const [s2, f2] = box[Math.min(idx + 2, box.length - 1)]; if (s2 !== s) ev.push({b: b + t + 0.01, s: s2, f: f2, d: d}); }
+        t += d;
+      }
+      b += 4;
+    }
+    ev.push({b, s: 5, f: 5, d: 2.5}); ev.push({b: b + 0.02, s: 4, f: 5, d: 2.5});
+    const drums = [{b: 0, k: "kick"}, {b: 0, k: "crash"}], bass = [{b: 0, midi: 33, d: 1.8}];
+    rockBeat(drums, 2, 16);
+    [33, 36, 38, 40].forEach((m, i) => { for (let q = 0; q < 8; q++) bass.push({b: 2 + i*4 + q*0.5, midi: m, d: 0.45}); });
+    drums.push({b, k: "kick"}, {b, k: "crash"}); bass.push({b, midi: 33, d: 2.5});
+    return {bpm: 100, ev, drums, bass};
+  }}
+];
+
+/* ---------- Çalma ---------- */
+let current = SONGS[0], playing = null; // {events, end, bus, srcs}
+function stopPlay(){
+  if (!playing) return;
+  const p = playing; playing = null;
+  if (ctx){ p.bus.gain.setTargetAtTime(0, ctx.currentTime, 0.03); p.bandBus.gain.setTargetAtTime(0, ctx.currentTime, 0.03); p.voxBus.gain.setTargetAtTime(0, ctx.currentTime, 0.03); p.srcs.forEach(s => { try { s.stop(ctx.currentTime + 0.2); } catch(e){} }); }
+  setHud();
+}
+function startPlay(song){
+  ensureAudio(); stopPlay();
+  current = song;
+  if (song.amp) selectAmp(song.amp);
+  const {bpm, ev, drums, bass, keys, vox, phrases} = song.build();
+  const spb = 60 / bpm, t0 = ctx.currentTime + 0.2;
+  ev.sort((a, b) => a.b - b.b);
+  const bus = ctx.createGain(); bus.connect(chainIn);
+  const last = [null,null,null,null,null,null], srcs = [], events = [];
+  ev.forEach(e => {
+    const t = t0 + e.b * spb, dur = e.d * spb, midi = OPEN[e.s] + e.f;
+    if (last[e.s]){ last[e.s].gain.setTargetAtTime(0, t, 0.012); }
+    const src = ctx.createBufferSource(); src.buffer = ksBuffer(midi);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.9, t);
+    g.gain.setTargetAtTime(0, t + dur, 0.05);
+    expressNote(src, g, e, t, dur, midi, srcs);
+    src.connect(g); g.connect(e.mute ? e.mute : bus); src.start(t); src.stop(t + dur + 0.6);
+    if (e.mute){ e.mute.connect(bus); delete e.mute; }
+    last[e.s] = g; srcs.push(src);
+    events.push({t, end: t + dur, s: e.s, f: e.f, midi});
+  });
+  const hits = [[], []], lastHit = {}, bassEv = [], drumEv = [], keysEv = [], voxEv = [], phr = [];
+  const voxBus = ctx.createGain(); voxBus.gain.value = 1.9; voxBus.connect(master); const voxSend = ctx.createGain(); voxSend.gain.value = 0.35; voxBus.connect(voxSend); voxSend.connect(delay); const voxRev = ctx.createGain(); voxRev.gain.value = 0.45; voxBus.connect(voxRev); voxRev.connect(revIn);
+  const bandBus = ctx.createGain(); bandBus.gain.value = 1.0; bandBus.connect(master);
+  const band = bandOn && !!(drums || vox || keys);
+  if (band){
+    const drumBus = ctx.createGain(); drumBus.connect(bandBus); const outs = {};
+    Object.keys(DRUM_PAN).forEach(k => { const pn = ctx.createStereoPanner(); pn.pan.value = DRUM_PAN[k]; const sg = ctx.createGain(); sg.connect(pn); pn.connect(drumBus); const rs = ctx.createGain(); rs.gain.value = DRUM_REV[k]; sg.connect(rs); rs.connect(revIn); outs[k] = sg; });
+    const keysPan = ctx.createStereoPanner(); keysPan.pan.value = 0.4; keysPan.connect(bandBus); const keysRev = ctx.createGain(); keysRev.gain.value = 0.3; keysPan.connect(keysRev); keysRev.connect(revIn);
+    (drums || []).forEach(d => { const t = t0 + d.b * spb; DRUM[d.k](t, outs[d.k] || drumBus, srcs, drumVel(d.b)); drumEv.push({t, k: d.k}); if (HIT[d.k][0] >= 0) hits[HIT[d.k][0]].push({t, k: d.k}); });
+    (bass || []).forEach(n => { const t = t0 + n.b * spb; bassNote(t, n.d * spb, n.midi, bandBus, srcs); bassEv.push({t, end: t + n.d * spb, midi: n.midi}); });
+    (keys || []).forEach(k => { const t = t0 + k.b * spb; k.m.forEach(m => keysNote(t, k.d * spb, m, keysPan, srcs)); keysEv.push({t, end: t + k.d * spb, m: k.m}); });
+    let pv = null; (vox || []).forEach(v => { const t = t0 + v.b * spb, leg = pv && v.b - (pv.b + pv.d) < 0.3 ? pv.midi : null; pv = v; voiceNote(t, v.d * spb, v.midi, vowelOf(v.syl), voxBus, srcs, leg, v.syl); voxEv.push({t, end: t + v.d * spb, midi: v.midi}); });
+    (phrases || []).forEach(q => phr.push({t: t0 + q.b * spb, end: t0 + q.end * spb, line: q.line, starts: q.starts.map(x => t0 + x * spb)}));
+    keysEv.sort((a, b) => a.t - b.t); voxEv.sort((a, b) => a.t - b.t);
+    hits.forEach(L => L.sort((a, b) => a.t - b.t)); bassEv.sort((a, b) => a.t - b.t); drumEv.sort((a, b) => a.t - b.t);
+  }
+  const end = Math.max(...events.map(e => e.end)) + (band ? 1.4 : 0.4);
+  playing = {events, end, bus, bandBus, voxBus, srcs, song, band, bpm, hits, lastHit, bassEv, drumEv, keysEv, voxEv, phr, di: 0, t0};
+  playing.shots = planShots(playing, spb, t0, roster());
+  setHud();
+}
+
+/* ---------- Tab şeridi ---------- */
+const tabCv = document.getElementById("tab"), tg = tabCv.getContext("2d");
+function cssVar(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function drawTab(g, W, H, now, colors){
+  g.clearRect(0, 0, W, H);
+  const padL = 34 * (W / 1000 > 1 ? W / 1000 : 1), top = H * 0.16, gap = (H * 0.72) / 5;
+  const px = W * 0.2, span = 5, pxPerSec = (W - padL) / span;
+  g.font = `500 ${Math.round(gap * 0.62)}px ${cssVar("--f-mono") || "monospace"}`;
+  g.textAlign = "center"; g.textBaseline = "middle";
+  for (let i = 0; i < 6; i++){
+    const y = top + i * gap;
+    g.fillStyle = colors.muted; g.fillText(NAMES[5 - i], padL * 0.45, y);
+    g.strokeStyle = colors.line; g.lineWidth = 1; g.beginPath(); g.moveTo(padL, y); g.lineTo(W, y); g.stroke();
+  }
+  g.strokeStyle = colors.accent; g.lineWidth = 2; g.beginPath(); g.moveTo(px, top - gap * 0.6); g.lineTo(px, top + gap * 5.6); g.stroke();
+  if (!playing){ g.fillStyle = colors.muted; g.textAlign = "left"; g.fillText("Bir şarkı seç ve Çal'a bas", px + 14, top + gap * 2.5); return; }
+  for (const e of playing.events){
+    const x = px + (e.t - now) * pxPerSec;
+    if (x < padL - 20 || x > W + 20) continue;
+    const y = top + (5 - e.s) * gap, active = now >= e.t && now < e.end;
+    const label = String(e.f), w = gap * (label.length > 1 ? 1.15 : 0.8);
+    g.fillStyle = active ? colors.accent : colors.surface; g.fillRect(x - w/2, y - gap * 0.42, w, gap * 0.84);
+    g.fillStyle = active ? colors.accentFg : colors.fg; g.fillText(label, x, y + 1);
+  }
+}
+
+/* ---------- Kayıt ---------- */
+const recCv = document.createElement("canvas"); recCv.width = 1280; recCv.height = 720;
+const rg = recCv.getContext("2d");
+let recorder = null, recChunks = [], recBlob = null, recExt = "webm", recording = false;
+const recBtn = document.getElementById("recBtn"), recNote = document.getElementById("recNote");
+const clip = document.getElementById("clip"), clipVideo = document.getElementById("clipVideo"), saveBtn = document.getElementById("saveBtn");
+function pickMime(){
+  const opts = [["video/webm;codecs=vp9,opus","webm"],["video/webm;codecs=vp8,opus","webm"],["video/webm","webm"],["video/mp4","mp4"]];
+  if (!window.MediaRecorder) return null;
+  for (const [m, ext] of opts) if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) return {m, ext};
+  return {m: "", ext: "webm"};
+}
+function startRecording(){
+  const mime = pickMime();
+  if (!mime || !recCv.captureStream){ recNote.textContent = "Bu tarayıcı video kaydını desteklemiyor. Chrome, Edge veya Firefox ile dene."; return; }
+  startPlay(current);
+  const stream = new MediaStream([...recCv.captureStream(30).getVideoTracks(), ...recDest.stream.getAudioTracks()]);
+  try { recorder = new MediaRecorder(stream, mime.m ? {mimeType: mime.m, videoBitsPerSecond: 6e6} : undefined); }
+  catch(e){ recNote.textContent = "Kayıt başlatılamadı: " + e.message; return; }
+  recExt = mime.ext; recChunks = [];
+  recorder.ondataavailable = e => { if (e.data && e.data.size) recChunks.push(e.data); };
+  recorder.onstop = () => {
+    recording = false; recLed.material.color.setHex(0x441111);
+    recBlob = new Blob(recChunks, {type: recorder.mimeType || "video/webm"});
+    try { clipVideo.src = URL.createObjectURL(recBlob); } catch(e){}
+    clip.hidden = false;
+    recBtn.textContent = "● Çal ve kaydet"; recBtn.disabled = false;
+    recNote.textContent = `Kayıt hazır: ${(recBlob.size / 1048576).toFixed(1)} MB ${recExt.toUpperCase()}.`;
+    setHud();
+  };
+  recorder.start(250); recording = true;
+  recLed.material.color.setHex(0xff2a2a);
+  recBtn.textContent = "■ Kaydı bitir"; recNote.textContent = "Kaydediliyor… Şarkı bitince kayıt kendiliğinden durur.";
+  setHud();
+}
+function stopRecording(){ if (recorder && recorder.state !== "inactive") recorder.stop(); }
+recBtn.addEventListener("click", () => recording ? (stopPlay(), stopRecording()) : startRecording());
+
+let downloads = null;
+if (window.claude && typeof window.claude.use === "function"){
+  window.claude.use("downloads").then(d => { downloads = d; }).catch(() => {});
+}
+saveBtn.addEventListener("click", async () => {
+  if (!recBlob) return;
+  const name = `claude-gitar-${current.id}.${recExt}`;
+  if (downloads){
+    try { await downloads.save({filename: name, data: recBlob}); recNote.textContent = "Video indirildi."; }
+    catch(e){ recNote.textContent = e && e.code === "declined" ? "İndirme iptal edildi." : "Video bu görünümde indirilemiyor. Önizlemedeki oynatıcıdan izleyebilirsin."; }
+  } else {
+    recNote.textContent = "İndirme bu görünümde kullanılamıyor. Önizlemedeki oynatıcıdan izleyebilirsin.";
+  }
+});
+
+/* ---------- Arayüz ---------- */
+const songsEl = document.getElementById("songs");
+SONGS.forEach(s => {
+  const b = document.createElement("button");
+  b.className = "song"; b.id = "song-" + s.id; b.setAttribute("aria-pressed", s === current ? "true" : "false");
+  b.innerHTML = `<b></b><span></span>`; b.querySelector("b").textContent = s.name; b.querySelector("span").textContent = s.desc;
+  b.addEventListener("click", () => {
+    current = s;
+    songsEl.querySelectorAll(".song").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
+    if (s.amp) selectAmp(s.amp);
+    if (playing && !recording) startPlay(s);
+    setHud();
+  });
+  songsEl.appendChild(b);
+});
+document.getElementById("play").addEventListener("click", () => startPlay(current));
+document.getElementById("stop").addEventListener("click", () => { stopPlay(); if (recording) stopRecording(); });
+function selectAmp(n){
+  setAmp(n);
+  document.querySelectorAll("#ampSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === n ? "true" : "false"));
+}
+document.querySelectorAll("#ampSeg button").forEach(b => b.addEventListener("click", () => selectAmp(b.dataset.v)));
+document.querySelectorAll("#bandSeg button").forEach(b => b.addEventListener("click", () => {
+  bandOn = b.dataset.v === "on";
+  document.querySelectorAll("#bandSeg button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
+}));
+document.querySelectorAll("#envSeg button").forEach(b => b.addEventListener("click", () => {
+  setEnv(b.dataset.v);
+  document.querySelectorAll("#envSeg button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
+}));
+const camNote = document.getElementById("camNote");
+document.querySelectorAll("#camSeg button").forEach(b => b.addEventListener("click", () => {
+  camMode = b.dataset.v;
+  document.querySelectorAll("#camSeg button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
+  camNote.textContent = {head: "Kamera gitarın sap kafasına kıskaçla takılı, perdelere bakıyor.", stage: "Gitara yakın çekim: sürükleyerek etrafında dön, tekerlekle yakınlaş.", group: "Geniş açı: Zümrüdüanka sahnede. Kadro şarkıya göre değişir.", director: "Otomatik yönetmen: vokalde Şahmeran'a, gitar anında Claude'a, davul geçişinde Erlik'e keser."}[camMode];
+  gl.style.cursor = camMode === "stage" ? "grab" : "default";
+  setHud();
+}));
+const hudText = document.getElementById("hudText"), hudDot = document.getElementById("hudDot");
+function hudLabel(){
+  const cam = {head: "SAP KAMERASI", stage: "SAHNE", group: "GRUP", director: "YÖNETMEN"}[camMode] || "SAHNE";
+  return `${recording ? "REC · " : ""}${cam} · ${playing ? BAND_NAME + " çalıyor: " + playing.song.name + (playing.band ? "" : " · sadece gitar") : "hazır"}`;
+}
+function setHud(){ hudText.textContent = hudLabel(); hudDot.hidden = !recording; }
+
+function roster(){ const sg = playing ? playing.song : current; return bandOn ? (sg.members || ["claude"]) : ["claude"]; }
+const lyricEl = document.getElementById("lyric");
+let lyricNow = null, lyricKey = "";
+function drawLyric(now){
+  lyricNow = null;
+  const ph = playing && playing.band && playing.phr ? playing.phr.find(q => now >= q.t && now < q.end) : null;
+  if (ph){
+    const toks = ph.line.split(/([ -])/); let si = 0; lyricNow = [];
+    toks.forEach(tk => { if (tk === "-") return; if (tk === " "){ lyricNow.push({t: " ", on: false}); return; }
+      lyricNow.push({t: tk, on: now >= ph.starts[si]}); si++; });
+  }
+  const key = lyricNow ? lyricNow.map(x => (x.on ? "1" : "0") + x.t).join("") : "";
+  if (key !== lyricKey){ lyricKey = key; lyricEl.textContent = "";
+    (lyricNow || []).forEach(x => { const sp = document.createElement("span"); sp.textContent = x.t; if (x.on) sp.className = "on"; lyricEl.appendChild(sp); }); }
+}
+
+/* ---------- Grup kartları ve şarkı listesi ---------- */
+const BIO = {
+  claude: ["#e8963a", "Kehribar vizörlü kam. Grubun kurucusu, gitarı sap kamerasıyla çalar."],
+  erlik: ["#c8322a", "Türk mitolojisinde yeraltının hükümdarı. Ritmi yerin altından getirir."],
+  umay: ["#8fb0d8", "Koruyucu ana tanrıça. Grubun temelini, bas hattını tutar."],
+  sahmeran: ["#2fae78", "Anadolu efsanelerinin yılanlar kraliçesi. Sesi sırları bilir."],
+  ulgen: ["#4a76c0", "Gök tanrısı. Klavyesiyle gökyüzünün armonisini çalar."]
+};
+(function(){
+  const cards = document.getElementById("cards"), disco = document.getElementById("disco");
+  Object.keys(MEMBER).forEach(k => {
+    const c = document.createElement("div"); c.className = "card";
+    const who = document.createElement("div"); who.className = "who";
+    const sw = document.createElement("span"); sw.className = "sw"; sw.style.background = BIO[k][0];
+    const nm = document.createElement("b"); nm.textContent = MEMBER[k].name;
+    who.append(sw, nm);
+    const role = document.createElement("div"); role.className = "role"; role.textContent = MEMBER[k].role;
+    const bio = document.createElement("p"); bio.textContent = BIO[k][1];
+    const inn = document.createElement("div"); inn.className = "in";
+    inn.textContent = "Çaldığı şarkılar: " + SONGS.filter(sg => (sg.members || []).includes(k)).map(sg => sg.name).join(", ");
+    c.append(who, role, bio, inn); cards.appendChild(c);
+  });
+  SONGS.forEach(sg => {
+    const r = document.createElement("div"), a = document.createElement("b"), b = document.createElement("span");
+    a.textContent = sg.name; b.textContent = (sg.members || ["claude"]).map(k => MEMBER[k].label).join(" · ");
+    r.append(a, b); disco.appendChild(r);
+  });
+})();
+
+setEnv("club");
+/* ---------- Otomatik yönetmen ---------- */
+// Şarkı başlarken ölçü ölçü çekim listesi çıkarılır: kim öne çıkıyorsa kamera ona keser.
+function planShots(p, spb, t0, ros){
+  const bar = spb * 4, nBars = Math.ceil((p.end - t0) / bar) + 1, shots = [];
+  const has = k => ros.includes(k) && (k === "claude" || p.band);
+  const over = (L, a, b) => (L || []).reduce((s, e) => s + Math.max(0, Math.min(b, e.end) - Math.max(a, e.t)), 0);
+  const cnt = (L, a, b, f) => (L || []).reduce((s, e) => s + (e.t >= a && e.t < b && (!f || f(e)) ? 1 : 0), 0);
+  let cur = null, n = 0, side = 1;
+  const push = (b, who, kind, len) => { side = -side; cur = {t: t0 + b * bar, end: t0 + (b + len) * bar, who, kind, side, glide: kind !== "fill" && shots.length % 3 === 2, crane: shots.filter(x => x.who === "wide").length % 2 === 1}; shots.push(cur); };
+  for (let b = 0; b < nBars; b++){
+    const a = t0 + b * bar, z = a + bar;
+    if (cur && a < cur.end) continue;
+    if (b < 2){ push(b, "wide", "wide", 2); continue; }
+    const vox = over(p.voxEv, a, z + bar) / (bar * 2), gtr = cnt(p.events, a, z + bar), keys = cnt(p.keysEv, a, z + bar), bass = cnt(p.bassEv, a, z + bar);
+    const fill = cnt(p.drumEv, z - spb, z, e => e.k === "tom" || e.k === "snare" || e.k === "crash") >= 3;
+    if (fill && has("erlik") && (!cur || cur.who !== "erlik")){ push(b, "erlik", "fill", 1); continue; }
+    n++;
+    let pick;
+    if (n % 4 === 0) pick = ["wide", "wide"];
+    else {
+      const sc = [["claude", gtr * 1.2], ["umay", bass * 0.8], ["ulgen", keys * 1.5], ["erlik", cnt(p.drumEv, a, z) * 0.3]].filter(x => has(x[0])).sort((x, y) => y[1] - x[1]);
+      const top = sc.length ? sc[(cur && cur.who === sc[0][0] && sc.length > 1) ? 1 : 0][0] : "wide";
+      pick = top === "claude" ? ["claude", n % 3 === 1 ? "guitar" : "close"] : [top, "medium"];
+      if (vox > 0.25 && has("sahmeran")){ const others = sc.map(x => x[0]); pick = n % 4 === 1 ? ["sahmeran", "close"] : n % 4 === 3 ? ["sahmeran", "medium"] : [others[(n >> 2) % Math.max(1, others.length)] || "wide", "medium"]; }
+    }
+    push(b, pick[0], pick[1], 2);
+  }
+  return shots;
+}
+const _H = new THREE.Vector3(), _F = new THREE.Vector3(), _R = new THREE.Vector3(), _L = new THREE.Vector3();
+function directPose(now, wall, sh){
+  if (!sh || sh.who === "wide" || !FIG[sh.who] || !FIG[sh.who].g.visible){
+    const u = sh ? (now - sh.t) / (sh.end - sh.t) : 0, sd = sh ? sh.side : 1;
+    const ue = u * u * (3 - 2 * u);
+    if (sh && sh.crane) groupCam.position.set(0.15 + sd * 0.9 * (1 - ue), 0.35 + 0.75 * ue, 4.3 - 0.3 * ue);
+    else groupCam.position.set(0.15 + 0.45 * Math.sin(wall * 0.12) + sd * 0.6 * (1 - ue), 0.8 + 0.1 * ue, 4.55 - 0.5 * ue);
+    groupCam.lookAt(0, -0.05, -0.8); return;
+  }
+  const f = FIG[sh.who], u0 = (now - sh.t) / (sh.end - sh.t), u = u0 * u0 * (3 - 2 * u0), sd = sh.side;
+  f.g.updateMatrixWorld(true); f.head.getWorldPosition(_H);
+  _F.set(0, 0, 1).applyQuaternion(f.g.quaternion); _R.set(1, 0, 0).applyQuaternion(f.g.quaternion);
+  let d = 1.15, lat = 0.42, hy = -0.08, look = -0.14;
+  if (sh.kind === "medium"){ d = 2.0; lat = 0.5; hy = -0.2; look = -0.42; }
+  if (sh.kind === "fill"){ d = 1.55; lat = 0.55; hy = -0.38; look = -0.5; }
+  if (sh.kind === "guitar"){ d = 0.95; lat = 0.6; hy = -0.3; look = -0.62; }
+  // Önde başka bir üye kadrajı kapatıyorsa diğer tarafı ya da daha yakın açıyı seç (çekim başına bir kez)
+  if (!sh.cfg){
+    const tgt = _H.clone().add(new THREE.Vector3(0, look, 0)), opts = [];
+    [[sd, 1, 1], [-sd, 1, 1], [sd, 0.7, 0.5], [-sd, 0.7, 0.5], [sd, 0.5, 0.2], [-sd, 0.5, 0.2]].forEach(([sg, dm, lm], oi) => {
+      const c = _H.clone().addScaledVector(_F, d * dm).addScaledVector(_R, sg * lat * lm * d * dm).add(new THREE.Vector3(0, hy, 0));
+      let pen = oi * 0.01;
+      Object.keys(FIG).forEach(k => { if (k === sh.who || !FIG[k].g.visible) return;
+        const o = new THREE.Vector3(); FIG[k].head.getWorldPosition(o); o.y -= 0.3;
+        const ab = tgt.clone().sub(c), t = Math.min(1, Math.max(0, o.clone().sub(c).dot(ab) / ab.lengthSq()));
+        if (t > 0.02 && t < 0.92){ const q = c.clone().addScaledVector(ab, t); const dist = Math.hypot(q.x - o.x, q.z - o.z) + Math.max(0, Math.abs(q.y - o.y) - 0.45); if (dist < 0.42) pen += 1 + (0.42 - dist); } });
+      opts.push({pen, sg, dm, lm});
+    });
+    opts.sort((x, y) => x.pen - y.pen); sh.cfg = opts[0];
+  }
+  const C = sh.cfg; d *= C.dm * (1.07 - 0.12 * u); lat *= C.lm;
+  groupCam.position.copy(_H).addScaledVector(_F, d).addScaledVector(_R, C.sg * (lat + 0.12 * u * C.lm) * d).add(_L.set(0, hy, 0));
+  // El kamerası hissi: yakın planlarda çok küçük, yavaş titreşim
+  const hh = 0.005 * d; groupCam.position.x += hh * (Math.sin(wall * 1.3) + 0.5 * Math.sin(wall * 2.9 + 1)); groupCam.position.y += hh * 0.7 * Math.sin(wall * 1.7 + 2);
+  groupCam.lookAt(_H.x, _H.y + look, _H.z);
+}
+
+// Bazı geçişler kesme yerine yumuşak kayma: önceki karenin konumundan yeni çekime 0.9 sn'de akar
+const camPrev = {pos: new THREE.Vector3(), q: new THREE.Quaternion(), sh: null, from: null};
+function direct(now, wall){
+  const sh = playing && playing.shots ? playing.shots.find(x => now >= x.t && now < x.end) : null;
+  if (sh !== camPrev.sh){
+    camPrev.from = sh && sh.glide && camPrev.sh ? {pos: groupCam.position.clone(), q: groupCam.quaternion.clone()} : null; camPrev.sh = sh;
+    if (camPrev.from){
+      // Kayma yolu bir üyenin içinden geçecekse normal kesmeye dön
+      directPose(sh.t + 0.9, wall, sh); const A = camPrev.from.pos, B = groupCam.position.clone(), o = new THREE.Vector3();
+      for (let k = 1; k < 12 && camPrev.from; k++){ const P = A.clone().lerp(B, k / 12);
+        Object.keys(FIG).forEach(n => { if (!camPrev.from || !FIG[n].g.visible) return; FIG[n].head.getWorldPosition(o);
+          if (Math.hypot(P.x - o.x, P.z - o.z) < 0.45 && P.y < o.y + 0.2) camPrev.from = null; }); }
+    }
+  }
+  directPose(now, wall, sh);
+  if (camPrev.from && sh){
+    const k = Math.min(1, (now - sh.t) / 0.9), e = k * k * (3 - 2 * k);
+    if (k < 1){ groupCam.position.lerpVectors(camPrev.from.pos, groupCam.position.clone(), e); groupCam.quaternion.slerpQuaternions ? groupCam.quaternion.slerpQuaternions(camPrev.from.q, groupCam.quaternion.clone(), e) : THREE.Quaternion.slerp(camPrev.from.q, groupCam.quaternion.clone(), groupCam.quaternion, e); }
+    else camPrev.from = null;
+  }
+}
+
+/* ---------- Döngü ---------- */
+let colors = null;
+function readColors(){ colors = {fg: cssVar("--fg"), muted: cssVar("--muted"), line: cssVar("--line"), accent: cssVar("--accent"), accentFg: cssVar("--accent-fg"), surface: cssVar("--surface")}; }
+readColors();
+if (window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", readColors);
+new MutationObserver(readColors).observe(document.documentElement, {attributes: true, attributeFilter: ["data-theme"]});
+const recColors = {fg: "#f4ece2", muted: "#b9ab9b", line: "rgba(255,240,220,.25)", accent: "#ee9d45", accentFg: "#1a1208", surface: "rgba(20,14,10,.0)"};
+const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function frame(){
+  const now = ctx ? ctx.currentTime : 0;
+  const wall = performance.now() / 1000;
+  const act = [null,null,null,null,null,null];
+  if (playing){
+    while (playing.di < playing.drumEv.length && playing.drumEv[playing.di].t <= now){ const d = playing.drumEv[playing.di++]; playing.lastHit[d.k] = d.t; }
+    for (const e of playing.events) if (now >= e.t && now < e.end) act[e.s] = e;
+    if (now > playing.end){ const was = playing; stopPlay(); if (recording) setTimeout(stopRecording, 900); }
+  }
+  let lastPick = null;
+  for (let s = 0; s < 6; s++){
+    const e = act[s], st = strings[s];
+    if (e){
+      const age = now - e.t, amp = reduceMotion ? 0.0006 : 0.0022 * Math.exp(-age * 2.5) + 0.0004;
+      layoutString(s, e.f, amp, wall * 70 + s);
+      st.mat.color.setHex(0xffc27a);
+      if (e.f > 0){ fingers[s].visible = true; fingers[s].position.set(fingerX(e.f), stringY(s, fingerX(e.f)), STR_Z + 0.004); }
+      else fingers[s].visible = false;
+      if (!lastPick || e.t > lastPick.t) lastPick = e;
+    } else {
+      if (st.wasActive) layoutString(s, 0, 0, 0);
+      st.mat.color.copy(st.base); fingers[s].visible = false;
+    }
+    st.wasActive = !!e;
+  }
+  if (lastPick){
+    const ty = stringY(lastPick.s, 0.575) - 0.004, age = now - lastPick.t;
+    pick.position.y += (ty - pick.position.y) * 0.5;
+    pick.position.z = STR_Z + 0.004 + Math.min(age * 0.03, 0.006);
+  }
+  if (recording) recLed.material.color.setHex(Math.floor(wall * 2) % 2 ? 0xff2a2a : 0x661111);
+  updateBand(now, wall);
+  updateFx(now, wall);
+  updateEnv(wall);
+  updateCrowd(now, wall);
+  if (camMode === "director") direct(now, wall);
+  else if (camMode === "group" && !window.__MANUAL){
+    groupCam.position.set(0.15 + 0.45 * Math.sin(wall * 0.12), 0.8, 4.4 + 0.25 * Math.sin(wall * 0.09));
+    groupCam.lookAt(0, -0.05, -0.8);
+  }
+  const cam = camMode === "head" ? headCam : (camMode === "group" || camMode === "director") ? groupCam : stageCam;
+  applyRoster(roster(), camMode === "head");
+  drawLyric(now);
+  if (composer){ renderPass.camera = cam; bloomPass.strength = 0.42 + (playing && playing.band ? 0.2 * flash : 0); composer.render(); }
+  else renderer.render(scene, cam);
+  drawTab(tg, tabCv.width, tabCv.height, now, colors);
+  if (recording){
+    rg.drawImage(gl, 0, 0, 1280, 720);
+    const grd = rg.createLinearGradient(0, 600, 0, 720); grd.addColorStop(0, "rgba(10,7,5,0)"); grd.addColorStop(1, "rgba(10,7,5,.7)");
+    rg.fillStyle = grd; rg.fillRect(0, 600, 1280, 120);
+    rg.textAlign = "left"; rg.textBaseline = "alphabetic";
+    rg.fillStyle = "#ffc27a"; rg.font = "800 46px 'Big Shoulders Display', Impact, sans-serif"; rg.fillText(BAND_NAME, 40, 672);
+    rg.fillStyle = "#f4ece2"; rg.font = "500 20px 'JetBrains Mono', monospace"; rg.fillText((playing ? playing.song.name : current.name) + "  ·  " + roster().map(k => MEMBER[k].label).join(" · "), 40, 702);
+    if (lyricNow){ rg.font = "600 34px Figtree, system-ui, sans-serif"; rg.textBaseline = "middle"; rg.shadowColor = "rgba(0,0,0,.8)"; rg.shadowBlur = 8;
+      const W = lyricNow.reduce((w, x) => w + rg.measureText(x.t).width, 0); let x = 640 - W / 2;
+      lyricNow.forEach(pc => { rg.fillStyle = pc.on ? "#7cf0b8" : "#f4ece2"; rg.fillText(pc.t, x, 590); x += rg.measureText(pc.t).width; }); rg.shadowBlur = 0; }
+    rg.fillStyle = "#f05a5a"; rg.beginPath(); rg.arc(34, 34, 8, 0, Math.PI * 2); rg.fill();
+    rg.fillStyle = "#f4ece2"; rg.font = "500 20px JetBrains Mono, monospace"; rg.textAlign = "left"; rg.textBaseline = "middle";
+    rg.fillText(hudLabel(), 52, 35);
+  }
+  requestAnimationFrame(frame);
+}
+window.addEventListener("resize", resize);
+resize();
+requestAnimationFrame(frame);
+})();
+</script>
