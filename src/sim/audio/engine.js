@@ -62,23 +62,31 @@ export function createEngine(ctx, prefs = {}){
   let ampName = prefs.amp || "crunch", roomSec = prefs.room || 1.4;
   const G = v => { const g = ctx.createGain(); if (v !== undefined) g.gain.value = v; return g; };
   const F = (type, f, q, gain) => { const x = ctx.createBiquadFilter(); x.type = type; x.frequency.value = f; if (q !== undefined) x.Q.value = q; if (gain !== undefined) x.gain.value = gain; return x; };
-  const chainIn = G();
-  // Manyetik: bobin+kablo rezonansı; tiz "cam" sesini alır, elektro gitarın tok karakterini verir
-  const pickup = F("lowpass", 3300, 2.0);
-  const highp = F("highpass", 100, 0.7);
-  const tight = F("peaking", 700, 0.8, 3);
-  // Ön vurgulama: kırpmadan önce bası kıs (çamurlanma ve intermodülasyon azalır), sonra geri ver
-  const preEmph = F("lowshelf", 180, undefined, -6), deEmph = F("lowshelf", 160, undefined, 4);
-  const pre = G(), shaper = ctx.createWaveShaper(), post = G(); shaper.oversample = "4x";
-  const couple = F("highpass", 40, 0.7), fizz = F("lowpass", 7000, 0.7);   // kademeler arası kuplaj kondansatörü ve cızırtı kesimi
-  const tBass = F("lowshelf", 120), tMid = F("peaking", 800, 0.9), tTreb = F("highshelf", 3200), presence = F("peaking", 3900, 1.0, 0);
-  const power = ctx.createWaveShaper(); power.curve = softCurve(); power.oversample = "2x";
-  const cab = ctx.createConvolver(); cab.normalize = false; cab.buffer = cabIR(ctx);
-  const lowp = F("lowpass", 9000, 0.7);
-  const gOut = G(0.8);
-  chainIn.connect(pickup); pickup.connect(highp); highp.connect(tight); tight.connect(preEmph); preEmph.connect(pre); pre.connect(shaper); shaper.connect(post);
-  post.connect(couple); couple.connect(fizz); fizz.connect(tBass); tBass.connect(tMid); tMid.connect(tTreb); tTreb.connect(presence); presence.connect(power);
-  power.connect(deEmph); deEmph.connect(cab); cab.connect(lowp); lowp.connect(gOut);
+  // Amfi zinciri: manyetik → sıkılaştırma → ön vurgulama → asimetrik kademe → kuplaj ve cızırtı → ton katı → presence → güç kademesi → geri vurgulama → kabin.
+  // İki bağımsız zincir var: sol ve sağ kanal, çift kayıt için (ritim partisi iki ayrı performans gibi çalınır).
+  function makeAmp(){
+    const inp = G();
+    const pickup = F("lowpass", 3300, 2.0);                    // bobin+kablo rezonansı; tiz "cam" sesini alır, tok elektro karakteri verir
+    const highp = F("highpass", 100, 0.7), tight = F("peaking", 700, 0.8, 3);
+    const preEmph = F("lowshelf", 180, undefined, -6), deEmph = F("lowshelf", 160, undefined, 4);   // kırpmadan önce bası kıs, sonra geri ver
+    const pre = G(), shaper = ctx.createWaveShaper(), post = G(); shaper.oversample = "4x";
+    const couple = F("highpass", 40, 0.7), fizz = F("lowpass", 7000, 0.7);
+    const tBass = F("lowshelf", 120), tMid = F("peaking", 800, 0.9), tTreb = F("highshelf", 3200), presence = F("peaking", 3900, 1.0, 0);
+    const power = ctx.createWaveShaper(); power.curve = softCurve(); power.oversample = "2x";
+    const cab = ctx.createConvolver(); cab.normalize = false; cab.buffer = cabBuf;
+    const lowp = F("lowpass", 9000, 0.7), out = G(0.8);
+    inp.connect(pickup); pickup.connect(highp); highp.connect(tight); tight.connect(preEmph); preEmph.connect(pre); pre.connect(shaper); shaper.connect(post);
+    post.connect(couple); couple.connect(fizz); fizz.connect(tBass); tBass.connect(tMid); tMid.connect(tTreb); tTreb.connect(presence); presence.connect(power);
+    power.connect(deEmph); deEmph.connect(cab); cab.connect(lowp); lowp.connect(out);
+    return {inp, out, cab, apply(a){
+      pickup.frequency.value = a.pickup; pickup.Q.value = a.pq;
+      pre.gain.value = a.pre; shaper.curve = curve(a.k, a.bias); post.gain.value = a.post; lowp.frequency.value = a.lp;
+      tBass.gain.value = a.b; tMid.gain.value = a.m; tTreb.gain.value = a.t; presence.gain.value = a.pres;
+    }};
+  }
+  const cabBuf = prefs.cabIR || cabIR(ctx);
+  const ampL = makeAmp(), ampR = makeAmp();
+  const chainIn = ampL.inp, chainIn2 = ampR.inp;
   const master = G();
   const glue = ctx.createDynamicsCompressor(); glue.threshold.value = -16; glue.ratio.value = 2.5; glue.knee.value = 8; glue.attack.value = 0.02; glue.release.value = 0.2;
   const presM = F("highshelf", 3000, undefined, 2), air = F("highshelf", 8000, undefined, 3);   // karışıma açıklık
@@ -86,10 +94,10 @@ export function createEngine(ctx, prefs = {}){
   master.connect(glue); glue.connect(presM); presM.connect(air); air.connect(lim); lim.connect(ctx.destination);
   let recDest = null;
   if (ctx.createMediaStreamDestination){ recDest = ctx.createMediaStreamDestination(); lim.connect(recDest); }
-  // Gitar: Haas ile çift kayıt hissi
-  const pL = ctx.createStereoPanner(); pL.pan.value = -0.65; const pR = ctx.createStereoPanner(); pR.pan.value = 0.65;
-  const haas = ctx.createDelay(0.05); haas.delayTime.value = 0.014;
-  gOut.connect(pL); pL.connect(master); gOut.connect(haas); haas.connect(pR); pR.connect(master);
+  // Sol ve sağ zincir: iki amfi iki mikrofon gibi, sahnenin iki yanına
+  const pL = ctx.createStereoPanner(); pL.pan.value = -0.8; const pR = ctx.createStereoPanner(); pR.pan.value = 0.8;
+  ampL.out.connect(pL); pL.connect(master); ampR.out.connect(pR); pR.connect(master);
+  const gOut = G(0.5); ampL.out.connect(gOut); ampR.out.connect(gOut);   // efekt gönderimi için toplam
   // Yankı ve oda
   const delay = ctx.createDelay(1); delay.delayTime.value = 0.31; const fbk = G(0.3), wet = G();
   const dHi = F("lowpass", 3500); gOut.connect(delay); delay.connect(dHi); dHi.connect(fbk); fbk.connect(delay); dHi.connect(wet); wet.connect(master);
@@ -99,10 +107,9 @@ export function createEngine(ctx, prefs = {}){
 
   function setAmp(n){
     ampName = n; const a = AMPS[n];
-    pickup.frequency.value = a.pickup; pickup.Q.value = a.pq;
-    pre.gain.value = a.pre; shaper.curve = curve(a.k, a.bias); post.gain.value = a.post; lowp.frequency.value = a.lp; wet.gain.value = a.wet;
-    tBass.gain.value = a.b; tMid.gain.value = a.m; tTreb.gain.value = a.t; presence.gain.value = a.pres; gtrRev.gain.value = a.rev;
+    ampL.apply(a); ampR.apply(a); wet.gain.value = a.wet; gtrRev.gain.value = a.rev;
   }
+  function setCabIR(buf){ ampL.cab.buffer = buf; ampR.cab.buffer = buf; }
   function setRoom(sec){ roomSec = sec; reverb.buffer = roomIR(ctx, sec); }
   function setVolume(v){ master.gain.value = v * 0.62; }
   let noiseBuf = null;
@@ -111,5 +118,5 @@ export function createEngine(ctx, prefs = {}){
     const s = ctx.createBufferSource(); s.buffer = noiseBuf; return s;
   }
   setAmp(ampName); setVolume(prefs.volume === undefined ? 0.75 : prefs.volume);
-  return { ctx, chainIn, master, delay, revIn, recDest, get ampName(){ return ampName; }, get roomSec(){ return roomSec; }, setAmp, setRoom, setVolume, noiseSrc };
+  return { ctx, chainIn, chainIn2, master, delay, revIn, recDest, get ampName(){ return ampName; }, get roomSec(){ return roomSec; }, setAmp, setRoom, setVolume, setCabIR, noiseSrc };
 }

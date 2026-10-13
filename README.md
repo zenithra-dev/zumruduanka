@@ -44,7 +44,19 @@ Render: üç işçi kareleri paylaşır, ses OfflineAudioContext ile üretilir, 
 4. **Kabin.** 12" gitar hoparlörünün tipik eğrisinden tasarlanmış darbe yanıtı (80 Hz altı kesik, 130 Hz tınlama, 480 Hz çukur, 2.6 kHz presence, 5 kHz üstü düşüş) ve yakın mikrofonun kısa yansımaları. Gerçek bir kabin IR'ı varsa `createEngine`'e `cabIR` ile verilebilir.
 5. **Mekan.** Haas çiftleme, yankı, mekana göre uzunluğu değişen sentetik oda.
 
-Ses tasarımı iki ölçümle yapılıyor: notaların sent cinsinden akortu ve AudioSet üzerinde eğitilmiş YAMNet sınıflandırıcısının "elektro gitar / gitar / distorsiyon" puanları (yazılım kulak). Her değişiklik bu ikisiyle karşılaştırılıyor.
+## Ses tasarımı döngüsü
+
+Kulakla karar vermek için `npm run dev`; sayıyla karar vermek için üç araç:
+
+```sh
+node tools/tuning.mjs                    # 18 notanın akortu, sent cinsinden (hedef: ortalama 0.5 altı)
+node tools/guitar-samples.mjs v7         # dört şarkıdan 10'ar sn dinleme örneği → out/guitar/*-v7.mp3
+bash tools/ear/setup.sh                  # yazılım kulak: Python ortamı + YAMNet (bir kez)
+node tools/sweep.mjs                     # ayar varyantlarını üretir, kulak puanlar, sıralar (tools/sweep.mjs içindeki V)
+tools/ear/venv/bin/python tools/ear/score.py out/guitar/riff-v7.wav   # tek dosyanın sınıf puanları
+```
+
+Yazılım kulak, AudioSet üzerinde eğitilmiş YAMNet sınıflandırıcısı: "elektro gitar", "gitar", "distorsiyon" puanlarını yükseltip "alarm, telefon, kanun, çan, synth" gibi sınıfları sıfıra çekmek hedef. Gerçek bir gitar kaydı bu modelde gitar sınıfında yüzde 50'nin üstünü alır; mevcut sentez crunch riffte elektro gitar yüzde 5 ila 20, gitar yüzde 15 ila 35, distorsiyon yüzde 25 civarı. Ayarlanabilir her şey dört nesnede: `AMPS` ve `CAB` (engine.js), `STRING` (guitar.js), `DOUBLE` (playback.js).
 
 ## Yapı
 
