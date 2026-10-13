@@ -8,5 +8,6 @@ import elise from "./elise.js";
 import improv from "./improv.js";
 import agit from "./agit.js";
 import danny from "./danny.js";
-export const SONGS = [kaf, ninni, tepegoz, riff, blues, elise, improv, agit, danny];
+import solo from "./solo.js";
+export const SONGS = [kaf, ninni, tepegoz, riff, blues, elise, improv, agit, danny, solo];
 export function findSong(key){ return SONGS[+key] || SONGS.find(s => s.id === key) || null; }

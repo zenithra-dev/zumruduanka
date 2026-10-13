@@ -3,3 +3,4 @@ out/
 *.tgz
 tools/ear/venv/
 tools/ear/model/
+__pycache__/

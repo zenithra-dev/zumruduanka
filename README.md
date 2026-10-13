@@ -15,6 +15,7 @@ Tarayıcıda çalışan, tamamen kodla üretilmiş bir elektro gitar: Claude sah
 | Claude'un doğaçlaması | A minör pentatonik, her tohumda farklı | 100 | otomatik yönetmen |
 | Ağıt | E minör, ağlayan gitar: bükülüp bırakılan notalar, geniş vibrato | 66 | otomatik yönetmen |
 | Danny Boy | İrlanda halk ezgisi (Londonderry Air, 1855), ağlayan gitarla G majör | 63 | otomatik yönetmen |
+| Küllerinden | C# minör modern blues-rock solosu, shuffle | 80 | otomatik yönetmen |
 
 ## Kurulum
 
@@ -98,7 +99,7 @@ shots: [
 
 ## Şarkı yazmak
 
-`src/sim/band/songs/` altına bir dosya; `build()` nota olayları döner: `{b, s, f, d}` vuruş, tel, perde, süre; isteğe bağlı `m` palm mute, `v` vuruş gücü, `h` legato, `bend` bükme (`back: true` notanın sonunda geri bırakır), `pre` bükülü vurulup aşağı bırakılan bükme, `vib` vibrato derinliğinin katı. `chord()` ile akor, `placeMidi()` ile melodi yerleşimi. `index.js` listesine ekle.
+`src/sim/band/songs/` altına bir dosya; `build()` nota olayları döner: `{b, s, f, d}` vuruş, tel, perde, süre; isteğe bağlı `m` palm mute, `v` vuruş gücü, `h` legato, `bend` bükme (`back: true` notanın sonunda geri bırakır), `pre` bükülü vurulup aşağı bırakılan bükme, `vib` vibrato derinliğinin katı. `chord()` ile akor, `placeMidi()` ile melodi yerleşimi. Eklemeden önce `node tools/candidate.mjs sim/band/songs/<dosya>.js` ile denetle (perde, tel, el açıklığı, NaN; sesi `out/aday.wav`), sonra `index.js` listesine ekle.
 
 ## Simülasyon API'si
 
