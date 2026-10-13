@@ -4,39 +4,44 @@ import { rand } from "../rng.js";
 // Tel modelinin ayarları (ses tasarımı için dışarıdan değiştirilebilir):
 //   exciter: "pulse" → fiziksel pena vuruşu: manyetiğin gördüğü hız dalgası, pena konumuna göre dikdörtgen darbe (harmonikler düzenli, gitar gibi);
 //            "noise" → klasik Karplus-Strong gürültü vuruşu (kanun/arp gibi, her nota farklı tını)
-//   noise: darbeye katılan gürültü payı (pena sürtmesi); dual: ikinci polarizasyon seviyesi (0 kapalı); dualDetune: onun akort farkı
+//   noise: darbeye katılan gürültü payı (pena sürtmesi)
+//   dual: ikinci (yatay) polarizasyonun manyetikte görünen genliği, ana tele oranla (0 kapalı; manyetik yatayı yaklaşık on kat bastırır, ~0.1;
+//         eksi: ters fazda algılanır, nota başta zayıf açılır)
+//   dualCents: onun akort farkı, sent (sabit oran: fark etkin tel boyundan gelir, ölçümlerde ~2 sent ve yatay daha pes; eksi = pes)
+//   dualDecay: onun tur başına kaybının ana tele oranı (1 aynı; solid-body'de iki düzlemin Q'su benzer, 1'den küçük daha uzun sürer)
+//   Ana tel tam akortta kalır: zayıf ikinci çizgi kısa pencerede perdeyi çekmez (yüksek harmoniklerin çapraz terimleri döner).
 //   pickupComb: manyetik konumu tarağı (0 kapalı); pickupPos: köprüden uzaklık, tel boyunun oranı
-export const STRING = {exciter: "pulse", noise: 0.08, smooth: 1, dual: 0, dualDetune: 0.0003, pickupComb: 0, pickupPos: 0.07};
+export const STRING = {exciter: "pulse", noise: 0.08, smooth: 1, dual: 0, dualCents: -2, dualDecay: 1, pickupComb: 0, pickupPos: 0.07};
 
 export function createGuitar(engine){
   const { ctx } = engine, bufCache = {};
-  // Tek bir tel: vuruş, pena konumu tarağı, kesirli gecikme (allpass) ve sönüm; out'a amp ile eklenir
-  function ksLine(out, Nf, pp0, decay, amp, smooth){
-    // Döngü gecikmesi: M örnek halka + iki nokta ortalamasının yarım örneği + ince akort allpass'ı (eta, 0.2..1.2 aralığında
-    // tutulur ki allpass sıfıra yakın gecikmede kutup-sıfır iptaline düşmesin). Toplam tam olarak Nf = sr / f.
-    const M = Math.max(3, Math.floor(Nf + 0.3)), eta = Nf + 0.5 - M, N = M - 1, len = out.length;
-    const ring = new Float32Array(M), ex = new Float32Array(M);
+  // Tek bir tel: vuruş, pena konumu tarağı, kesirli gecikme (allpass) ve sönüm; out'a amp ile eklenir.
+  // dual {g, nf, d}: ikinci polarizasyon aynı pena darbesi ve aynı sürtme gürültüsüyle başlar (tek temas iki düzlemi birlikte uyarır; rastgele
+  // dizi dual'dan bağımsız kalır), kendi gecikmesi ve sönümüyle döner, manyetiğe g oranında yansır. İkisi birlikte normalize edilir.
+  function ksLine(out, Nf, pp0, decay, amp, smooth, dual){
+    const M = Math.max(3, Math.floor(Nf + 0.3)), N = M - 1, len = out.length, nz = new Float32Array(M);
     const pp = Math.max(1, Math.floor(N * (pp0 || 0.14)));
-    let prev = 0;
-    for (let i = 0; i < M; i++){ const r = rand() * 2 - 1; prev = prev * 0.45 + r * 0.55; ex[i] = prev; }
-    if (STRING.exciter === "pulse"){
-      // Üçgen yer değiştirmenin türevi: pena ile köprü arasında +, kalanda -; kenarlar bir iki örnek yumuşatılır
-      const w = STRING.noise;
-      for (let i = 0; i < M; i++){ const v = i < pp ? (1 - pp / M) : -(pp / M); ex[i] = v * (1 - w) + ex[i] * w; }
-      for (let k = 0; k < smooth; k++){ let p = ex[M - 1]; for (let i = 0; i < M; i++){ const c = ex[i]; ex[i] = 0.5 * (c + p); p = c; } }
-      for (let i = 0; i < M; i++) ring[i] = ex[i];
-    } else {
-      for (let i = 0; i < M; i++) ring[i] = ex[i] - 0.85 * ex[(i - pp + M) % M];
+    let prev = 0, peak = 0;
+    for (let i = 0; i < M; i++){ const r = rand() * 2 - 1; prev = prev * 0.45 + r * 0.55; nz[i] = prev; }
+    // m örnek halka için vuruş. "pulse": üçgen yer değiştirmenin türevi, pena ile köprü arasında +, kalanda -; kenarlar bir iki örnek yumuşatılır
+    function excite(m){
+      const ex = new Float32Array(m), w = STRING.noise;
+      if (STRING.exciter !== "pulse"){ for (let i = 0; i < m; i++) ex[i] = nz[i % M] - 0.85 * nz[(i - pp + M) % M]; return ex; }
+      for (let i = 0; i < m; i++) ex[i] = (i < pp ? 1 - pp / m : -pp / m) * (1 - w) + nz[i % M] * w;
+      for (let k = 0; k < smooth; k++){ let p = ex[m - 1]; for (let i = 0; i < m; i++){ const c = ex[i]; ex[i] = 0.5 * (c + p); p = c; } }
+      return ex;
     }
-    let idx = 0, peak = 0, ap = 0, lastIn = 0;
-    const c = (1 - eta) / (1 + eta), tmp = new Float32Array(len);
-    for (let i = 0; i < len; i++){
-      const a = ring[idx], b = ring[(idx + 1) % M];
-      const v = 0.5 * (a + b);                       // tel sönümü: tiz harmonikler her turda biraz daha yumuşar
-      const y = c * (v - ap) + lastIn; lastIn = v; ap = y;   // birinci derece allpass: kesirli gecikme, ince akort
-      tmp[i] = a;
-      ring[idx] = decay * y;
-      idx = (idx + 1) % M;
+    // Döngü gecikmesi: m örnek halka + iki nokta ortalamasının yarım örneği + ince akort allpass'ı (eta, 0.2..1.2 aralığında
+    // tutulur ki allpass sıfıra yakın gecikmede kutup-sıfır iptaline düşmesin). Toplam tam olarak nf örnek.
+    const tmp = new Float32Array(len);
+    for (const [nf, d, k] of dual ? [[Nf, decay, 1], [dual.nf, dual.d, dual.g]] : [[Nf, decay, 1]]){
+      const m = Math.max(3, Math.floor(nf + 0.3)), eta = nf + 0.5 - m, c = (1 - eta) / (1 + eta), ring = excite(m);
+      let idx = 0, ap = 0, lastIn = 0;
+      for (let i = 0; i < len; i++){
+        const a = ring[idx], v = 0.5 * (a + ring[(idx + 1) % m]);   // tel sönümü: tiz harmonikler her turda biraz daha yumuşar
+        const y = c * (v - ap) + lastIn; lastIn = v; ap = y;       // birinci derece allpass: kesirli gecikme, ince akort
+        tmp[i] += k * a; ring[idx] = d * y; idx = (idx + 1) % m;
+      }
     }
     // Manyetik konumu tarağı: köprüye yakın manyetik belli harmonikleri siler (twang)
     if (STRING.pickupComb > 0){ const D = Math.max(1, Math.round(N * STRING.pickupPos)); for (let i = len - 1; i >= D; i--) tmp[i] -= STRING.pickupComb * tmp[i - D]; }
@@ -44,7 +49,7 @@ export function createGuitar(engine){
     const g = amp / (peak || 1);
     for (let i = 0; i < len; i++) out[i] += tmp[i] * g;
   }
-  // Nota tamponu: tel modeli, isteğe bağlı ikinci polarizasyon (çok hafif farklı akort ve sönüm, yavaş dalgalanan sürdürüm).
+  // Nota tamponu: tel modeli, isteğe bağlı ikinci polarizasyon (birkaç sent pes, harmoniklerde yavaş vuruşma; avuç ikisini de söndürür).
   // mute: palm mute, avuç köprüde; tel her turda yüzde on kaybeder (çeyrek saniyede söner), vuruş daha koyu, tampon daha kısa.
   function ksBuffer(midi, pp0, key, mute){
     key = key || (midi + (mute ? "m" : ""));
@@ -52,8 +57,8 @@ export function createGuitar(engine){
     const sr = ctx.sampleRate, f = 440 * Math.pow(2, (midi - 69) / 12), Nf = sr / f, len = Math.floor(sr * (mute ? 0.8 : 3.0));
     const buf = ctx.createBuffer(1, len, sr), out = buf.getChannelData(0);
     const decay = mute ? 0.9 : 0.9988 - (midi - 40) * 0.000055;
-    ksLine(out, Nf, pp0, decay, 0.55, STRING.smooth + (mute ? 2 : 0));
-    if (STRING.dual > 0 && !mute) ksLine(out, Nf * (1 + STRING.dualDetune), pp0, decay - 0.0004, STRING.dual, STRING.smooth);
+    const dual = STRING.dual && !mute ? {g: STRING.dual, nf: Nf * Math.pow(2, -STRING.dualCents / 1200), d: Math.min(0.9998, Math.max(0, 1 - (1 - decay) * STRING.dualDecay))} : null;
+    ksLine(out, Nf, pp0, decay, 0.55, STRING.smooth + (mute ? 2 : 0), dual);
     let peak = 0; for (let i = 0; i < len; i++) peak = Math.max(peak, Math.abs(out[i]));
     const g = 0.55 / (peak || 1);
     for (let i = 0; i < 64; i++) out[i] *= i / 64;

@@ -1,9 +1,11 @@
 // Akort testi: temiz amfiden 18 tek nota, sent hassasiyetinde perde (otokorelasyon + parabolik ara değer, 0.25 sn pencere).
 //   node tools/tuning.mjs   → nota başına sent hatası; hedef ortalama 0.5 sentin altı
+//   node tools/tuning.mjs '{"dual": 0.1}'   → STRING üzerine yazılan aday ayarlarla
 import { openHarness } from "./browser.js";
 const h = await openHarness();
-const r = await h.page.evaluate(async () => {
+const r = await h.page.evaluate(async over => {
   const SR = 44100;
+  const { STRING } = await import("/sim/audio/guitar.js"); Object.assign(STRING, over);
   const { createEngine } = await import("/sim/audio/engine.js");
   const { createInstruments } = await import("/sim/audio/instruments.js");
   const { seed } = await import("/sim/rng.js");
@@ -23,7 +25,7 @@ const r = await h.page.evaluate(async () => {
     return SR / (bl + dlt);
   }
   return NOTES.map((midi, i) => { const f = mtof(midi), m = pitchFine(0.2 + i * 0.8 + 0.25, f); return {midi, f, m, cents: 1200 * Math.log2(m / f)}; });
-});
+}, JSON.parse(process.argv[2] || "{}"));
 const worst = r.reduce((a, b) => Math.abs(b.cents) > Math.abs(a.cents) ? b : a);
 console.log(r.map(x => `${x.midi}:${x.cents >= 0 ? "+" : ""}${x.cents.toFixed(1)}`).join("  "));
 console.log(`en kötü: midi ${worst.midi} ${worst.cents.toFixed(1)} sent, ortalama |hata| ${(r.reduce((a, b) => a + Math.abs(b.cents), 0) / r.length).toFixed(2)} sent`);

@@ -5,8 +5,9 @@
 set -e
 cd "$(dirname "$0")"
 python3 -m venv venv
-./venv/bin/pip install -q onnxruntime numpy
+BIN=venv/bin; [ -d venv/Scripts ] && BIN=venv/Scripts   # Windows
+./$BIN/python -m pip install -q onnxruntime numpy
 mkdir -p model
 curl -sS -L -o model/yamnet.onnx "https://huggingface.co/audiomagic/yamnet-onnx/resolve/main/yamnet.onnx"
 curl -sS -L -o model/yamnet_class_map.csv "https://raw.githubusercontent.com/tensorflow/models/master/research/audioset/yamnet/yamnet_class_map.csv"
-echo "hazır: $(pwd)/venv/bin/python score.py <dosya.wav>"
+echo "hazır: $(pwd)/$BIN/python score.py <dosya.wav>"

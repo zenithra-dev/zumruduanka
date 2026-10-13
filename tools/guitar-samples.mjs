@@ -1,14 +1,21 @@
 // Dinleme örnekleri: dört şarkıdan 10'ar saniye (temiz, crunch, lead, riff), wav ve mp3 olarak out/guitar/<şarkı>-<etiket>.
 //   node tools/guitar-samples.mjs v7
+//   node tools/guitar-samples.mjs y3 '{"string": {"dual": 0.1}}'   → varsayılanları değiştirmeden aday ayarla (sweep.mjs varyantlarıyla aynı biçim)
 import fs from "node:fs";
 import { execSync } from "node:child_process";
 import { openHarness, ROOT } from "./browser.js";
 import path from "node:path";
-const label = process.argv[2] || "x";
+const label = process.argv[2] || "x", over = JSON.parse(process.argv[3] || "{}");
+const wrong = Object.keys(over).filter(k => !["string", "double", "cab", "amps"].includes(k));
+if (wrong.length){ console.error(`bilinmeyen alan: ${wrong.join(", ")}; biçim {"string": {...}, "amps": {...}, "cab": {...}, "double": {...}}`); process.exit(1); }
 const h = await openHarness();
-const r = await h.page.evaluate(async () => {
+const r = await h.page.evaluate(async over => {
   const SR = 44100;
-  const { createEngine } = await import("/sim/audio/engine.js");
+  const { createEngine, AMPS, CAB } = await import("/sim/audio/engine.js");
+  const { STRING } = await import("/sim/audio/guitar.js");
+  const { DOUBLE } = await import("/sim/audio/playback.js");
+  Object.assign(STRING, over.string); Object.assign(DOUBLE, over.double); Object.assign(CAB, over.cab);
+  if (over.amps) for (const k in over.amps) Object.assign(AMPS[k], over.amps[k]);
   const { createInstruments } = await import("/sim/audio/instruments.js");
   const { schedule } = await import("/sim/audio/playback.js");
   const { seed } = await import("/sim/rng.js");
@@ -25,7 +32,7 @@ const r = await h.page.evaluate(async () => {
     out[id] = encodeWav(cut, pk > 0 ? 0.89 / pk : 1);
   }
   return out;
-});
+}, over);
 const DIR = path.join(ROOT, "out/guitar"); fs.mkdirSync(DIR, {recursive: true});
 for (const [id, wav] of Object.entries(r)){
   const w = path.join(DIR, `${id}-${label}.wav`); fs.writeFileSync(w, Buffer.from(wav, "base64"));

@@ -38,7 +38,7 @@ Render: üç işçi kareleri paylaşır, ses OfflineAudioContext ile üretilir, 
 
 ## Ses nasıl üretiliyor
 
-1. **Tel.** Genişletilmiş Karplus-Strong: bir halka tampon, iki nokta ortalama sönümü ve kesirli gecikme için birinci derece allpass; akort hatası 1 sentin altında. Vuruş gürültü değil fiziksel pena darbesi: pena konumuna göre dikdörtgen hız dalgası, üstüne biraz pena sürtmesi. Palm mute ayrı bir tel modeli (hızlı sönüm, koyu vuruş). Vibrato yalnız tek notalarda, gecikmeli başlar.
+1. **Tel.** Genişletilmiş Karplus-Strong: bir halka tampon, iki nokta ortalama sönümü ve kesirli gecikme için birinci derece allpass; akort hatası 1 sentin altında. Vuruş gürültü değil fiziksel pena darbesi: pena konumuna göre dikdörtgen hız dalgası, üstüne biraz pena sürtmesi. Palm mute ayrı bir tel modeli (hızlı sönüm, koyu vuruş). Vibrato yalnız tek notalarda, gecikmeli başlar. İsteğe bağlı ikinci (yatay) polarizasyon `STRING.dual`: aynı pena darbesiyle başlar, birkaç sent pes döner, manyetiğe zayıf yansır; ana tel tam akortta kalır, `dual: 0` iken çıktı birebir eski haliyle aynı.
 2. **Manyetik.** Bobin ve kablo rezonansı: 3.6 ila 5 kHz'de rezonanslı alçak geçiren.
 3. **Amfi.** Sıkılaştırma, ön vurgulama (kırpmadan önce bas kısılır), asimetrik yumuşak kırpma (lamba kademesi, çift harmonikler), kuplaj ve cızırtı süzgeçleri, ton katı, presence, güç kademesi, geri vurgulama. Üç ön ayar: temiz, crunch, lead.
 4. **Kabin.** 12" gitar hoparlörünün tipik eğrisinden tasarlanmış darbe yanıtı (80 Hz altı kesik, 130 Hz tınlama, 480 Hz çukur, 2.6 kHz presence, 5 kHz üstü düşüş) ve yakın mikrofonun kısa yansımaları. Gerçek bir kabin IR'ı varsa `createEngine`'e `cabIR` ile verilebilir.
@@ -46,17 +46,20 @@ Render: üç işçi kareleri paylaşır, ses OfflineAudioContext ile üretilir, 
 
 ## Ses tasarımı döngüsü
 
-Kulakla karar vermek için `npm run dev`; sayıyla karar vermek için üç araç:
+Kulakla karar vermek için `npm run dev`; sayıyla karar vermek için dört araç (akort, tek nota, dinleme örneği, yazılım kulak):
 
 ```sh
 node tools/tuning.mjs                    # 18 notanın akortu, sent cinsinden (hedef: ortalama 0.5 altı)
+node tools/tuning.mjs '{"dual": 0.1}'    # aynısı, STRING üzerine yazılan aday ayarla
+node tools/note.mjs '{"dual": 0.1}'      # ham tel tamponu: harmonik başına sönüm (dB/sn) ve dalgalanma (dB), perde
 node tools/guitar-samples.mjs v7         # dört şarkıdan 10'ar sn dinleme örneği → out/guitar/*-v7.mp3
-bash tools/ear/setup.sh                  # yazılım kulak: Python ortamı + YAMNet (bir kez)
-node tools/sweep.mjs                     # ayar varyantlarını üretir, kulak puanlar, sıralar (tools/sweep.mjs içindeki V)
-tools/ear/venv/bin/python tools/ear/score.py out/guitar/riff-v7.wav   # tek dosyanın sınıf puanları
+node tools/guitar-samples.mjs z1 '{"string": {"dual": 0.1}}'          # varsayılanı değiştirmeden aday ayarla
+bash tools/ear/setup.sh                  # yazılım kulak: Python ortamı + YAMNet (bir kez; Windows'ta da çalışır)
+SEEDS=1,2,3,4,5 JOBS=8 node tools/sweep.mjs P Z1 Z3   # varyantları üretir, kulak puanlar; P'ye göre tohum tohum fark
+tools/ear/venv/bin/python tools/ear/score.py out/guitar/riff-v7.wav   # tek dosyanın sınıf puanları (Windows: venv/Scripts/python.exe)
 ```
 
-Yazılım kulak, AudioSet üzerinde eğitilmiş YAMNet sınıflandırıcısı: "elektro gitar", "gitar", "distorsiyon" puanlarını yükseltip "alarm, telefon, kanun, çan, synth" gibi sınıfları sıfıra çekmek hedef. Gerçek bir gitar kaydı bu modelde gitar sınıfında yüzde 50'nin üstünü alır; mevcut sentez crunch riffte elektro gitar yüzde 5 ila 20, gitar yüzde 15 ila 35, distorsiyon yüzde 25 civarı. Ayarlanabilir her şey dört nesnede: `AMPS` ve `CAB` (engine.js), `STRING` (guitar.js), `DOUBLE` (playback.js).
+Yazılım kulak, AudioSet üzerinde eğitilmiş YAMNet sınıflandırıcısı: "elektro gitar", "gitar", "distorsiyon" puanlarını yükseltip "alarm, telefon, kanun, çan, synth" gibi sınıfları sıfıra çekmek hedef. Gerçek bir gitar kaydı bu modelde gitar sınıfında yüzde 50'nin üstünü alır. Puan tohuma çok duyarlı: mevcut ayarlar beş tohumda 21/−8/−6/13/30 alıyor, bu yüzden tek tohumluk farklar anlamsız. Tarama birden çok tohumla (`SEEDS`) koşulur ve varyantlar ilk varyanta göre aynı tohumdaki farkla (eşleştirilmiş fark, "5/5 iyi" gibi) karşılaştırılır. Kulak hakem, son söz insan kulağının. Ayarlanabilir her şey dört nesnede: `AMPS` ve `CAB` (engine.js), `STRING` (guitar.js), `DOUBLE` (playback.js). Denemelerin kaydı ve sonuçları: [ses-gunlugu.md](ses-gunlugu.md).
 
 ## Yapı
 
