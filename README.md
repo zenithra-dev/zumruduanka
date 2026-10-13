@@ -14,6 +14,7 @@ Tarayıcıda çalışan, tamamen kodla üretilmiş bir elektro gitar: Claude sah
 | Für Elise | Beethoven, temiz ton | 72 | otomatik yönetmen |
 | Claude'un doğaçlaması | A minör pentatonik, her tohumda farklı | 100 | otomatik yönetmen |
 | Ağıt | E minör, ağlayan gitar: bükülüp bırakılan notalar, geniş vibrato | 66 | otomatik yönetmen |
+| Danny Boy | İrlanda halk ezgisi (Londonderry Air, 1855), ağlayan gitarla G majör | 63 | otomatik yönetmen |
 
 ## Kurulum
 

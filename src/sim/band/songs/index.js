@@ -7,5 +7,6 @@ import blues from "./blues.js";
 import elise from "./elise.js";
 import improv from "./improv.js";
 import agit from "./agit.js";
-export const SONGS = [kaf, ninni, tepegoz, riff, blues, elise, improv, agit];
+import danny from "./danny.js";
+export const SONGS = [kaf, ninni, tepegoz, riff, blues, elise, improv, agit, danny];
 export function findSong(key){ return SONGS[+key] || SONGS.find(s => s.id === key) || null; }
