@@ -14,12 +14,13 @@ export function createCrowd(scene){
     if (rand() < 0.25) continue;
     P.push({x: r * Math.sin(a), z: 1.2 + r * Math.cos(a), y: FLOOR + 0.43 + k * 0.42, h: 0.62 + rand() * 0.08, ph: rand() * 6.28, arm: rand() < 0.2, sd: rand() < 0.5 ? -1 : 1, seat: true, ry: Math.PI + a});
   }
-  const sil = new THREE.MeshStandardMaterial({color: 0x2a2320, roughness: 1});
+  const sil = new THREE.MeshStandardMaterial({color: 0xffffff, roughness: 1}); // renk örnekten gelir; lineerde iki koyu rengin çarpımı kapkara olur
   const body = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.15, 0.12, 1, 10), sil, P.length);
   const head = new THREE.InstancedMesh(new THREE.SphereGeometry(0.1, 12, 10), sil, P.length);
   const arm = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.022, 0.03, 0.42, 6), sil, P.length);
   const col = new THREE.Color();
-  P.forEach((q, i) => { col.setHSL(0.05 + rand() * 0.08, 0.25, 0.1 + rand() * 0.08); body.setColorAt(i, col); head.setColorAt(i, col); arm.setColorAt(i, col); });
+  // Örnek renkleri sRGB'de seçilir, lineere çevrilip yazılır (linearize yalnız malzeme rengini çevirir)
+  P.forEach((q, i) => { col.setHSL(0.05 + rand() * 0.08, 0.25, 0.1 + rand() * 0.08).convertSRGBToLinear(); body.setColorAt(i, col); head.setColorAt(i, col); arm.setColorAt(i, col); });
   [body, head, arm].forEach(m => { m.frustumCulled = false; scene.add(m); });
   const C = {P, body, head, arm, m4: new THREE.Matrix4(), q: new THREE.Quaternion(), e: new THREE.Euler(), v: new THREE.Vector3(), sc: new THREE.Vector3()};
 
