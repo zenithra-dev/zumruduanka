@@ -19,7 +19,9 @@ export async function openHarness({width = 1280, height = 720} = {}){
   const server = await startServer(path.join(ROOT, "src"));
   const browser = await chromium.launch({
     executablePath: process.env.CHROMIUM || undefined,
-    args: ["--use-gl=swiftshader", "--enable-unsafe-swiftshader", "--autoplay-policy=no-user-gesture-required"]
+    // GPU=1: yerel ekran kartıyla çiz (hızlı); yoksa her makinede aynı çıkan yazılım çizimi (swiftshader, CI)
+    args: [...(process.env.GPU ? ["--use-angle=default", "--ignore-gpu-blocklist", "--enable-gpu-rasterization"] : ["--use-gl=swiftshader", "--enable-unsafe-swiftshader"]),
+      "--autoplay-policy=no-user-gesture-required"]
   });
   const page = await browser.newPage({viewport: {width, height}});
   page.on("pageerror", e => console.error("SAYFA HATASI", e.message));

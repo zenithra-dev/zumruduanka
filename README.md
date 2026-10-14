@@ -38,7 +38,7 @@ SONG=kaf ENV=theater T=12 npm run shot     # tek kare → out/shot.png (LIST=1 �
 SONG=kaf DUR=30 npm run audtest            # ilk 30 sn ses → out/test.wav, tepe/RMS/NaN raporu
 ```
 
-Render: üç işçi kareleri paylaşır, ses OfflineAudioContext ile üretilir, ffmpeg 1280×720 30 fps H.264 dosyasına birleştirir. `WORKERS`, `FPS`, `T0`/`T1` (yalnızca bu saniyeler) ortam değişkenleriyle ayarlanır. Önizleme sayfası ES modülleriyle çalıştığı için dosyayı çift tıklayarak açmak yetmez, `npm run dev` ile servis edilir.
+Render: üç işçi kareleri paylaşır, ses OfflineAudioContext ile üretilir, ffmpeg 1280×720 30 fps H.264 dosyasına birleştirir. `WORKERS`, `FPS`, `T0`/`T1` (yalnızca bu saniyeler) ortam değişkenleriyle ayarlanır. Varsayılan çizim yazılımla (swiftshader, her makinede aynı kare); `GPU=1` yerel ekran kartını kullanır (RTX 3060'ta kare başına yaklaşık 1.6 kat hızlı, örn. `GPU=1 WORKERS=6 npm run render -- dagkrali`). Önizleme sayfası ES modülleriyle çalıştığı için dosyayı çift tıklayarak açmak yetmez, `npm run dev` ile servis edilir.
 
 ## Ses nasıl üretiliyor
 
