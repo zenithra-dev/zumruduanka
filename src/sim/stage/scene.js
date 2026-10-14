@@ -41,7 +41,7 @@ export function createScene(canvas){
   const stageCam = new THREE.PerspectiveCamera(38, 16/9, 0.01, 20);
   const groupCam = new THREE.PerspectiveCamera(40, 16/9, 0.05, 30);
   // Sahne kamerasının hedefi gitarın ortası (sap oyuncunun solunda, gövde kemer hizasında); varsayılan açı sap tarafından bakar.
-  const orbit = {theta: 0.15, phi: 1.32, r: 1.25, target: new THREE.Vector3(0.22, 0.12, 0.0)};
+  const orbit = {theta: 0.15, phi: 1.32, r: 1.25, target: new THREE.Vector3(0.27, 0.09, 0.0)};
   // Sap kamerası gitarın kafasına bağlı, sahne kamerası orbit parametrelerinden yerleşir.
   // Gitar aynalı bir taşıyıcıda: dünya konumu ve yukarı yönü ebeveynlerle birlikte matrixWorld'den alınır.
   function placeCams(model){

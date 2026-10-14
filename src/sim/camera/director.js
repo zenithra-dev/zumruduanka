@@ -82,8 +82,8 @@ export function createDirector({FIG, groupCam, orbit, placeCams}){
     let d = 1.15, lat = 0.42, hy = -0.08, look = -0.14;
     if (sh.kind === "medium"){ d = 2.0; lat = 0.5; hy = -0.2; look = -0.42; }
     if (sh.kind === "fill"){ d = 1.55; lat = 0.55; hy = -0.38; look = -0.5; }
-    // Gitar yakın planı: gitar kemer hizasında, sap yukarı bakıyor; bakış iki elin arasına düşer, eller ve sap alt bandın (y > 600) üstünde
-    if (sh.kind === "guitar"){ d = 0.95; lat = 0.6; hy = -0.3; look = -0.62; }
+    // Gitar yakın planı: köprü kemerin biraz altında, sap ~34° yukarı; bakış iki elin arasına düşer, eller ve eşik alt bandın (y > 600) üstünde
+    if (sh.kind === "guitar"){ d = 0.95; lat = 0.6; hy = -0.34; look = -0.68; }
     // Önde başka bir üye kadrajı kapatıyorsa diğer tarafı ya da daha yakın açıyı seç (çekim başına bir kez).
     // Hesap üyelerin hareketsiz konumlarıyla yapılır; hangi karede hesaplandığından bağımsız aynı sonucu verir.
     if (!sh.cfg){
