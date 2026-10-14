@@ -6,7 +6,8 @@ export const FLOOR = -0.95;
 export const UP = new THREE.Vector3(0, 1, 0);
 export const mat = (c, o) => new THREE.MeshStandardMaterial(Object.assign({color: c, roughness: 0.6}, o || {}));
 export const glow = (c, i) => new THREE.MeshStandardMaterial({color: c, emissive: c, emissiveIntensity: i, roughness: 0.4});
-export function limb(scene, r, m){ const x = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 0.8, 1, 10), m); scene.add(x); return x; }
+// Kol parçası: setLimb +y'yi uzak uca çevirir, o yüzden ince uç (radiusTop) bilek/dirsek tarafında
+export function limb(scene, r, m){ const x = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.8, r, 1, 10), m); scene.add(x); return x; }
 export function setLimb(m, a, b){
   const d = new THREE.Vector3().subVectors(b, a), len = Math.max(d.length(), 1e-4);
   m.position.copy(a).addScaledVector(d, 0.5);
@@ -50,15 +51,20 @@ export function figure(scene, o){
     const el = new THREE.Mesh(new THREE.SphereGeometry(0.048, 10, 8), o.cloth); scene.add(el);
     return {up: limb(scene, 0.054, o.cloth), fo: limb(scene, 0.044, o.sleeve || o.cloth), el};
   });
-  const hands = [0, 1].map(() => makeHand(scene, o.skin));
+  // makeHand sağ el kurar; +x tarafındaki (sol) el aynasıdır: başparmak doğru yanda kalsın
+  const hands = [0, 1].map(i => { const h = makeHand(scene, o.skin); if (i === 0) h.scale.x = -1; return h; });
   const sh = [V(0.21, 0.52, 0), V(-0.21, 0.52, 0)];
   return {g, up, torso, head, headY: 0.75, hip, arms, hands, sh, V, reach: o.reach || 0.31, ph: rand() * 6.28, sway: o.sway === undefined ? 1 : o.sway};
 }
 export function worldOf(fig, v){ fig.g.updateMatrixWorld(true); return fig.g.localToWorld(v.clone()); }
 // Kafanın hareketsiz (salınımsız) dünya konumu: zamana bağlı olmayan hesaplar için.
 export function restHead(fig){ return worldOf(fig, new THREE.Vector3(0, fig.hip + fig.headY, 0)); }
-export function poseArm(fig, i, target, pole){
+// İki kemikli kol IK'sı. hand verilmezse el ön kolun devamıdır ve hedef bileğin 4.5 cm ötesidir.
+// hand = {q, off}: el q dünya yönünde durur; elin kendi çerçevesindeki off noktası (ör. parmak kökü) hedefe gelir, kol bileğe uzanır.
+const _off = new THREE.Vector3();
+export function poseArm(fig, i, target, pole, hand){
   fig.g.updateMatrixWorld(true); const S = fig.up.localToWorld(fig.sh[i].clone()), a = fig.reach, b = fig.reach;
+  if (hand) target = target.clone().sub(_off.copy(hand.off).multiply(fig.hands[i].scale).applyQuaternion(hand.q));
   const d = new THREE.Vector3().subVectors(target, S);
   let len = d.length(); const dir = d.divideScalar(len || 1);
   len = Math.min(Math.max(len, 0.05), a + b - 0.002);
@@ -70,6 +76,7 @@ export function poseArm(fig, i, target, pole){
   const A = fig.arms[i];
   setLimb(A.up, S, E); setLimb(A.fo, E, T); A.el.position.copy(E);
   const fd = new THREE.Vector3().subVectors(T, E).normalize(), H = fig.hands[i];
+  if (hand){ H.quaternion.copy(hand.q); H.position.copy(T); return; }
   H.quaternion.setFromUnitVectors(UP, fd); H.position.copy(T).addScaledVector(fd, -0.045);
 }
 export function setFigVisible(fig, v){ fig.g.visible = v; fig.arms.forEach(a => { a.up.visible = a.fo.visible = a.el.visible = v; }); fig.hands.forEach(h => { h.visible = v; }); }

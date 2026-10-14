@@ -1,12 +1,18 @@
 // Claude'un gitarı: Stratocaster tipi gövde, sap, teller, parmaklar, pena ve sap kafasındaki kamera.
+// Gitar yerel çerçevesi: x sap boyunca (0 eşik, L köprü, eksi taraf kafa), y teller arası (+ kalın E), z kapaktan dışarı.
 import * as THREE from "three";
 import { L, FRETS, fretX, STR_Z, stringY, fingerX } from "../music/theory.js";
 
 export function createGuitarModel(scene){
+  // Sağ elle çalış: gitar, Claude'un orta düzlemine (x = 0.2) göre aynalanmış bir taşıyıcıda durur. İçteki duruş solak
+  // çerçevede kuruldu (sap ~26° yukarı, sırt karında, gövde kemer hizasında); taşıyıcı onu çevirir: sap oyuncunun soluna gider,
+  // kalın E üstte kalır. Bu duruşta iki dirsek de 60-120° arasında kalarak 1-22. perdeye ve penaya yetişir.
+  // r128 negatif determinantlı nesnelerde yüz yönünü kendisi çevirir; dünya yönü gereken yerde matrixWorld kullanılmalı.
+  const rig = new THREE.Group(); rig.scale.x = -1; rig.position.x = 0.4; scene.add(rig);
   const guitar = new THREE.Group();
-  guitar.rotation.z = 0.32;
-  guitar.position.set(-0.33, -0.27, 0.02);
-  scene.add(guitar);
+  guitar.rotation.z = -0.45;
+  guitar.position.set(-0.15, 0.32, -0.07);
+  rig.add(guitar);
 
   // Sunburst dokusu
   function sunburstTexture(){
@@ -56,14 +62,15 @@ export function createGuitarModel(scene){
   pg.bezierCurveTo(0.56, -0.115, 0.50, -0.14, 0.45, -0.13);
   pg.bezierCurveTo(0.41, -0.12, 0.405, -0.09, 0.43, -0.035);
   pg.lineTo(0.43, 0.035);
+  // Eskimiş parşömen: açık beyaz, ışık altında bloom eşiğini aşıp beyaz lekeye dönüyordu
   const pgMesh = new THREE.Mesh(new THREE.ExtrudeGeometry(pg, {depth: 0.002, bevelEnabled: false, curveSegments: 30}),
-    new THREE.MeshStandardMaterial({color: 0xf1ece0, roughness: 0.45}));
+    new THREE.MeshStandardMaterial({color: 0x8a8172, roughness: 0.7}));
   pgMesh.position.z = TOP; guitar.add(pgMesh);
 
   const chrome = new THREE.MeshStandardMaterial({color: 0xdfe3e8, metalness: 0.95, roughness: 0.18});
-  const cream = new THREE.MeshStandardMaterial({color: 0xf3eedf, roughness: 0.5});
-  // Manyetikler (tek bobin)
-  [[0.488, 0], [0.548, 0], [0.606, -0.12]].forEach(([x, rot]) => {
+  const cream = new THREE.MeshStandardMaterial({color: 0xd8cfba, roughness: 0.6});
+  // Manyetikler (tek bobin); köprüdekinin ince tel ucu köprüye daha yakın
+  [[0.488, 0], [0.548, 0], [0.606, 0.12]].forEach(([x, rot]) => {
     const p = new THREE.Mesh(new THREE.BoxGeometry(0.019, 0.07, 0.008), cream);
     p.position.set(x, 0, TOP + 0.006); p.rotation.z = rot; guitar.add(p);
     for (let s = 0; s < 6; s++){
@@ -199,5 +206,6 @@ export function createGuitarModel(scene){
   const pick = new THREE.Mesh(new THREE.ExtrudeGeometry(pickShape, {depth: 0.0012, bevelEnabled: false}), new THREE.MeshStandardMaterial({color: 0xe25b2a, roughness: 0.4}));
   pick.rotation.z = Math.PI / 2; pick.position.set(0.575, 0, STR_Z + 0.004); guitar.add(pick);
 
-  return { guitar, strings, layoutString, fingers, pick, recLed, camRig, HS_TOP, TOP, FB_TOP };
+  rig.updateMatrixWorld(true);   // gitar sabit: ilk karede de localToWorld doğru dünya konumunu versin
+  return { rig, guitar, strings, layoutString, fingers, pick, recLed, camRig, HS_TOP, TOP, FB_TOP };
 }

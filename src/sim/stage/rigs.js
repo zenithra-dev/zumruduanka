@@ -34,11 +34,11 @@ export function createRigs({scene, model, hemi, drawBanner}){
     });
   });
   let rosterKey = "";
-  // Sap kamerasında Claude'un bedeni gizlenir (kamera gitarın üstünde)
-  function applyRoster(roster, headCamOn){
+  // Sap kamerasında da Claude görünür (sap oyuncunun solunda, kamera bedenin dışında): perde eli önde, pena eli ve gövde arkada
+  function applyRoster(roster){
     MEMBER_RIGS.forEach(M => {
       const on = roster.includes(M.id);
-      setFigVisible(FIG[M.id], on && !(M.id === "claude" && headCamOn));
+      setFigVisible(FIG[M.id], on);
       LIGHTS[M.id].visible = on; (parts[M.id].extras || []).forEach(x => { x.visible = on; });
     });
     const key = roster.join(",");

@@ -62,7 +62,7 @@ export function createDirector({FIG, groupCam, orbit, placeCams}){
     const u0 = sh ? Math.min(1, Math.max(0, (now - sh.t) / (sh.end - sh.t))) : 0;
     switch (sh && sh.cam){
       case "head": cam = "head"; return;
-      case "stage": cam = "stage"; orbit.theta = -0.5 + u0 * 0.6; orbit.r = 1.3; orbit.phi = 1.3; placeCams(); return;
+      case "stage": cam = "stage"; orbit.theta = 0.5 - u0 * 0.6; orbit.r = 1.3; orbit.phi = 1.3; placeCams(); return;   // sap tarafından gövdeye doğru yay
       case "dolly": { const u = sh.reverse ? 1 - u0 : u0; groupCam.position.set(0.1 - 0.4 * u, 0.55, 5.0 - 0.6 * u); groupCam.lookAt(0, 0.1, -0.8); return; }
       case "orbit": { const a = sh.from + (sh.to - sh.from) * u0; groupCam.position.set(Math.sin(a) * 3.8, 0.65, -0.6 + Math.cos(a) * 3.8); groupCam.lookAt(0, 0.05, -0.8); return; }
       case "outro": { const k = sm(Math.min(1, u0 * sh.k)); groupCam.position.set(0, 0.5 + 0.5 * k, 4.0 + 2.0 * k); groupCam.lookAt(0, 0.15, -0.9); return; }
@@ -73,17 +73,21 @@ export function createDirector({FIG, groupCam, orbit, placeCams}){
       else groupCam.position.set(0.15 + 0.45 * Math.sin(wall * 0.12) + sd * 0.6 * (1 - ue), 0.8 + 0.1 * ue, 4.55 - 0.5 * ue);
       groupCam.lookAt(0, -0.05, -0.8); return;
     }
+    // Kadraj kafanın hareketsiz konumuna kurulur (canlı kafa değil): kamera yalnız zamana bağlı kalır, kayma başlangıcı gibi
+    // başka bir an için kurulan pozlar o anın değil bu karenin bedenine bakmaz. Bedenin salınımı kadrajda görünür.
     const f = FIG[sh.who], u = sm(u0), sd = sh.side;
-    f.g.updateMatrixWorld(true); f.head.getWorldPosition(_H);
+    _H.copy(restHead(f));
     _F.set(0, 0, 1).applyQuaternion(f.g.quaternion); _R.set(1, 0, 0).applyQuaternion(f.g.quaternion);
+    // look: bakış noktasının kafaya göre yüksekliği
     let d = 1.15, lat = 0.42, hy = -0.08, look = -0.14;
     if (sh.kind === "medium"){ d = 2.0; lat = 0.5; hy = -0.2; look = -0.42; }
     if (sh.kind === "fill"){ d = 1.55; lat = 0.55; hy = -0.38; look = -0.5; }
+    // Gitar yakın planı: gitar kemer hizasında, sap yukarı bakıyor; bakış iki elin arasına düşer, eller ve sap alt bandın (y > 600) üstünde
     if (sh.kind === "guitar"){ d = 0.95; lat = 0.6; hy = -0.3; look = -0.62; }
     // Önde başka bir üye kadrajı kapatıyorsa diğer tarafı ya da daha yakın açıyı seç (çekim başına bir kez).
     // Hesap üyelerin hareketsiz konumlarıyla yapılır; hangi karede hesaplandığından bağımsız aynı sonucu verir.
     if (!sh.cfg){
-      const H0 = restHead(f), tgt = H0.clone().add(new THREE.Vector3(0, look, 0)), opts = [];
+      const H0 = _H.clone(), tgt = H0.clone().add(new THREE.Vector3(0, look, 0)), opts = [];
       [[sd, 1, 1], [-sd, 1, 1], [sd, 0.7, 0.5], [-sd, 0.7, 0.5], [sd, 0.5, 0.2], [-sd, 0.5, 0.2]].forEach(([sg, dm, lm], oi) => {
         const c = H0.clone().addScaledVector(_F, d * dm).addScaledVector(_R, sg * lat * lm * d * dm).add(new THREE.Vector3(0, hy, 0));
         let pen = oi * 0.01;
@@ -131,7 +135,7 @@ export function createDirector({FIG, groupCam, orbit, placeCams}){
         if (groupCam.quaternion.slerpQuaternions) groupCam.quaternion.slerpQuaternions(camPrev.from.q, groupCam.quaternion.clone(), e);
         else THREE.Quaternion.slerp(camPrev.from.q, groupCam.quaternion.clone(), groupCam.quaternion, e);
       }
-      else camPrev.from = null;
+      // from kayma bitince de silinmez: aynı çekimde geriye atlanan kare de kaymayı yeniden bulmalı
     }
   }
   return { planShots, direct, directPose, get cam(){ return cam; } };
