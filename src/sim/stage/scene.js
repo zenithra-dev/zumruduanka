@@ -40,13 +40,16 @@ export function createScene(canvas){
   const headCam = new THREE.PerspectiveCamera(62, 16/9, 0.005, 10);
   const stageCam = new THREE.PerspectiveCamera(38, 16/9, 0.01, 20);
   const groupCam = new THREE.PerspectiveCamera(40, 16/9, 0.05, 30);
-  const orbit = {theta: -0.15, phi: 1.32, r: 1.2, target: new THREE.Vector3(-0.02, -0.16, 0.05)};
+  // Sahne kamerasının hedefi gitarın ortası (sap oyuncunun solunda, gövde kemer hizasında); varsayılan açı sap tarafından bakar.
+  const orbit = {theta: 0.15, phi: 1.32, r: 1.25, target: new THREE.Vector3(0.27, 0.09, 0.0)};
   // Sap kamerası gitarın kafasına bağlı, sahne kamerası orbit parametrelerinden yerleşir.
+  // Gitar aynalı bir taşıyıcıda: dünya konumu ve yukarı yönü ebeveynlerle birlikte matrixWorld'den alınır.
   function placeCams(model){
-    model.guitar.updateMatrixWorld(true);
-    headCam.position.copy(model.guitar.localToWorld(new THREE.Vector3(-0.12, 0.0, model.HS_TOP + 0.085)));
-    headCam.up.set(0, 0, 1).applyQuaternion(model.guitar.quaternion);
-    headCam.lookAt(model.guitar.localToWorld(new THREE.Vector3(0.5, -0.01, 0.045)));
+    model.guitar.updateWorldMatrix(true, false);
+    // Kafadan gövdeye bakış, biraz yüksekten ve klavyeye eğik: eşik ve ilk perdeler alt bandın (y > 600) üstünde kalır
+    headCam.position.copy(model.guitar.localToWorld(new THREE.Vector3(-0.14, 0.0, model.HS_TOP + 0.11)));
+    headCam.up.set(0, 0, 1).transformDirection(model.guitar.matrixWorld);
+    headCam.lookAt(model.guitar.localToWorld(new THREE.Vector3(0.45, -0.01, -0.01)));
     const t = orbit.target;
     stageCam.position.set(
       t.x + orbit.r * Math.sin(orbit.phi) * Math.sin(orbit.theta),
