@@ -36,9 +36,16 @@ npm run render -- kaf          # video → out/zumruduanka-kaf-dagi.mp4 (şarkı
 SEED=7 npm run render -- improv            # farklı tohum: farklı doğaçlama
 SONG=kaf ENV=theater T=12 npm run shot     # tek kare → out/shot.png (LIST=1 çekim listesini yazar)
 SONG=kaf DUR=30 npm run audtest            # ilk 30 sn ses → out/test.wav, tepe/RMS/NaN raporu
+SONG=dagkrali BASE=out/tur1/taban.json node tools/sync-check.mjs   # görüntü ölçümü: eller ↔ gitar, saflık, determinizm
 ```
 
-Render: üç işçi kareleri paylaşır, ses OfflineAudioContext ile üretilir, ffmpeg 1280×720 30 fps H.264 dosyasına birleştirir. `WORKERS`, `FPS`, `T0`/`T1` (yalnızca bu saniyeler) ortam değişkenleriyle ayarlanır. Varsayılan çizim yazılımla (swiftshader, her makinede aynı kare); `GPU=1` yerel ekran kartını kullanır (RTX 3060'ta kare başına yaklaşık 1.6 kat hızlı, örn. `GPU=1 WORKERS=6 npm run render -- dagkrali`). Önizleme sayfası ES modülleriyle çalıştığı için dosyayı çift tıklayarak açmak yetmez, `npm run dev` ile servis edilir.
+Render: üç işçi kareleri paylaşır, ses OfflineAudioContext ile üretilir, ffmpeg 1280×720 30 fps H.264 dosyasına (crf 16, BT.709 sınırlı aralık etiketli) birleştirir. Kareler yayın görünümündedir: geliştirme HUD'u yok, alt bant yalnız ilk çekimde kayarak girip çıkar, başta siyahtan açılır, sonda kararır; `HUD=1` önizleme görünümünü verir. Kareler kayıpsız PNG (`IMG=jpg` daha küçük JPEG 0.98). `WORKERS`, `FPS`, `T0`/`T1` (yalnızca bu saniyeler) ortam değişkenleriyle ayarlanır. Varsayılan çizim yazılımla (swiftshader, her makinede aynı kare, kenar yumuşatmasız); `GPU=1` tarayıcının seçtiği yerel ekran kartını kullanır (bu makinede tümleşik Intel UHD; kenar yumuşatma MSAA 4 yalnız bu yolda açık, örn. `GPU=1 WORKERS=6 npm run render -- dagkrali`). Önizleme sayfası ES modülleriyle çalıştığı için dosyayı çift tıklayarak açmak yetmez, `npm run dev` ile servis edilir.
+
+## Görüntü
+
+- **Renkler.** Kodda bütün renkler sRGB hex olarak yazılır; `sim.js` sahne kurulduktan sonra `linearize()` (finish.js) ile hepsini bir kez lineere çevirir ve o renklerin `setHex`/`set(hex)` çağrılarını sRGB okur hale getirir. Çalışırken renk değiştirmek için `setHex` kullanılır; rengi kendin lineer kurarsan malzemeye `userData.linear = true` koy, yoksa iki kez çevrilir.
+- **Zincir.** Sahne HalfFloat tampona çizilir, bloom eşiği 1.0, sonra tek bir Finish geçişi: ACES filmik ton eşleme, hafif renk derecelendirme, vinyet, kareye bağlı gren ve dither, sRGB çıkış (pozlama uniform'u ileride flaş için).
+- **Claude sağ elle çalar.** Gitar oyuncunun orta düzleminde aynalı bir taşıyıcı grupta (`model.rig`); gitarın dünya yönü ve konumu için `matrixWorld` kullanılır. Sol el perde başına bir parmak penceresinde durur, notalar arasında yerinde kalır, sonraki notadan az önce kayar, uzun susuşta ev konumuna döner (`handPlan`/`handAt`, zamanın saf fonksiyonu).
 
 ## Ses nasıl üretiliyor
 
