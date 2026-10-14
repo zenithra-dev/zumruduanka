@@ -19,6 +19,7 @@ import { createRigs } from "./stage/rigs.js";
 import { createFx } from "./stage/fx.js";
 import { createVenues, ENVS } from "./stage/venues.js";
 import { createCrowd } from "./stage/crowd.js";
+import { linearize } from "./stage/finish.js";
 import { createDirector } from "./camera/director.js";
 import { createEngine, AMPS } from "./audio/engine.js";
 import { createInstruments } from "./audio/instruments.js";
@@ -43,6 +44,7 @@ export function createSim(opts = {}){
   const venues = createVenues({scene: S.scene, hemi: S.hemi, key: S.key, floor: S.floor, banner: bannerKit.banner, clubItems: [S.back, S.ampG, S.truss],
     onRoom(sec){ prefs.room = sec; if (engine) engine.setRoom(sec); }});
   const crowd = createCrowd(S.scene);
+  linearize(S.scene, model.strings.map(s => s.base)); // sRGB hex renkler → lineer (finish.js), tellerin dinlenme rengi dahil
   const director = createDirector({FIG: rigs.FIG, groupCam: S.groupCam, orbit: S.orbit, placeCams: () => S.placeCams(model)});
   const reduceMotion = !!(typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 

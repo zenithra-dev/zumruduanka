@@ -10,7 +10,7 @@ export function createFx(scene){
   emberGeo.setAttribute("position", new THREE.BufferAttribute(emberPos, 3));
   function emberSprite(){ const c = document.createElement("canvas"); c.width = c.height = 64; const g = c.getContext("2d");
     const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, "rgba(255,240,200,1)"); r.addColorStop(0.3, "rgba(255,160,60,.8)"); r.addColorStop(1, "rgba(255,80,0,0)");
-    g.fillStyle = r; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); }
+    g.fillStyle = r; g.fillRect(0, 0, 64, 64); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t; }
   const embers = new THREE.Points(emberGeo, new THREE.PointsMaterial({size: 0.075, map: emberSprite(), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, color: 0xffb060}));
   embers.frustumCulled = false; scene.add(embers);
 

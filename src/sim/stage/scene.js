@@ -1,24 +1,23 @@
-// Renderer, sahne, temel ışıklar, kulüp dekoru, kameralar ve bloom.
+// Renderer, sahne, temel ışıklar, kulüp dekoru, kameralar ve son işlem zinciri (finish.js).
 import * as THREE from "three";
-import { EffectComposer } from "../../vendor/three/examples/jsm/postprocessing/EffectComposer.js";
-import { RenderPass } from "../../vendor/three/examples/jsm/postprocessing/RenderPass.js";
-import { ShaderPass } from "../../vendor/three/examples/jsm/postprocessing/ShaderPass.js";
-import { UnrealBloomPass } from "../../vendor/three/examples/jsm/postprocessing/UnrealBloomPass.js";
-import { GammaCorrectionShader } from "../../vendor/three/examples/jsm/shaders/GammaCorrectionShader.js";
+import { createFinish } from "./finish.js";
 import { FLOOR } from "./figures.js";
 
 export function createScene(canvas){
   const renderer = new THREE.WebGLRenderer({canvas, antialias: true});
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  // Ton eşleme ve sRGB kodlaması Finish geçişinde; outputEncoding yalnız composer kurulamazsa (düz render) iş görür
   renderer.outputEncoding = THREE.sRGBEncoding;
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x16110e);
   scene.fog = new THREE.Fog(0x16110e, 4, 10);
 
+  // Lineer ışık: aydınlatılan beyaz yüzey (pena koruyucu) HDR'de 1'in altında kalsın ki yalnız ışık saçanlar bloom alsın; parlaklığı Finish pozlaması verir.
+  // hemi ve key'in renk/şiddetini mekan (venues.js ENVS) ayarlar.
   const hemi = new THREE.HemisphereLight(0xffe6c8, 0x1a1010, 0.4); scene.add(hemi);
-  const key = new THREE.DirectionalLight(0xfff1dd, 0.55); key.position.set(0.6, 0.8, 1.2); scene.add(key);
-  const rim = new THREE.PointLight(0xff9a3c, 1.1, 3); rim.position.set(-0.6, -0.5, 0.6); scene.add(rim);
-  const spot = new THREE.SpotLight(0xffd9a8, 0.7, 4, 0.45, 0.7); spot.position.set(0.0, 0.1, 1.6); scene.add(spot);
+  const key = new THREE.DirectionalLight(0xfff1dd, 0.5); key.position.set(0.6, 0.8, 1.2); scene.add(key);
+  const rim = new THREE.PointLight(0xff9a3c, 0.7, 3); rim.position.set(-0.6, -0.5, 0.6); scene.add(rim);
+  const spot = new THREE.SpotLight(0xffd9a8, 0.45, 4, 0.45, 0.7); spot.position.set(0.0, 0.1, 1.6); scene.add(spot);
 
   // Kulüp dekoru: sahne duvarı, amfi kabini ve truss. Mekan grubuna venues.js yerleştirir.
   const back = new THREE.Mesh(new THREE.PlaneGeometry(6, 4), new THREE.MeshStandardMaterial({color: 0x1f1611, roughness: 1}));
@@ -56,20 +55,16 @@ export function createScene(canvas){
     stageCam.lookAt(t);
   }
 
-  /* ---------- Işıma (bloom) ---------- */
-  // Parlayan yüzeyler (vizör, meşale, anka kuşu, gözler) etrafına ışık saçar. Kurulamazsa düz render'a döner.
-  let composer = null, renderPass = null, bloomPass = null;
-  try {
-    composer = new EffectComposer(renderer);
-    renderPass = new RenderPass(scene, groupCam); composer.addPass(renderPass);
-    bloomPass = new UnrealBloomPass(new THREE.Vector2(640, 360), 0.45, 0.35, 0.9); composer.addPass(bloomPass);
-    composer.addPass(new ShaderPass(GammaCorrectionShader));
-  } catch (err){ composer = null; }
+  /* ---------- Son işlem ---------- */
+  // HDR tampon + bloom (yalnız gerçekten ışık saçan yüzeyler: vizör, meşale, anka) + Finish. Kurulamazsa composer null, düz render.
+  // Mekanlar derecelendirmeyi ve gök rengini scene.userData.finish üzerinden ayarlar.
+  const fin = scene.userData.finish = createFinish(renderer, scene, groupCam);
+  const { composer, renderPass, bloomPass } = fin;
 
   function setSize(w, h){
     renderer.setSize(w, h, false);
-    if (composer) composer.setSize(w, h);
+    fin.setSize(w, h);
     [headCam, stageCam, groupCam].forEach(c => { c.aspect = w / h; c.updateProjectionMatrix(); });
   }
-  return { renderer, scene, hemi, key, rim, spot, back, ampG, floor, truss, headCam, stageCam, groupCam, orbit, placeCams, composer, renderPass, bloomPass, setSize };
+  return { renderer, scene, hemi, key, rim, spot, back, ampG, floor, truss, headCam, stageCam, groupCam, orbit, placeCams, composer, renderPass, bloomPass, finish: fin, setSize };
 }
