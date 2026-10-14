@@ -16,6 +16,7 @@ Tarayıcıda çalışan, tamamen kodla üretilmiş bir elektro gitar: Claude sah
 | Ağıt | E minör, ağlayan gitar: bükülüp bırakılan notalar, geniş vibrato | 66 | otomatik yönetmen |
 | Danny Boy | İrlanda halk ezgisi (Londonderry Air, 1855), ağlayan gitarla G majör | 63 | otomatik yönetmen |
 | Küllerinden | C# minör modern blues-rock solosu, shuffle | 80 | otomatik yönetmen |
+| Dağ Kralının Salonunda | Grieg, Peer Gynt (1876): tema beş turda yükselir, palm mute'tan oktavlara | 100→220 | otomatik yönetmen |
 
 ## Kurulum
 

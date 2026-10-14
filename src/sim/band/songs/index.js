@@ -9,5 +9,6 @@ import improv from "./improv.js";
 import agit from "./agit.js";
 import danny from "./danny.js";
 import solo from "./solo.js";
-export const SONGS = [kaf, ninni, tepegoz, riff, blues, elise, improv, agit, danny, solo];
+import dagkrali from "./dagkrali.js";
+export const SONGS = [kaf, ninni, tepegoz, riff, blues, elise, improv, agit, danny, solo, dagkrali];
 export function findSong(key){ return SONGS[+key] || SONGS.find(s => s.id === key) || null; }
