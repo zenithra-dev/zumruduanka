@@ -44,8 +44,11 @@ Render: üç işçi kareleri paylaşır, ses OfflineAudioContext ile üretilir, 
 ## Görüntü
 
 - **Renkler.** Kodda bütün renkler sRGB hex olarak yazılır; `sim.js` sahne kurulduktan sonra `linearize()` (finish.js) ile hepsini bir kez lineere çevirir ve o renklerin `setHex`/`set(hex)` çağrılarını sRGB okur hale getirir. Çalışırken renk değiştirmek için `setHex` kullanılır; rengi kendin lineer kurarsan malzemeye `userData.linear = true` koy, yoksa iki kez çevrilir.
-- **Zincir.** Sahne HalfFloat tampona çizilir, bloom eşiği 1.0, sonra tek bir Finish geçişi: ACES filmik ton eşleme, hafif renk derecelendirme, vinyet, kareye bağlı gren ve dither, sRGB çıkış (pozlama uniform'u ileride flaş için).
-- **Claude sağ elle çalar.** Gitar oyuncunun orta düzleminde aynalı bir taşıyıcı grupta (`model.rig`); gitarın dünya yönü ve konumu için `matrixWorld` kullanılır. Sol el perde başına bir parmak penceresinde durur, notalar arasında yerinde kalır, sonraki notadan az önce kayar, uzun susuşta ev konumuna döner (`handPlan`/`handAt`, zamanın saf fonksiyonu).
+- **Zincir.** Sahne HalfFloat tampona çizilir, bloom eşiği 1.0, sonra tek bir Finish geçişi: ACES filmik ton eşleme, hafif renk derecelendirme, vinyet, kareye bağlı gren ve dither, sRGB çıkış. Flaş pozlaması yalnız aydınlık yüzeylere uygulanır (`finish.flash(k)`): siyahlar açılmaz, görüntü grileşmez.
+- **Ritim saati** (`music/clock.js`, saf fonksiyonlar): `beatAt(p, t)` gerçek vuruş (şarkı `beats` döndürürse onu izler: Dağ Kralı'nın 100→220 BPM hızlanması), `accents(p)`/`accentAt(p, t)` vurgular (akor, sessizlik sonrası ilk nota, güçlü vuruş, bükme tepesi), `intensity(p, t)` 0..1 yoğunluk eğrisi. Beden, ışık, seyirci ve yönetmen hep bu saati kullanır. Sahnede çeşitlilik `rand()` ile değil durumsuz `hash01(i, salt)` ile yapılır (rand ses akışını kaydırır).
+- **Flaş güvenliği.** Tam ekran flaşlar vurgulardan aralarında en az 0.5 sn olacak şekilde seçilir: herhangi bir saniyede en çok 2 parlama (ışığa duyarlı epilepsi sınırı, ITU-R BT.1702: saniyede 3).
+- **Claude sağ elle çalar.** Gitar oyuncunun orta düzleminde aynalı bir taşıyıcı grupta (`model.rig`); gitarın dünya yönü ve konumu için `matrixWorld` kullanılır. Sol el perde başına bir parmak penceresinde durur, notalar arasında yerinde kalır, sonraki notadan az önce kayar, uzun susuşta ev konumuna döner (`handPlan`/`handAt`, zamanın saf fonksiyonu). Pena teli nota anında keser, 8'lik ızgarada aşağı/yukarı vurur, akorda tarar, legato notada vurmaz, palm mute'ta el köprüye yaslanır (`pickAt`).
+- **Beden dili.** Üyenin `groove(p, t)` duruşu yoğunluğa bağlı: sinsi bölümde küçük nod ve öne eğik duruş, dorukta headbang; pelvis önden gider, göğüs ve kafa aynı fonksiyonun biraz sonraki anını alarak izler. Öne eğilirken kalça gitarın dayandığı hizada geri kayar, gövde sahneye sabit gitara girmez.
 
 ## Ses nasıl üretiliyor
 
@@ -92,7 +95,7 @@ videolar/           örnek klip
 
 ## Kamera
 
-Yönetmen şarkı yüklenince çekim listesini çıkarır, her karede kamerayı o çekime göre yerleştirir. Şarkı kendi listesini (`shots`) veriyorsa o uygulanır; yoksa otomatik plan: yoğun pasajlarda gitar yakın planı ve sap kamerası, sakin yerlerde yüz ve geniş açı, aralarda sahne çevresinde yaylar ve gitara yakın sahne kamerası.
+Yönetmen şarkı yüklenince çekim listesini çıkarır, her karede kamerayı o çekime göre yerleştirir. Şarkı kendi listesini (`shots`) veriyorsa o uygulanır; yoksa otomatik plan: yoğun pasajlarda gitar yakın planı, kahraman (yüz ve gitar birlikte) ve bel planı, sakin yerlerde yüz ve geniş açı, aralarda sahne çevresinde yaylar; aynı tür çekim arka arkaya gelmez. Çekim boyları vuruş cinsindendir (tempo hızlanınca kurgu da hızlanır) ve her kesme en yakın nota başlangıcının karesine oturur. Objektif çekime göre: yakın plan 20°, gitar 24°, kahraman 28°, bel 32°, geniş 46°.
 
 ```js
 shots: [

@@ -51,6 +51,23 @@ for (const id of ids){
   await h.fresh();
 }
 
+// Flaş güvenliği: tam ekran flaş (rigs.flash) bütün şarkı boyunca 30 fps'te örneklenir; herhangi bir 1 sn pencerede 3'ten fazla parlama
+// olmamalı (ışığa duyarlı epilepsi sınırı, ITU-R BT.1702 / Harding). Tepe: >= 0.2, öncesinde tepenin yarısının altına inilmiş.
+console.log("Flaş güvenliği (1 sn'de en çok 3):");
+for (const id of ids){
+  const r = await h.page.evaluate(id => {
+    const sim = window.createSim({canvas: document.getElementById("gl"), audioContext: new OfflineAudioContext(2, 44100 * 2, 44100), manual: true, seed: 1});
+    sim.setCamera("director"); const p = sim.load(window.findSong(id)), F = [], T = [];
+    for (let k = Math.ceil(p.t0 * 30); k / 30 < p.end; k++){ const t = k / 30; sim.update(t, t); F.push(sim.rigs.flash); T.push(t); }
+    const pk = []; let lo = 1;
+    for (let i = 1; i < F.length - 1; i++){ lo = Math.min(lo, F[i]); if (F[i] >= 0.2 && F[i] >= F[i - 1] && F[i] > F[i + 1] && lo < 0.5 * F[i]){ pk.push(T[i]); lo = 1; } }
+    let w = 0; for (let i = 0, j = 0; i < pk.length; i++){ while (pk[i] - pk[j] >= 1) j++; w = Math.max(w, i - j + 1); }
+    return {n: pk.length, w};
+  }, id).catch(e => ({error: e.message}));
+  row(!r.error && r.w <= 3, r.error ? id + ": " + r.error : `${id.padEnd(9)} ${String(r.n).padStart(3)} flaş, 1 sn'de en çok ${r.w}`);
+  await h.fresh();
+}
+
 console.log("Önizleme sayfası:");
 {
   const page = await h.browser.newPage({viewport: {width: 1280, height: 1000}});

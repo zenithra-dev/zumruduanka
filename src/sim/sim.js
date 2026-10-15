@@ -84,7 +84,7 @@ export function createSim(opts = {}){
       for (const e of playing.events) if (now >= e.t && now < e.end) act[e.s] = e;
       if (!manual && now > playing.end){ stop(); if (sim.onEnd) sim.onEnd(); }
     }
-    const { strings, layoutString, fingers, pick, recLed } = model;
+    const { strings, layoutString, fingers, recLed } = model;   // pena konumu üyenin pozunda (members/claude.js pickAt)
     for (let s = 0; s < 6; s++){
       const e = act[s], st = strings[s];
       if (e){
@@ -99,15 +99,6 @@ export function createSim(opts = {}){
       }
       st.wasActive = !!e;
     }
-    // Pena: son vurulan tele, bir önceki telden zamanla kayarak gider (kare sırasından bağımsız; olaylar zamana göre sıralı)
-    let lastPick = null, prevPick = null;
-    if (playing) for (const e of playing.events){ if (e.t > now) break; prevPick = lastPick; lastPick = e; }
-    if (lastPick){
-      const ty = stringY(lastPick.s, 0.575) - 0.004, age = now - lastPick.t;
-      const y0 = prevPick ? stringY(prevPick.s, 0.575) - 0.004 : ty;
-      pick.position.y = y0 + (ty - y0) * (1 - Math.pow(2, -age * 30));
-      pick.position.z = STR_Z + 0.004 + Math.min(age * 0.03, 0.006);
-    }
     if (sim.recording) recLed.material.color.setHex(Math.floor(wall * 2) % 2 ? 0xff2a2a : 0x661111);
     rigs.updateBand(now, wall, playing, venues.current.hemi[2]);
     fx.update(now, wall, playing);
@@ -115,6 +106,7 @@ export function createSim(opts = {}){
     crowd.update(now, wall, playing, venues.envName);
     if (camMode === "director") director.direct(now, wall, playing, roster());
     else if (camMode === "group"){
+      if (S.groupCam.fov !== 40){ S.groupCam.fov = 40; S.groupCam.updateProjectionMatrix(); }   // yönetmen objektifi çekime göre değiştiriyor
       S.groupCam.position.set(0.15 + 0.45 * Math.sin(wall * 0.12), 0.8, 4.4 + 0.25 * Math.sin(wall * 0.09));
       S.groupCam.lookAt(0, -0.05, -0.8);
     }

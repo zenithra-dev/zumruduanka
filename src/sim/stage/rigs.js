@@ -2,7 +2,7 @@
 // Kişinin kendi geometrisi ve pozu members/ altında; burası ortak olanı yapar.
 import * as THREE from "three";
 import { rand } from "../rng.js";
-import { beatAt, accentAt, intensity } from "../music/clock.js";
+import { beatAt, accents, intensity } from "../music/clock.js";
 import { FLOOR, worldOf, setFigVisible } from "./figures.js";
 import { MEMBER_RIGS } from "./members/index.js";
 
@@ -49,7 +49,9 @@ export function createRigs({scene, model, hemi, drawBanner}){
   // Nefes, salınım ve beden dili. Üyenin groove(p, t) duruşu ({lean, bob, head, drop, spread}, zamanın saf fonksiyonu) üç yerde okunur:
   // kafa şimdiki anın, göğüs LAG sonrasının, pelvis 2·LAG sonrasının duruşunu alır; yani pelvis önden gider, göğüs ve kafa onu gecikmeyle
   // izler (aynı fonksiyon farklı t'de: durum birikmez) ve kafanın vuruşu tam vuruşa düşer.
-  const LAG = 0.035, LEAN_Z = 0.06, STILL = {lean: 0, bob: 0, head: 0, drop: 0, spread: 0};
+  // LEAN_Z: öne eğilirken kalçanın geri kayma kolu = gitarın dayandığı yükseklik (göbek, kalçadan ~0.22): o hizada gövde yerinde kalır,
+  // gitar sahneye sabit olduğu için içine girmez (kemer hizası 0.06 iken dorukta gövde gitara 11 mm giriyordu)
+  const LAG = 0.035, LEAN_Z = 0.22, STILL = {lean: 0, bob: 0, head: 0, drop: 0, spread: 0};
   function life(fig, wall, now, p, groove){
     const ph = fig.ph, br = Math.sin(wall * 1.55 + ph), sw = fig.sway, u = fig.up;
     const H = groove ? groove(p, now) : STILL, C = groove ? groove(p, now + LAG) : STILL, P = groove ? groove(p, now + 2 * LAG) : STILL;
@@ -64,15 +66,21 @@ export function createRigs({scene, model, hemi, drawBanner}){
     fig.head.rotation.y = 0.16 * Math.sin(wall * 0.23 + ph) * Math.sin(wall * 0.11 + ph * 1.7);
     fig.stance(P.spread);
   }
-  // Vurgu flaşı: clock.js vurgu zarfının (accentAt) yeni gelen kısmı. Zarf 1 - e^(-2s) ile doyduğu için önce s'ye açılır;
-  // s(t) - s(t-d)·e^(-d/τ) son d saniyede gelen vurguların toplamıdır. d = 0.05..0.3 ortalaması ~0.3 sn'de sönen bir darbe verir:
-  // sık vurgulu pasajda flaş sürekli açık kalmaz, akor (w 1) güçlü notadan (w 0.6) belirgin ayrılır. Sakin şarkıda daha yumuşak.
-  const TAU = 0.25, sOf = a => -0.5 * Math.log(Math.max(1e-12, 1 - a));   // TAU: clock.js vurgu zarfının sönmesi
+  // Vurgu flaşı: vurgulardan (clock.js accents) aralarında en az FLASH_GAP sn olanlar seçilir, her biri ~0.3 sn'de sönen bir darbe.
+  // Işığa duyarlı epilepsi sınırı (ITU-R BT.1702, Harding): herhangi bir saniyede 3'ten fazla tam ekran parlama olmamalı; 0.5 sn aralık
+  // saniyede en çok 2 verir (eskiden vurgu zarfının türeviydi ve Dağ Kralı'nda saniyede 7 flaş çıkıyordu). Seçim p başına bir kez, sırayla.
+  const FLASH_GAP = 0.5, FLASH_TAU = 0.12, flashCache = new WeakMap();
+  function flashes(p){
+    let f = flashCache.get(p); if (f) return f;
+    f = []; let last = -9;
+    for (const a of accents(p)) if (a.t - last >= FLASH_GAP){ f.push(a); last = a.t; }
+    flashCache.set(p, f); return f;
+  }
   function flashAt(p, now){
     if (!p) return 0;
-    const s = sOf(accentAt(p, now)); let h = 0;
-    for (let j = 1; j <= 6; j++){ const d = 0.05 * j; h += Math.max(0, s - sOf(accentAt(p, now - d)) * Math.exp(-d / TAU)); }
-    return Math.min(1, h / 6) * (0.55 + 0.45 * intensity(p, now));
+    let h = 0;
+    for (const a of flashes(p)){ if (a.t > now) break; if (now - a.t < 1) h = Math.max(h, a.w * Math.exp(-(now - a.t) / FLASH_TAU)); }
+    return Math.min(1, h) * (0.55 + 0.45 * intensity(p, now));
   }
   let flash = 0;
   // Her karede: kişiyi çalınan notalara göre pozlar, ışık şovunu günceller. hemiBase: mekanın temel ortam ışığı.
