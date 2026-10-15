@@ -205,7 +205,8 @@ export function createGuitarModel(scene){
   const pickShape = new THREE.Shape();
   pickShape.moveTo(0, -0.012); pickShape.quadraticCurveTo(0.012, -0.004, 0.01, 0.008); pickShape.quadraticCurveTo(0, 0.014, -0.01, 0.008); pickShape.quadraticCurveTo(-0.012, -0.004, 0, -0.012);
   const pick = new THREE.Mesh(new THREE.ExtrudeGeometry(pickShape, {depth: 0.0012, bevelEnabled: false}), new THREE.MeshStandardMaterial({color: 0xe25b2a, roughness: 0.4}));
-  pick.rotation.z = Math.PI / 2; pick.position.set(0.575, 0, STR_Z + 0.004); guitar.add(pick);
+  // Pena dik durur: ucu (şeklin (0, -0.012) köşesi) tellere (-z) bakar, yüzü vuruş yönünde (±y). Yerini her karede claude.js pickAt verir.
+  pick.rotation.x = Math.PI / 2; pick.position.set(0.575, 0, STR_Z + 0.016 + 0.012); guitar.add(pick);
 
   rig.updateMatrixWorld(true);   // gitar sabit: ilk karede de localToWorld doğru dünya konumunu versin
   return { rig, guitar, strings, layoutString, fingers, pick, recLed, camRig, HS_TOP, TOP, FB_TOP };

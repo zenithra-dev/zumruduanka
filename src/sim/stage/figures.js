@@ -14,7 +14,8 @@ export function setLimb(m, a, b){
   m.quaternion.setFromUnitVectors(UP, d.divideScalar(len));
   m.scale.set(1, len, 1);
 }
-function seg(g, r, m, a, b){ const x = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 0.85, 1, 10), m); g.add(x); setLimb(x, a, b); return x; }
+// Bacak parçası: kalın uç gövde tarafında (a), ince uç uzakta (b)
+function seg(g, r, m, a, b){ const x = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.85, r, 1, 10), m); g.add(x); setLimb(x, a, b); return x; }
 const TORSO = (() => { const pts = [[0.14, -0.04], [0.158, 0.04], [0.15, 0.14], [0.138, 0.24], [0.162, 0.36], [0.18, 0.46], [0.15, 0.54], [0.07, 0.6], [0.0, 0.61]].map(([r, y]) => new THREE.Vector2(r, y));
   const g = new THREE.LatheGeometry(pts, 24); g.scale(1, 1, 0.74); return g; })();
 export function makeHand(scene, skin){
@@ -29,11 +30,12 @@ export function figure(scene, o){
   const g = new THREE.Group(); g.position.set(o.x, FLOOR + (o.y || 0), o.z); g.rotation.y = o.ry || 0; scene.add(g);
   const hip = o.seated ? 0.52 : 0.92, V = (x, y, z) => new THREE.Vector3(x, y, z);
   const shoe = mat(0x15131a, {roughness: 0.6});
-  const foot = (x, z) => { const b = new THREE.Mesh(new THREE.BoxGeometry(0.095, 0.06, 0.2), shoe); b.position.set(x, 0.03, z); g.add(b); };
+  const foot = (x, z) => { const b = new THREE.Mesh(new THREE.BoxGeometry(0.095, 0.06, 0.2), shoe); b.position.set(x, 0.03, z); g.add(b); return b; };
+  const legs = [];   // ayakta duranın bacakları poseLegs ile oynar
   if (!o.noLegs) [-0.09, 0.09].forEach(x => {
     const knee = new THREE.Mesh(new THREE.SphereGeometry(0.058, 10, 8), o.leg);
     if (o.seated){ seg(g, 0.07, o.leg, V(x, hip, 0), V(x * 1.3, hip, 0.38)); seg(g, 0.055, o.leg, V(x * 1.3, hip, 0.38), V(x * 1.3, 0.06, 0.42)); knee.position.set(x * 1.3, hip, 0.38); foot(x * 1.3, 0.47); }
-    else { seg(g, 0.072, o.leg, V(x, hip, 0), V(x, 0.5, 0.025)); seg(g, 0.058, o.leg, V(x, 0.5, 0.025), V(x, 0.07, 0)); knee.position.set(x, 0.5, 0.025); foot(x, 0.045); }
+    else { legs.push({x, knee, thigh: seg(g, 0.072, o.leg, V(x, hip, 0), V(x, 0.5, 0.025)), shin: seg(g, 0.058, o.leg, V(x, 0.5, 0.025), V(x, 0.07, 0)), foot: foot(x, 0.045)}); knee.position.set(x, 0.5, 0.025); }
     g.add(knee);
   });
   if (o.seated){ const st = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.06, 20), mat(0x111111)); st.position.y = hip - 0.05; g.add(st);
@@ -54,7 +56,28 @@ export function figure(scene, o){
   // makeHand sağ el kurar; +x tarafındaki (sol) el aynasıdır: başparmak doğru yanda kalsın
   const hands = [0, 1].map(i => { const h = makeHand(scene, o.skin); if (i === 0) h.scale.x = -1; return h; });
   const sh = [V(0.21, 0.52, 0), V(-0.21, 0.52, 0)];
-  return {g, up, torso, head, headY: 0.75, hip, arms, hands, sh, V, reach: o.reach || 0.31, ph: rand() * 6.28, sway: o.sway === undefined ? 1 : o.sway};
+  const fig = {g, up, torso, head, headY: 0.75, hip, arms, hands, sh, V, legs: legs.length ? legs : null, reach: o.reach || 0.31, ph: rand() * 6.28, sway: o.sway === undefined ? 1 : o.sway};
+  fig.nod = a => nodHead(fig, a); fig.stance = s => poseLegs(fig, s);
+  return fig;
+}
+// Kafa boyun dibinden döner (a > 0 öne eğilir): merkezi öne ve biraz aşağı kayar
+const NECK = 0.11;
+export function nodHead(fig, a){ fig.head.rotation.x = a; fig.head.position.set(0, fig.headY - NECK + NECK * Math.cos(a), NECK * Math.sin(a)); }
+// Bacaklar iki kemikli IK: kalça üst gövdeyle (fig.up) iner ve kayar, ayak bileği yerde kalır ve spread kadar dışa açılır; diz öne, açık duruşta
+// biraz dışa kırılır, ayak ucu dışa döner. Dinlenmede (inmemiş, açılmamış) kurulumdaki bacağın aynısı.
+const THIGH = Math.hypot(0.42, 0.025), SHIN = Math.hypot(0.43, 0.025), _hp = new THREE.Vector3(), _an = new THREE.Vector3(), _kn = new THREE.Vector3(), _ld = new THREE.Vector3(), _pl = new THREE.Vector3();
+export function poseLegs(fig, spread = 0){
+  if (!fig.legs) return;
+  const u = fig.up.position;
+  for (const L of fig.legs){
+    const sd = Math.sign(L.x), H = _hp.set(L.x, u.y, u.z), d = _ld.subVectors(_an.set(L.x + sd * spread, 0.07, 0), H);
+    const len = Math.min(d.length(), THIGH + SHIN - 1e-4); d.normalize();
+    const pl = _pl.set(sd * spread * 2, 0, 1); pl.addScaledVector(d, -pl.dot(d)).normalize();
+    const x = (THIGH * THIGH - SHIN * SHIN + len * len) / (2 * len), A = _an.copy(H).addScaledVector(d, len);
+    _kn.copy(H).addScaledVector(d, x).addScaledVector(pl, Math.sqrt(Math.max(0, THIGH * THIGH - x * x)));
+    setLimb(L.thigh, H, _kn); setLimb(L.shin, _kn, A); L.knee.position.copy(_kn);
+    const ry = L.foot.rotation.y = sd * spread * 2.5; L.foot.position.set(A.x + 0.045 * Math.sin(ry), 0.03, A.z + 0.045 * Math.cos(ry));
+  }
 }
 export function worldOf(fig, v){ fig.g.updateMatrixWorld(true); return fig.g.localToWorld(v.clone()); }
 // Kafanın hareketsiz (salınımsız) dünya konumu: zamana bağlı olmayan hesaplar için.

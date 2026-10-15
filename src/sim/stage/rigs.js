@@ -46,15 +46,23 @@ export function createRigs({scene, model, hemi, drawBanner}){
     const key = roster.join(",");
     if (key !== rosterKey){ rosterKey = key; drawBanner(roster); }
   }
-  // Nefes, salınım ve ritme eşlik: üst gövde ve kafa
-  function life(fig, wall, beat, groove){
-    const ph = fig.ph, br = Math.sin(wall * 1.55 + ph), sw = fig.sway;
+  // Nefes, salınım ve beden dili. Üyenin groove(p, t) duruşu ({lean, bob, head, drop, spread}, zamanın saf fonksiyonu) üç yerde okunur:
+  // kafa şimdiki anın, göğüs LAG sonrasının, pelvis 2·LAG sonrasının duruşunu alır; yani pelvis önden gider, göğüs ve kafa onu gecikmeyle
+  // izler (aynı fonksiyon farklı t'de: durum birikmez) ve kafanın vuruşu tam vuruşa düşer.
+  const LAG = 0.035, LEAN_Z = 0.06, STILL = {lean: 0, bob: 0, head: 0, drop: 0, spread: 0};
+  function life(fig, wall, now, p, groove){
+    const ph = fig.ph, br = Math.sin(wall * 1.55 + ph), sw = fig.sway, u = fig.up;
+    const H = groove ? groove(p, now) : STILL, C = groove ? groove(p, now + LAG) : STILL, P = groove ? groove(p, now + 2 * LAG) : STILL;
+    if (u.userData.y0 === undefined) u.userData.y0 = u.position.y;
     fig.torso.scale.set(1 + 0.018 * br, 1 + 0.01 * br, 1 + 0.03 * br);
-    fig.up.position.y = (fig.up.userData.y0 === undefined ? (fig.up.userData.y0 = fig.up.position.y) : fig.up.userData.y0) + 0.004 * br - 0.012 * groove * Math.abs(Math.sin(beat * Math.PI));
-    fig.up.rotation.z = sw * (0.022 * Math.sin(wall * 0.53 + ph) + 0.02 * groove * Math.sin(beat * Math.PI));
-    fig.up.rotation.x = sw * (0.015 * Math.sin(wall * 0.41 + ph * 2) + 0.035 * groove * Math.abs(Math.sin(beat * Math.PI)));
-    fig.up.rotation.y = sw * 0.03 * Math.sin(wall * 0.29 + ph * 3);
+    u.rotation.x = C.lean + C.bob + sw * 0.015 * Math.sin(wall * 0.41 + ph * 2);
+    u.rotation.z = sw * 0.022 * Math.sin(wall * 0.53 + ph);
+    u.rotation.y = sw * 0.03 * Math.sin(wall * 0.29 + ph * 3);
+    u.position.y = u.userData.y0 + 0.004 * br - P.drop;
+    u.position.z = -LEAN_Z * Math.sin(u.rotation.x);   // öne eğilirken kalça geri: gitara yaslanan karın yerinde kalır
+    fig.nod(H.head);
     fig.head.rotation.y = 0.16 * Math.sin(wall * 0.23 + ph) * Math.sin(wall * 0.11 + ph * 1.7);
+    fig.stance(P.spread);
   }
   // Vurgu flaşı: clock.js vurgu zarfının (accentAt) yeni gelen kısmı. Zarf 1 - e^(-2s) ile doyduğu için önce s'ye açılır;
   // s(t) - s(t-d)·e^(-d/τ) son d saniyede gelen vurguların toplamıdır. d = 0.05..0.3 ortalaması ~0.3 sn'de sönen bir darbe verir:
@@ -71,7 +79,7 @@ export function createRigs({scene, model, hemi, drawBanner}){
   function updateBand(now, wall, p, hemiBase){
     const beat = beatAt(p, now);   // ortak ritim saati: şarkının gerçek vuruşu (çalmıyorken 90 BPM boşta)
     if (wall === undefined) wall = now;
-    MEMBER_RIGS.forEach(M => life(FIG[M.id], wall, beat, M.groove(p)));
+    MEMBER_RIGS.forEach(M => life(FIG[M.id], wall, now, p, M.groove));
     Object.values(FIG).forEach(f => blink(f, wall));
     const ctx = {now, wall, p, beat};
     MEMBER_RIGS.forEach(M => M.pose(parts[M.id], ctx));
