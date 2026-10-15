@@ -1,6 +1,7 @@
 // Otomatik yönetmen: şarkı başında çekim listesini çıkarır, her karede kamerayı o çekime göre yerleştirir.
-// İki kaynak: şarkı kendi çekim listesini (shots) veriyorsa o kullanılır; yoksa müziğin yoğunluğuna göre otomatik plan.
+// İki kaynak: şarkı kendi çekim listesini (shots) veriyorsa o kullanılır; yoksa müziğe göre otomatik plan (ölçü ızgarası, yoğunluk, final vuruşları).
 // Zamanın fonksiyonu olarak çalışır: aynı an aynı kamerayı verir, kareler hangi sırada ya da hangi işçide işlenirse işlensin.
+// Her kesme yakındaki nota başlangıcının tam anına çekilir; objektif (groupCam.fov) çekim türüne göre değişir.
 //
 // Şarkı verisinde çekim (zamanlar vuruş cinsinden, len yoksa sona kadar):
 //   {b, len, cam: "head"}                       sap kamerası
@@ -8,57 +9,123 @@
 //   {b, len, cam: "orbit", from, to}            sahnenin çevresinde yay (radyan)
 //   {b, len, cam: "stage"}                      gitara yakın sahne kamerası
 //   {b, len, cam: "outro", k?}                  yükselip geri çekilen final
-//   {b, len, who: "sahmeran", kind?: "close"|"medium"|"guitar", side?: ±1}   üyeye kesme
+//   {b, len, who: "claude", kind?: "close"|"medium"|"guitar"|"hero", side?: ±1}   üyeye kesme
 import * as THREE from "three";
 import { restHead } from "../stage/figures.js";
+import { beatAt, timeAt, onsets, intensity } from "../music/clock.js";
+import { hash01 } from "../rng.js";
 
 const sm = x => x * x * (3 - 2 * x);
+const clamp01 = x => Math.min(1, Math.max(0, x));
 const MOVES_GROUP = {member: true, wide: true, dolly: true, orbit: true, outro: true};
+// Objektif: dikey görüş açısı (derece). Yakın planlar dar (sıkışık perspektif, yüz bozulmaz), geniş planlar geniş.
+const FOV = {close: 20, guitar: 24, hero: 28, medium: 32, wide: 46, dolly: 42, orbit: 40, outro: 46};
+// Üye kadrajları (kafanın hareketsiz konumuna göre): d uzaklık, lat yana açılma (d başına), look bakış noktasının kafaya göre
+// yüksekliği, rise kameranın bakış noktasına göre yüksekliği (d başına: objektif değişse de bakış açısı aynı), lx bakışın sapa doğru kayması
+const FRAME = {
+  close:  {d: 1.55, lat: 0.42, look: -0.12, rise: 0.05, lx: 0},
+  // Bel planı: kafa üstünden gitar gövdesinin altına, düz açı; sap eli alt bandın (y > 600) üstünde
+  medium: {d: 1.95, lat: 0.5, look: -0.38, rise: 0.08, lx: 0.08},
+  // Gitar yakın planı: köprü kemerin biraz altında, sap ~34° yukarı; bakış iki elin arasına düşer, eller ve eşik alt bandın (y > 600) üstünde
+  guitar: {d: 1.63, lat: 0.6, look: -0.68, rise: 0.36, lx: 0},
+  // Hero: aşağıdan, yüz ve gitar birlikte (kafa üstünden gövdenin altına); bakış sapa doğru kayık
+  hero:   {d: 2.6, lat: 0.34, look: -0.4, rise: -0.22, lx: 0.16}
+};
+const SNAP = 0.12;    // kesme bu kadar (sn) yakın nota başlangıcına çekilir
+const CAT = {wide: "genis", dolly: "genis", orbit: "genis", outro: "genis", head: "sap", stage: "sahne"};
+const catOf = k => CAT[k] || k;
+// Otomatik planın çekim havuzları (sırayla dönülür, bir önceki çekimle aynı türden olan atlanır).
+// Yoğunlukta hero ve bel planı her iki çekimden biri; doruk ve finalde yalnız yüzü ve sap elini birlikte gösteren çekimler.
+const POOL = {
+  calm:    ["wide", "close", "guitar", "orbit", "head", "medium", "stage", "dolly", "close", "guitar"],
+  mid:     ["guitar", "hero", "head", "close", "stage", "medium", "orbit", "guitar", "close"],
+  intense: ["hero", "guitar", "medium", "head", "hero", "close", "medium", "wide"],
+  face:    ["hero", "medium", "wide"]
+};
+
+// Kesme anı: b vuruşunun zamanı; 120 ms içinde nota başlangıcı varsa tam onun anı, yoksa ±1 vuruştaki en yakın başlangıç, o da yoksa null
+function snapCut(p, O, b){
+  const t = timeAt(p, b); let o = null;
+  for (const x of O) if (!o || Math.abs(x.t - t) < Math.abs(o.t - t)) o = x;
+  if (o && (Math.abs(o.t - t) <= SNAP || Math.abs(beatAt(p, o.t) - b) <= 1)) return o.t;
+  return null;
+}
+// Kesme zamanları: açılış iki ölçü, sonra ölçü ızgarası. Çekim boyu yoğunluğa göre 4/2/1 ölçü (sakin ~5 sn, yoğun ~1.2 sn hedefi;
+// tempo hızlanınca kurgu da hızlanır). Final vuruşları (sondaki susuşlu akor vuruşları ve son nota) birer kesmedir.
+// doruk: son notadan en az 16 vuruş önceki cümle başı (16 vuruşluk ızgara).
+function cutTimes(p, O){
+  const last = O[O.length - 1], bLast = beatAt(p, last.t), H = [last.t];
+  for (let i = O.length - 2; i >= 0; i--){
+    const o = O[i], bo = beatAt(p, o.t);
+    if (bLast - bo > 12 || o.n < 3 || o.v < 0.9 || beatAt(p, O[i + 1].t) - bo < 1.5) break;
+    H.unshift(o.t);
+  }
+  const hb = beatAt(p, H[0]), grid = [];
+  for (let b = 8; b < hb - 2.5; ){
+    const bar = timeAt(p, b + 4) - timeAt(p, b), In = clamp01((intensity(p, timeAt(p, b + 2)) - 0.2) / 0.55), T = 5.2 - 4 * In;
+    let L = [4, 2, 1].find(n => n * bar <= 1.45 * T) || 1;
+    while (L > 1 && Math.round(b / 4) % L) L /= 2;
+    grid.push(b); b += 4 * L;
+  }
+  const cuts = [];
+  grid.map(b => snapCut(p, O, b)).concat(H).sort((a, b) => a - b).forEach(t => {
+    if (t === null || t > last.t) return;
+    const prev = cuts.length ? cuts[cuts.length - 1] : p.t0;
+    if (H.includes(t) || beatAt(p, t) - beatAt(p, prev) >= 1.5) cuts.push(t);
+  });
+  return {cuts, hits: H, doruk: Math.max(0, Math.floor((bLast - 16) / 16) * 16)};
+}
 
 export function createDirector({FIG, groupCam, orbit, placeCams}){
   let cam = "group"; // o anki çekimin kamerası: "group" | "head" | "stage"
 
-  function authored(list, spb, t0, songEnd){
+  function authored(p, list, songEnd){
+    const O = onsets(p), at = b => { const s = snapCut(p, O, b); return s === null ? timeAt(p, b) : s; };
     let side = 1;
     return list.map(s => {
       side = -side;
-      const t = t0 + s.b * spb, end = s.len === undefined ? Math.max(songEnd + 5, t + 1) : t0 + (s.b + s.len) * spb;
+      const t = at(s.b), end = s.len === undefined ? Math.max(songEnd + 5, t + 1) : at(s.b + s.len);
       const cam = s.cam || (s.who ? "member" : "dolly");
       return {t, end, who: s.who || "wide", kind: s.kind || (s.who ? "medium" : "wide"), side: s.side || side, glide: false, crane: false,
         cam, from: s.from || 0, to: s.to || 0, reverse: !!s.reverse, k: s.k || 3};
     });
   }
-  // Tek kişilik sahne için otomatik plan: yoğun pasajlarda eller (gitar yakın plan, sap kamerası), sakin yerlerde yüz ve geniş açı;
-  // araya sahne çevresinde yaylar, gitara yakın sahne kamerası ve yaklaşan/uzaklaşan geniş planlar girer.
-  function autoPlan(p, spb, t0){
-    const bar = spb * 4, nBars = Math.ceil((p.end - t0) / bar) + 1, shots = [];
-    const cnt = (a, b) => p.events.reduce((s, e) => s + (e.t >= a && e.t < b ? 1 : 0), 0);
-    let side = 1, n = 0, orb = 0;
-    const push = (b, len, kind, extra) => { side = -side; const sh = Object.assign({t: t0 + b * bar, end: t0 + (b + len) * bar, who: "claude", kind, side, glide: false, crane: false, cam: "member", from: 0, to: 0, reverse: false, k: 3}, extra); shots.push(sh); };
-    const SEQ = ["close", "guitar", "wide", "head", "orbit", "close", "stage", "guitar", "wide", "head", "dolly", "close"];
-    push(0, 2, "wide", {who: "wide", cam: "dolly"});
-    for (let b = 2; b < nBars; ){
-      const dense = cnt(t0 + b * bar, t0 + (b + 2) * bar) >= 14;
-      let k = SEQ[n++ % SEQ.length];
-      if (dense && (k === "close" || k === "wide")) k = n % 2 ? "guitar" : "head";
-      let len = 2, extra = {};
-      if (k === "wide") extra = {who: "wide", cam: "wide", crane: n % 4 === 0};
-      else if (k === "orbit"){ orb++; extra = {who: "wide", cam: "orbit", from: orb % 2 ? -0.35 : 0.35, to: orb % 2 ? 0.25 : -0.25}; len = 3; }
-      else if (k === "stage") extra = {who: "wide", cam: "stage"};
-      else if (k === "dolly") extra = {who: "wide", cam: "dolly", reverse: n % 2 === 0};
-      else if (k === "head") extra = {cam: "head"};
-      else extra = {glide: n % 3 === 2};
-      push(b, len, k, extra); b += len;
-    }
+  // Tek kişilik sahne için otomatik plan: sakin yerde geniş, yüz ve gitar; yoğunlukta hero ve bel planı ağırlıklı; dorukta yalnız yüzlü çekimler.
+  // Aynı türden (geniş/dolly/yay aynı sayılır) iki çekim arka arkaya gelmez. Çeşitlilik hash01 ile (rand() akışına dokunmaz).
+  function autoPlan(p){
+    const O = onsets(p), base = {who: "claude", side: 1, glide: false, crane: false, cam: "member", from: 0, to: 0, reverse: false, k: 3};
+    if (!O.length) return [Object.assign({}, base, {t: p.t0, end: p.end + 5, who: "wide", kind: "wide", cam: "dolly"})];
+    const {cuts, hits, doruk} = cutTimes(p, O), T = [p.t0].concat(cuts.filter(t => t > p.t0)), cnt = {}, shots = [];
+    let prev = "genis", orb = 0;
+    T.forEach((t, i) => {
+      const end = i + 1 < T.length ? T[i + 1] : Math.max(p.end + 5, t + 1), sh = Object.assign({}, base, {t, end, side: i % 2 ? 1 : -1});
+      if (i === 0){ shots.push(Object.assign(sh, {who: "wide", kind: "wide", cam: "dolly"})); return; }
+      if (i === T.length - 1 && hits.includes(t)){ shots.push(Object.assign(sh, {who: "wide", kind: "wide", cam: "outro"})); return; }
+      const e = Math.min(end, p.end), In = clamp01(([0.2, 0.5, 0.8].reduce((s, f) => s + intensity(p, t + (e - t) * f), 0) / 3 - 0.2) / 0.55);
+      const cls = beatAt(p, t) >= doruk - 0.5 || t >= hits[0] ? "face" : In >= 0.7 ? "intense" : In >= 0.35 ? "mid" : "calm";
+      const pool = POOL[cls], outroNext = i === T.length - 2 && hits.includes(T[i + 1]); let k;
+      do { cnt[cls] = (cnt[cls] || 0) + 1; k = pool[(cnt[cls] - 1) % pool.length]; } while (catOf(k) === prev || (outroNext && catOf(k) === "genis"));
+      sh.kind = k;
+      if (k === "wide") Object.assign(sh, {who: "wide", cam: "wide", crane: hash01(i, "vinc") < 0.5});
+      else if (k === "orbit"){ orb++; Object.assign(sh, {who: "wide", cam: "orbit", from: orb % 2 ? -0.35 : 0.35, to: orb % 2 ? 0.25 : -0.25}); }
+      else if (k === "stage") Object.assign(sh, {who: "wide", cam: "stage"});
+      else if (k === "dolly") Object.assign(sh, {who: "wide", cam: "dolly", reverse: hash01(i, "geri") < 0.5});
+      else if (k === "head") sh.cam = "head";
+      else sh.glide = (cls === "calm" || cls === "mid") && prev === "genis" && hash01(i, "kayma") < 0.6;
+      prev = catOf(k); shots.push(sh);
+    });
     return shots;
   }
-  function planShots(p, spb, t0){
-    return p.song.shots ? authored(p.song.shots, spb, t0, p.end) : autoPlan(p, spb, t0);
+  function planShots(p){
+    return p.song.shots ? authored(p, p.song.shots, p.end) : autoPlan(p);
   }
+  const fovOf = sh => !sh ? FOV.wide : sh.cam === "member" ? FOV[sh.kind] || FOV.medium : FOV[sh.cam] || FOV.wide;
+  function setFov(f){ if (groupCam.fov !== f){ groupCam.fov = f; groupCam.updateProjectionMatrix(); } }
 
   const _H = new THREE.Vector3(), _F = new THREE.Vector3(), _R = new THREE.Vector3(), _L = new THREE.Vector3();
   function directPose(now, wall, sh, ros){
     cam = "group";
+    setFov(fovOf(sh));
     const u0 = sh ? Math.min(1, Math.max(0, (now - sh.t) / (sh.end - sh.t))) : 0;
     switch (sh && sh.cam){
       case "head": cam = "head"; return;
@@ -69,21 +136,17 @@ export function createDirector({FIG, groupCam, orbit, placeCams}){
     }
     if (!sh || sh.who === "wide" || !FIG[sh.who] || !ros.includes(sh.who)){
       const sd = sh ? sh.side : 1, ue = sm(u0);
+      setFov(FOV.wide);   // kadrajı kurulamayan üye çekimi de geniş açıya döner
       if (sh && sh.crane) groupCam.position.set(0.15 + sd * 0.9 * (1 - ue), 0.35 + 0.75 * ue, 4.3 - 0.3 * ue);
       else groupCam.position.set(0.15 + 0.45 * Math.sin(wall * 0.12) + sd * 0.6 * (1 - ue), 0.8 + 0.1 * ue, 4.55 - 0.5 * ue);
       groupCam.lookAt(0, -0.05, -0.8); return;
     }
     // Kadraj kafanın hareketsiz konumuna kurulur (canlı kafa değil): kamera yalnız zamana bağlı kalır, kayma başlangıcı gibi
     // başka bir an için kurulan pozlar o anın değil bu karenin bedenine bakmaz. Bedenin salınımı kadrajda görünür.
-    const f = FIG[sh.who], u = sm(u0), sd = sh.side;
+    const f = FIG[sh.who], u = sm(u0), sd = sh.side, fr = FRAME[sh.kind] || FRAME.medium, look = fr.look, hy = look + fr.rise * fr.d;
     _H.copy(restHead(f));
     _F.set(0, 0, 1).applyQuaternion(f.g.quaternion); _R.set(1, 0, 0).applyQuaternion(f.g.quaternion);
-    // look: bakış noktasının kafaya göre yüksekliği
-    let d = 1.15, lat = 0.42, hy = -0.08, look = -0.14;
-    if (sh.kind === "medium"){ d = 2.0; lat = 0.5; hy = -0.2; look = -0.42; }
-    if (sh.kind === "fill"){ d = 1.55; lat = 0.55; hy = -0.38; look = -0.5; }
-    // Gitar yakın planı: köprü kemerin biraz altında, sap ~34° yukarı; bakış iki elin arasına düşer, eller ve eşik alt bandın (y > 600) üstünde
-    if (sh.kind === "guitar"){ d = 0.95; lat = 0.6; hy = -0.34; look = -0.68; }
+    let d = fr.d, lat = fr.lat;
     // Önde başka bir üye kadrajı kapatıyorsa diğer tarafı ya da daha yakın açıyı seç (çekim başına bir kez).
     // Hesap üyelerin hareketsiz konumlarıyla yapılır; hangi karede hesaplandığından bağımsız aynı sonucu verir.
     if (!sh.cfg){
@@ -101,12 +164,12 @@ export function createDirector({FIG, groupCam, orbit, placeCams}){
     }
     const C = sh.cfg; d *= C.dm * (1.07 - 0.12 * u); lat *= C.lm;
     groupCam.position.copy(_H).addScaledVector(_F, d).addScaledVector(_R, C.sg * (lat + 0.12 * u * C.lm) * d).add(_L.set(0, hy, 0));
-    // El kamerası hissi: yakın planlarda çok küçük, yavaş titreşim
-    const hh = 0.005 * d; groupCam.position.x += hh * (Math.sin(wall * 1.3) + 0.5 * Math.sin(wall * 2.9 + 1)); groupCam.position.y += hh * 0.7 * Math.sin(wall * 1.7 + 2);
-    groupCam.lookAt(_H.x, _H.y + look, _H.z);
+    // El kamerası hissi: çok küçük, yavaş titreşim; dar objektif titreşimi büyüttüğü için açıyla ölçeklenir
+    const hh = 0.005 * d * groupCam.fov / 40; groupCam.position.x += hh * (Math.sin(wall * 1.3) + 0.5 * Math.sin(wall * 2.9 + 1)); groupCam.position.y += hh * 0.7 * Math.sin(wall * 1.7 + 2);
+    _L.copy(_H).addScaledVector(_R, fr.lx); groupCam.lookAt(_L.x, _H.y + look, _L.z);
   }
 
-  // Bazı geçişler kesme yerine yumuşak kayma: önceki çekimin bitiş konumundan yeni çekime 0.9 sn'de akar.
+  // Bazı geçişler kesme yerine yumuşak kayma: önceki çekimin bitiş konumundan (ve objektifinden) yeni çekime 0.9 sn'de akar.
   // Başlangıç konumu önceki çekimin bitiş anından hesaplanır, "son karede kamera neredeydi"den değil.
   const camPrev = {sh: null, from: null};
   function direct(now, wall, playing, ros){
@@ -119,7 +182,7 @@ export function createDirector({FIG, groupCam, orbit, placeCams}){
       if (idx > 0 && MOVES_GROUP[shots[idx - 1].cam]){
         const prev = shots[idx - 1];
         directPose(prev.end, prev.end, prev, ros);
-        camPrev.from = {pos: groupCam.position.clone(), q: groupCam.quaternion.clone()};
+        camPrev.from = {pos: groupCam.position.clone(), q: groupCam.quaternion.clone(), fov: groupCam.fov};
         // Kayma yolu bir üyenin içinden geçecekse normal kesmeye dön
         directPose(sh.t + 0.9, sh.t + 0.9, sh, ros); const A = camPrev.from.pos, B = groupCam.position.clone();
         for (let k = 1; k < 12 && camPrev.from; k++){ const P = A.clone().lerp(B, k / 12);
@@ -134,6 +197,7 @@ export function createDirector({FIG, groupCam, orbit, placeCams}){
         groupCam.position.lerpVectors(camPrev.from.pos, groupCam.position.clone(), e);
         if (groupCam.quaternion.slerpQuaternions) groupCam.quaternion.slerpQuaternions(camPrev.from.q, groupCam.quaternion.clone(), e);
         else THREE.Quaternion.slerp(camPrev.from.q, groupCam.quaternion.clone(), groupCam.quaternion, e);
+        setFov(camPrev.from.fov + (groupCam.fov - camPrev.from.fov) * e);
       }
       // from kayma bitince de silinmez: aynı çekimde geriye atlanan kare de kaymayı yeniden bulmalı
     }
