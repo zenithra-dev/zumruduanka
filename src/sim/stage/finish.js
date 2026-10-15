@@ -23,7 +23,7 @@ export function linearize(root, extra = []){
 
 /* ---------- Son işlem ---------- */
 // ACES (Narkowicz) → doygunluk ve gölge/ışık tonu → vinyet → sRGB → S eğrisi → kareye bağlı gren + dither.
-// exposure mekanın pozlaması, ev ek diyafram (flaş için; 0 = yok).
+// exposure mekanın pozlaması, ev flaşın ek diyaframı (0 = yok): yalnız aydınlık yüzeylere tam uygulanır, karanlık (siyahlar, gök) yerinde kalır.
 const FinishShader = {
   uniforms: {tDiffuse: {value: null}, exposure: {value: 1}, ev: {value: 0}, sat: {value: 1}, contrast: {value: 0}, vig: {value: 0}, grain: {value: 0},
     aspect: {value: 16 / 9}, seed: {value: new THREE.Vector2()}, shTint: {value: new THREE.Vector3(1, 1, 1)}, hiTint: {value: new THREE.Vector3(1, 1, 1)}},
@@ -34,7 +34,8 @@ vec3 aces(vec3 x){ return clamp(x * (2.51 * x + 0.03) / (x * (2.43 * x + 0.59) +
 vec3 toSRGB(vec3 c){ return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c)); }
 float hash(vec2 p){ vec3 q = fract(vec3(p.xyx) * 0.1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
 void main(){
-  vec3 c = aces(texture2D(tDiffuse, vUv).rgb * exposure * exp2(ev));
+  vec3 x = texture2D(tDiffuse, vUv).rgb * exposure;
+  vec3 c = aces(x * exp2(ev * smoothstep(0.03, 0.6, dot(x, vec3(0.2126, 0.7152, 0.0722)))));
   float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
   c = max(mix(vec3(l), c, sat), 0.0) * mix(shTint, hiTint, smoothstep(0.02, 0.5, l));
   c *= 1.0 - vig * smoothstep(0.35, 1.05, length((vUv - 0.5) * vec2(aspect, 1.0)));
@@ -46,6 +47,8 @@ void main(){
 }`
 };
 const GRADE = {exposure: 1, sat: 1, contrast: 0, vig: 0, grain: 0, sh: [1, 1, 1], hi: [1, 1, 1]};
+// Tam flaşta (k = 1) aydınlık yüzeylere ek diyafram ve doygunluk katı: beyaza açılıp grileşmek yerine kendi renginde parlar
+const FLASH = {ev: 0.6, sat: 0.25};
 const acesInv = y => { y = Math.min(y, 0.999); const A = 2.43 * y - 2.51, B = 0.59 * y - 0.03, C = 0.14 * y; return (-B - Math.sqrt(B * B - 4 * A * C)) / (2 * A); };
 const luma = c => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
 const frac = x => x - Math.floor(x);
@@ -79,11 +82,13 @@ export function createFinish(renderer, scene, camera){
   }
   // Gren tohumu karenin zamanından (durumsuz): aynı t her zaman aynı deseni verir
   function frame(t){ if (!U) return; const k = Math.round(t * 60); U.seed.value.set(frac(Math.sin(k * 12.9898) * 43758.5453) * 997, frac(Math.sin(k * 78.233) * 43758.5453) * 991); }
-  // Gök ve sis rengi: son işlemden geçince yazılan hex'e denk gelen HDR lineer değer (vinyet ve gren hariç)
+  // Vurgu flaşı, k 0..1 (her karede verilir; durum tutmaz): aydınlık yüzeylere ek diyafram, biraz doygunluk
+  function flash(k){ if (!U) return; k = Math.min(1, Math.max(0, k || 0)); U.ev.value = FLASH.ev * k; U.sat.value = g.sat * (1 + FLASH.sat * k); }
+  // Gök ve sis rengi: son işlemden geçince yazılan hex'e denk gelen HDR lineer değer (vinyet, gren ve flaş hariç; flaş karanlığa dokunmaz)
   function backdrop(hex, out = new THREE.Color()){
     const t = new THREE.Color(hex);
     if (!U) return out.copy(t).convertSRGBToLinear();
-    const k = g.contrast, e = g.exposure * Math.pow(2, U.ev.value);
+    const k = g.contrast, e = g.exposure;
     const s = [t.r, t.g, t.b].map(y => { let x = y; for (let i = 0; i < 5; i++) x -= (x + k * (x * x * (3 - 2 * x) - x) - y) / (1 + k * (6 * x - 6 * x * x - 1)); return x; });
     let c = s.map(x => x <= 0.04045 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4));
     const w = Math.min(1, Math.max(0, (luma(c) - 0.02) / 0.48)), sm = w * w * (3 - 2 * w);
@@ -93,5 +98,5 @@ export function createFinish(renderer, scene, camera){
     return out.setRGB(...c.map(y => acesInv(y) / e));
   }
   function setSize(w, h){ if (composer) composer.setSize(w, h); if (U) U.aspect.value = w / h; }
-  return { composer, renderPass, bloomPass, hdr, samples, grade, frame, backdrop, setSize, get uniforms(){ return U; } };
+  return { composer, renderPass, bloomPass, hdr, samples, grade, frame, flash, backdrop, setSize, get uniforms(){ return U; } };
 }

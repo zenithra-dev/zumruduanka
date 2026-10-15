@@ -2,7 +2,7 @@
 // Kişinin kendi geometrisi ve pozu members/ altında; burası ortak olanı yapar.
 import * as THREE from "three";
 import { rand } from "../rng.js";
-import { beatAt } from "../music/clock.js";
+import { beatAt, accentAt, intensity } from "../music/clock.js";
 import { FLOOR, worldOf, setFigVisible } from "./figures.js";
 import { MEMBER_RIGS } from "./members/index.js";
 
@@ -56,7 +56,17 @@ export function createRigs({scene, model, hemi, drawBanner}){
     fig.up.rotation.y = sw * 0.03 * Math.sin(wall * 0.29 + ph * 3);
     fig.head.rotation.y = 0.16 * Math.sin(wall * 0.23 + ph) * Math.sin(wall * 0.11 + ph * 1.7);
   }
-  let flash = 0; const _white = new THREE.Color(0xffffff);
+  // Vurgu flaşı: clock.js vurgu zarfının (accentAt) yeni gelen kısmı. Zarf 1 - e^(-2s) ile doyduğu için önce s'ye açılır;
+  // s(t) - s(t-d)·e^(-d/τ) son d saniyede gelen vurguların toplamıdır. d = 0.05..0.3 ortalaması ~0.3 sn'de sönen bir darbe verir:
+  // sık vurgulu pasajda flaş sürekli açık kalmaz, akor (w 1) güçlü notadan (w 0.6) belirgin ayrılır. Sakin şarkıda daha yumuşak.
+  const TAU = 0.25, sOf = a => -0.5 * Math.log(Math.max(1e-12, 1 - a));   // TAU: clock.js vurgu zarfının sönmesi
+  function flashAt(p, now){
+    if (!p) return 0;
+    const s = sOf(accentAt(p, now)); let h = 0;
+    for (let j = 1; j <= 6; j++){ const d = 0.05 * j; h += Math.max(0, s - sOf(accentAt(p, now - d)) * Math.exp(-d / TAU)); }
+    return Math.min(1, h / 6) * (0.55 + 0.45 * intensity(p, now));
+  }
+  let flash = 0;
   // Her karede: kişiyi çalınan notalara göre pozlar, ışık şovunu günceller. hemiBase: mekanın temel ortam ışığı.
   function updateBand(now, wall, p, hemiBase){
     const beat = beatAt(p, now);   // ortak ritim saati: şarkının gerçek vuruşu (çalmıyorken 90 BPM boşta)
@@ -65,16 +75,17 @@ export function createRigs({scene, model, hemi, drawBanner}){
     Object.values(FIG).forEach(f => blink(f, wall));
     const ctx = {now, wall, p, beat};
     MEMBER_RIGS.forEach(M => M.pose(parts[M.id], ctx));
-    // Işık şovu: akor vuruşunda flaş, hüzmeler ritimle salınır
-    let sa = 9; if (p) for (const t of p.strums){ if (t > now) break; sa = now - t; }
-    flash = p ? Math.exp(-sa * 4) : 0;
+    // Işık şovu: vurguda flaş (hüzmeler kendi renginde parlar; pozlama darbesini sim.js Finish'e verir), hüzmeler ritimle salınır,
+    // yoğun yerde biraz daha dolgun. Ortam ışığı (hemi) flaşta değişmez: eklenen beyaz ışık siyahları açıp görüntüyü grileştiriyordu.
+    flash = flashAt(p, now);
+    const I = intensity(p, now);
     beamList.forEach((b, i) => {
       const sw = p ? 0.16 : 0.05, ph = i * 1.3;
       b.rotation.z = sw * Math.sin(beat * Math.PI / 4 + ph); b.rotation.x = sw * 0.6 * Math.cos(beat * Math.PI / 4 + ph * 0.7);
-      b.material.opacity = 0.045 + (p ? 0.02 * Math.max(0, Math.sin(beat * Math.PI / 2 + i)) + 0.1 * flash : 0);
-      b.material.color.setHex(b.userData.col).lerp(_white, 0.6 * flash);
+      b.material.opacity = 0.04 + (p ? 0.012 * I + 0.02 * Math.max(0, Math.sin(beat * Math.PI / 2 + i)) + 0.025 * flash : 0);
+      b.material.color.setHex(b.userData.col).multiplyScalar(1 + 0.8 * flash);
     });
-    hemi.intensity = hemiBase + 0.4 * flash;
+    hemi.intensity = hemiBase;
   }
   return { FIG, LIGHTS, beams, parts, applyRoster, updateBand, invalidateBanner(){ rosterKey = ""; }, get flash(){ return flash; } };
 }

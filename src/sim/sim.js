@@ -126,7 +126,8 @@ export function createSim(opts = {}){
   }
   function render(){
     const cam = activeCam();
-    if (S.composer){ S.renderPass.camera = cam; S.bloomPass.strength = 0.42 + (playing ? 0.2 * rigs.flash : 0); S.composer.render(); }
+    // Vurgu flaşı (rigs.flash, zamanın saf fonksiyonu): Finish pozlamasına ve bloom'a kısa darbe
+    if (S.composer){ S.renderPass.camera = cam; S.finish.flash(rigs.flash); S.bloomPass.strength = 0.42 + 0.25 * rigs.flash; S.composer.render(); }
     else S.renderer.render(S.scene, cam);
   }
   function hudLabel(){
