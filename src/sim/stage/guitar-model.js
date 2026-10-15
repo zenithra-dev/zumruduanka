@@ -209,5 +209,7 @@ export function createGuitarModel(scene){
   pick.rotation.x = Math.PI / 2; pick.position.set(0.575, 0, STR_Z + 0.016 + 0.012); guitar.add(pick);
 
   rig.updateMatrixWorld(true);   // gitar sabit: ilk karede de localToWorld doğru dünya konumunu versin
-  return { rig, guitar, strings, layoutString, fingers, pick, recLed, camRig, HS_TOP, TOP, FB_TOP };
+  // solids: el/kol çarpışma ölçümünün katıları (tools/sync-check.mjs): gitarın doğrudan çocukları, döndürülmemiş; BoxGeometry kutu,
+  // ExtrudeGeometry şeklinin xy dış hattı ve z kalınlığıyla prizma sayılır. strings[s].pos tel çizgisi (gitar çerçevesinde, x artan).
+  return { rig, guitar, strings, layoutString, fingers, pick, recLed, camRig, HS_TOP, TOP, FB_TOP, solids: {body: bodyMesh, neck, fretboard: fb} };
 }

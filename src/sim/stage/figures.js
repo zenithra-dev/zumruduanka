@@ -18,12 +18,18 @@ export function setLimb(m, a, b){
 function seg(g, r, m, a, b){ const x = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.85, r, 1, 10), m); g.add(x); setLimb(x, a, b); return x; }
 const TORSO = (() => { const pts = [[0.14, -0.04], [0.158, 0.04], [0.15, 0.14], [0.138, 0.24], [0.162, 0.36], [0.18, 0.46], [0.15, 0.54], [0.07, 0.6], [0.0, 0.61]].map(([r, y]) => new THREE.Vector2(r, y));
   const g = new THREE.LatheGeometry(pts, 24); g.scale(1, 1, 0.74); return g; })();
+// Ölçüm sözleşmesi (tools/sync-check.mjs; el yeniden kurulsa da korunmalı): h.userData.fingers = [başparmak, işaret, orta, yüzük, serçe] uç
+// segmentleri; her birinin userData.tip'i kendi çerçevesinde ucun (tele değen yastığın) noktası, userData.r kalınlığı (yarıçap, m); segment
+// zinciri ele kadar parent'larla yürünür. h.userData.palm avuç, h.userData.heel el çerçevesinde avucun serçe kenarındaki topuk (palm mute'ta köprüye değer).
 export function makeHand(scene, skin){
   const h = new THREE.Group(); scene.add(h);
   const palm = new THREE.Mesh(new THREE.BoxGeometry(0.068, 0.072, 0.03), skin); palm.position.y = 0.036; h.add(palm);
   const fg = new THREE.CylinderGeometry(0.0085, 0.0075, 0.048, 6); fg.translate(0, 0.024, 0);
-  for (let k = 0; k < 4; k++){ const f = new THREE.Mesh(fg, skin); f.position.set(-0.025 + k * 0.0167, 0.07, 0.004); f.rotation.x = 0.75; f.scale.y = k === 0 || k === 3 ? 0.85 : 1; h.add(f); }
+  const fs = [];
+  for (let k = 0; k < 4; k++){ const f = new THREE.Mesh(fg, skin); f.position.set(-0.025 + k * 0.0167, 0.07, 0.004); f.rotation.x = 0.75; f.scale.y = k === 0 || k === 3 ? 0.85 : 1; h.add(f); fs.push(f); }
   const th = new THREE.Mesh(fg, skin); th.position.set(0.034, 0.025, 0.008); th.rotation.set(0.5, 0, -0.9); h.add(th);
+  [th, ...fs].forEach(f => { f.userData.tip = new THREE.Vector3(0, 0.048, 0); f.userData.r = 0.008; });
+  h.userData = {fingers: [th, fs[3], fs[2], fs[1], fs[0]], palm, heel: new THREE.Vector3(-0.034, 0.012, 0.015)};   // işaret başparmağın yanındaki (k = 3); topuk avuç yüzünde
   return h;
 }
 export function figure(scene, o){

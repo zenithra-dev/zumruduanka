@@ -1,5 +1,6 @@
 // Bir şarkıyı motora programlar: gitar olayları ses grafiğine bağlanır, görsel katmanın izleyeceği zamanlı olay listeleri döner.
 import { OPEN } from "../music/theory.js";
+import { noteCurve } from "../music/bend.js";
 import { rand, getState, setState } from "../rng.js";
 
 const TAIL = 1.5;   // son notadan sonra reverb kuyruğu için pay (sn)
@@ -8,7 +9,7 @@ const TAIL = 1.5;   // son notadan sonra reverb kuyruğu için pay (sn)
 export const DOUBLE = {on: false, jitterMs: 16, detuneCents: 2.4, velSpread: 0.1};
 
 export function schedule(song, {engine, inst}){
-  const { ctx, chainIn, chainIn2 } = engine, { ksBuffer, expressNote } = inst;
+  const { ctx, chainIn, chainIn2 } = engine, { ksBuffer, expressNote } = inst, amp = engine.ampName;
   const {bpm, ev, beats} = song.build();
   const spb = 60 / bpm, t0 = ctx.currentTime + 0.2;
   ev.sort((a, b) => a.b - b.b);
@@ -34,8 +35,11 @@ export function schedule(song, {engine, inst}){
     if (DOUBLE.on && (e.inChord || e.m)) last[e.s].push(play(e, t + (rand() - 0.5) * DOUBLE.jitterMs / 1000, dur, midi, busR, 1));
     else gL.connect(busR);   // aynı sinyal iki zincire: ortada
     // Görsel katman için notanın kendi alanları da (sese etkisi yok): v vuruş gücü (null: şarkı belirtmemiş), h legato, bend/pre yarım ses,
-    // back bükmeyi geri bırakır, inChord akor notası, b şarkının kendi vuruş biriminde başlangıç
-    events.push({t, end: t + dur, s: e.s, f: e.f, midi, m: !!e.m, v: e.v ?? null, h: !!e.h, bend: e.bend || 0, pre: e.pre || 0, back: !!e.back, inChord: !!e.inChord, b: e.b});
+    // back bükmeyi geri bırakır, vib vibrato katı (0: belirtilmemiş), inChord akor notası, b şarkının kendi vuruş biriminde başlangıç;
+    // dur sesin kullandığı süre (sn, end - t'nin yuvarlamasız hali), amp çalan amfi, pm sesin palm mute çalması (m ya da kalın telde kısa nota).
+    // Bükme/vibrato eğrisi bu alanlardan music/bend.js curveOf/pitchAt ile sesle birebir aynı kurulur.
+    events.push({t, end: t + dur, s: e.s, f: e.f, midi, m: !!e.m, v: e.v ?? null, h: !!e.h, bend: e.bend || 0, pre: e.pre || 0, back: !!e.back, vib: e.vib || 0,
+      inChord: !!e.inChord, b: e.b, dur, amp, pm: noteCurve(e, t, dur, amp).muted});
   });
   // Akor vuruşları (3+ tel 40 ms içinde): ışık şovu ve yönetmen için
   const strums = [];
