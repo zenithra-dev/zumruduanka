@@ -1,5 +1,5 @@
 // Duman testi (npm test): her şarkı yüklenir, ilk saniyeleri sese dökülür, baştan/ortadan/sondan birer kare çizilir.
-// Hata, NaN, sessizlik, kara kare, boş ya da kısa çekim listesi arar; sonra önizleme sayfasını açıp çal/durdur dener.
+// Hata, NaN, sessizlik, kara kare, boş ya da kısa çekim listesi, bozuk ritim saati ve vurgusuz şarkı arar; sonra önizleme sayfasını açıp çal/durdur dener.
 //   SECS=10 SEED=1 node tools/check.js
 import { openHarness } from "./browser.js";
 
@@ -17,6 +17,10 @@ for (const id of ids){
     const off = new OfflineAudioContext(2, Math.ceil(SR * dur), SR);
     const sim = window.createSim({canvas: document.getElementById("gl"), audioContext: off, manual: true, seed: SEED});
     sim.setCamera("director"); sim.load(song);
+    // Ritim saati ve müzik özeti (music/clock.js): vuruş konumu artan, yoğunluk 0..1, en az bir vurgu
+    const C = await import(new URL("sim/music/clock.js", location.href).href), p = sim.playing;
+    let mono = true, prev = -Infinity; for (let k = 0; k <= 200; k++){ const b = C.beatAt(p, p.t0 + k / 200 * (p.end - p.t0)); if (!(b > prev)) mono = false; prev = b; }
+    const nAcc = C.accents(p).length, clockOk = mono && [0.5, full / 2].every(t => { const x = C.intensity(p, t); return x >= 0 && x <= 1; }) && isFinite(C.accentAt(p, full / 2));
     const shots = sim.playing.shots, cv = Object.assign(document.createElement("canvas"), {width: 1280, height: 720}), g = cv.getContext("2d"), lum = [], cams = new Set();
     for (const t of [0.5, full / 2, full - 0.3]){
       sim.frame(t, t); sim.composite(g, 1280, 720); cams.add(sim.director.cam);
@@ -26,7 +30,7 @@ for (const id of ids){
     }
     const buf = await off.startRendering(), L = buf.getChannelData(0); let pk = 0, nan = 0, sq = 0;
     for (let i = 0; i < L.length; i++){ if (!isFinite(L[i])) nan++; pk = Math.max(pk, Math.abs(L[i])); sq += L[i] * L[i]; }
-    return {name: song.name, full, shots: shots.length, lastEnd: shots.length ? shots[shots.length - 1].end : 0, kinds: [...new Set(shots.map(s => s.cam))].join(","), lum, pk, nan, rms: Math.sqrt(sq / L.length), audioCams: [...cams].join(",")};
+    return {name: song.name, full, shots: shots.length, lastEnd: shots.length ? shots[shots.length - 1].end : 0, kinds: [...new Set(shots.map(s => s.cam))].join(","), lum, pk, nan, rms: Math.sqrt(sq / L.length), audioCams: [...cams].join(","), nAcc, clockOk};
   }, [id, SEED, SECS]).catch(e => ({error: e.message}));
   h.page.off("pageerror", onErr);
   const probs = [];
@@ -39,9 +43,11 @@ for (const id of ids){
     if (r.lum.some(l => l < 6)) probs.push("kara kare (parlaklık " + r.lum.map(x => x.toFixed(0)).join("/") + ")");
     if (!r.shots) probs.push("çekim listesi boş");
     if (r.lastEnd < r.full - 0.01) probs.push("çekim listesi şarkıdan kısa");
+    if (!r.nAcc) probs.push("vurgu yok");
+    if (!r.clockOk) probs.push("ritim saati ya da yoğunluk bozuk");
   }
   row(!probs.length, r.error ? id + ": " + probs.join("; ") :
-    `${r.name.padEnd(22)} ${r.full.toFixed(1).padStart(5)} sn  ${String(r.shots).padStart(3)} çekim [${r.kinds}]  tepe ${r.pk.toFixed(2)} rms ${r.rms.toFixed(3)}  parlaklık ${r.lum.map(x => x.toFixed(0)).join("/")}` + (probs.length ? "  ← " + probs.join("; ") : ""));
+    `${r.name.padEnd(22)} ${r.full.toFixed(1).padStart(5)} sn  ${String(r.shots).padStart(3)} çekim [${r.kinds}]  tepe ${r.pk.toFixed(2)} rms ${r.rms.toFixed(3)}  parlaklık ${r.lum.map(x => x.toFixed(0)).join("/")}  vurgu ${r.nAcc}` + (probs.length ? "  ← " + probs.join("; ") : ""));
   await h.fresh();
 }
 

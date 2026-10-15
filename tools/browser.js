@@ -16,7 +16,8 @@ async function ready(page){
 }
 
 export async function openHarness({width = 1280, height = 720} = {}){
-  const server = await startServer(path.join(ROOT, "src"));
+  // SRC=yol/src: başka bir kaynak ağacını servis et (ör. eski sürümle ölçüm karşılaştırması); varsayılan bu reponun src'si
+  const server = await startServer(process.env.SRC ? path.resolve(process.env.SRC) : path.join(ROOT, "src"));
   const browser = await chromium.launch({
     executablePath: process.env.CHROMIUM || undefined,
     // GPU=1: yerel ekran kartıyla çiz (hızlı); yoksa her makinede aynı çıkan yazılım çizimi (swiftshader, CI)

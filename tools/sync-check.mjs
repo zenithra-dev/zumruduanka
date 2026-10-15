@@ -5,7 +5,11 @@
 //   OUT=out/tur1/taban.json BASE=out/tur1/taban.json         # JSON yolu; BASE verilirse fark tablosu da basılır
 //   AUDIO=1 ...                                              # ham ses tamponu: özet, saniyelik RMS ve <OUT>.ses.f32 (ses değişti mi?)
 //   KARE=out/tur1/kare ...                                   # her T'nin temiz yayın karesini PNG olarak da yaz
-//   SKIP=el,goruntu,determinizm                              # bölüm atla
+//   BOLUM="sinsi:b0-b32,doruk:69.8-76.4"                     # ritim bölümleri, sn ya da bN (N. vuruşun anı); dagkrali'nin varsayılanı var
+//   KADRAJ=doruk ...                                         # kadraj ölçümünün bölümü (varsayılan: "doruk" bölümü varsa o)
+//   SARKILAR=kaf,dagkrali ...                                # vurgu ve ses programı ölçülen şarkılar (varsayılan hepsi)
+//   SRC=yol/src ...                                          # başka bir kaynak ağacını ölç (ör. eski sürümle ses programı karşılaştırması)
+//   SKIP=el,goruntu,determinizm,muzik,kadraj                 # bölüm atla
 //   node tools/sync-check.mjs --fark a.json b.json           # tarayıcısız: iki ölçümü karşılaştır
 //   node tools/sync-check.mjs --wav a.wav b.wav              # tarayıcısız: iki WAV'ı örnek örnek karşılaştır
 //   node tools/sync-check.mjs --ham a.ses.f32 b.ses.f32      # tarayıcısız: AUDIO=1'in yazdığı iki ham ses tamponunu karşılaştır
@@ -14,9 +18,18 @@
 //   perde hedefi: o an basılı (f>0) notalardan ele en yakını, telin HOVER (2 cm) üstü; yalnız basılı nota olan karelerde ölçülür.
 //   pena hedefi: pena + gitar ekseninde (12 mm, 0, 20 mm). Erişim dışı: omuz-hedef uzaklığı > kol boyu (2·reach).
 //   dirsek: omuz-dirsek-uç iç açısı (180 = dümdüz). Sıçrama: el ucunun tek karede aldığı yol.
-//   pena-tel: tek nota başlangıcının ilk karesinde pena merkezinin vurulan tele uzaklığı (gitar kesitinde).
+//   pena-tel: tek nota başlangıcının ilk karesinde pena ucunun (pena modelinin sivri köşesi) vurulan tele uzaklığı (gitar kesitinde);
+//     penaTelMerkez_mm aynısı pena merkezinden (tur 1'in tanımı).
 //   görüntü: yalnız 3B kare (alt bant/HUD hariç); luma ve doygunluk BT.601 tam aralık (ffmpeg signalstats ölçeği).
 //   determinizm: aynı T'nin yayın karesi (PNG) ve sahne durumu temiz sayfada, geçmişli sırada ve ileriden geri atlayınca aynı mı.
+//   ritim (bölüm bölüm): kafa eğimi = kafanın dünyada baktığı yönün yükselme açısı (derece, + yukarı), bölümde tepeden tepeye;
+//     nod_hz kafa merkezi yüksekliğinin, egim_hz eğim açısının baskın frekansı (0.5-8 Hz, doğrusal eğilim çıkarılmış, Hann pencereli DFT,
+//     0.02 Hz adım); vurus_hz bölümün ortalama vuruş hızı (music/clock.js beatAt), nod bununla karşılaştırılır.
+//   muzik (şarkı başına): vurgu = clock.js accents(p) sayısı ve türleri, yoğunluk = intensity(p, t) 0.1 sn adımla; kesme = yönetmenin her
+//     çekim başı karesi ile en yakın nota başlangıcı karesi arasındaki fark (kare, + kesme notadan sonra; açılış çekimi ve video
+//     bittikten sonra planlanmış çekimler sayılmaz);
+//     ses programı = kurulumdan, yüklemeden ve üç kareden sonra rng durumu + olayların ses alanları + bitiş + akor vuruşları özeti.
+//   kadraj: yönetmen kamerasında kafa merkezi kadrajda mı; sap eli (perde eli) yayın alt bandında (y > 600 px) ya da altında mı.
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
@@ -37,9 +50,16 @@ function readWav(f){
 const pick = (o, k) => k.split(".").reduce((x, p) => x == null ? x : x[p], o);
 const KEYS = ["el.perde.hata_cm.med", "el.perde.hata_cm.p90", "el.perde.erisimDisi_yuzde", "el.pena.hata_cm.med", "el.pena.erisimDisi_yuzde",
   "el.perde.dirsek_derece.med", "el.pena.dirsek_derece.med", "el.perde.sicrama.gt5cm", "el.perde.sicrama.gt10cm", "el.perde.sicrama.max_cm",
-  "el.pena.sicrama.gt5cm", "el.pena.sicrama.gt10cm", "el.penaTel_mm.med", "el.elKullanimi.ozet"];
+  "el.pena.sicrama.gt5cm", "el.pena.sicrama.gt10cm", "el.penaTel_mm.med", "el.penaTel_mm.p90", "el.penaTelMerkez_mm.med", "el.elKullanimi.ozet",
+  "kadraj.kafa_yuzde", "kadraj.sapEliKadrajda_yuzde", "kadraj.sapEliAltBant_yuzde"];
 function diffTable(a, b){
   const rows = KEYS.map(k => [k, pick(a, k), pick(b, k)]).filter(r => r[1] !== undefined || r[2] !== undefined);
+  for (const s of (b.ritim && b.ritim.bolumler) || []){ const o = ((a.ritim && a.ritim.bolumler) || []).find(x => x.ad === s.ad) || {};
+    for (const k of ["egim_pp_derece", "nod_hz", "egim_hz", "kafaY_pp_cm", "vurus_hz"]) rows.push([`ritim ${s.ad} ${k}`, o[k], s[k]]); }
+  for (const [id, m] of Object.entries((b.muzik && b.muzik.sarkilar) || {})){ const o = (a.muzik && a.muzik.sarkilar && a.muzik.sarkilar[id]) || {};
+    rows.push([`vurgu ${id}`, o.vurgu && o.vurgu.n, m.vurgu && m.vurgu.n]);
+    rows.push([`kesme ${id} |kare| med / ≤1 kare %`, o.kesme && `${o.kesme.med} / ${o.kesme.le1_yuzde}`, m.kesme && `${m.kesme.med} / ${m.kesme.le1_yuzde}`]);
+    if (o.ses) rows.push([`ses programı ${id}`, o.ses.ozet, m.ses.ozet, o.ses.ozet !== m.ses.ozet]); }
   for (const g of b.goruntu || []){ const o = (a.goruntu || []).find(x => x.kare === g.kare) || {};
     for (const k of ["luma_p5", "tamBeyaz_yuzde", "doygunluk", "karanlikSeviye"]) rows.push([`goruntu ${g.kare} ${k}`, o[k], g[k]]); }
   for (const d of b.determinizm || []){ const o = (a.determinizm || []).find(x => x.kare === d.kare) || {}; rows.push([`determinizm ${d.kare}`, o.ayni, d.ayni]); }
@@ -84,10 +104,15 @@ const MK = `(P, len) => { const off = new OfflineAudioContext(2, Math.ceil(44100
   const sim = window.sim = window.createSim({canvas: document.getElementById("gl"), audioContext: off, manual: true, seed: P.SEED});
   if (!len) sim.setEnv(P.ENVN); sim.setCamera(len ? "director" : P.CAM); const p = sim.load(window.findSong(P.SONG)); return {sim, p, off}; }`;
 
-async function hands(h){
+// Bölüm sınırı: sayı (sn) ya da "bN" (N. vuruşun anı; clock.js yoksa sabit tempo). Sayfada çözülür.
+const clockSrc = `async () => { try { return await import(new URL("sim/music/clock.js", location.href).href); } catch (e){ return null; } }`;
+async function hands(h, secs){
   await h.fresh();
-  return h.page.evaluate(async ([P, MK]) => {
-    const th = await import(new URL("sim/music/theory.js", location.href).href), {sim, p} = eval(MK)(P);
+  return h.page.evaluate(async ([P, MK, secs, clockSrc]) => {
+    const th = await import(new URL("sim/music/theory.js", location.href).href), {sim, p} = eval(MK)(P), CL = await eval(clockSrc)();
+    const tm = x => typeof x === "number" ? x : CL ? CL.timeAt(p, +x.slice(1)) : p.t0 + +x.slice(1) * 60 / p.bpm;
+    const bt = t => CL ? CL.beatAt(p, t) : (t - p.t0) * p.bpm / 60;
+    const bol = secs.map(s => { const a = tm(s.a), b = tm(s.b); return {ad: s.ad, a, b, vurus_hz: (bt(b) - bt(a)) / (b - a)}; });
     sim.setCamera("stage");
     const THREE = sim.THREE, f = sim.FIG.claude, {guitar, pick} = sim.model, V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
     const armLen = i => f.armLen || (f.reach ? 2 * f.reach : f.arms[i].up.scale.y + f.arms[i].fo.scale.y);
@@ -96,10 +121,12 @@ async function hands(h){
     const onsets = new Map();   // tek notaların (akor değil) başlangıç karesi
     ev.forEach((e, i) => { if ((i && e.t - ev[i - 1].t < 0.04) || (i + 1 < ev.length && ev[i + 1].t - e.t < 0.04)) return;
       const k = Math.ceil(e.t * P.FPS - 1e-9); onsets.set(k, (onsets.get(k) || []).concat(e)); });
-    const R = [0, 1].map(() => ({fret: [], fretOut: 0, pick: [], pickOut: 0, elbow: [], j5: 0, j10: 0, jmax: 0, jAt: 0})), pickStr = [];
+    const R = [0, 1].map(() => ({fret: [], fretOut: 0, pick: [], pickOut: 0, elbow: [], j5: 0, j10: 0, jmax: 0, jAt: 0})), pickStr = [], pickMid = [];
+    const k0 = Math.ceil(t0 * P.FPS - 1e-9), headY = [], headP = [], HQ = new THREE.Quaternion();
     let prev = null, n = 0, nFret = 0;
-    for (let k = Math.ceil(t0 * P.FPS - 1e-9); k / P.FPS <= t1; k++){
+    for (let k = k0; k / P.FPS <= t1; k++){
       const t = k / P.FPS; sim.update(t, t); sim.scene.updateMatrixWorld(true); n++;
+      headY.push(f.head.getWorldPosition(V()).y); headP.push(Math.asin(Math.max(-1, Math.min(1, V(0, 0, 1).applyQuaternion(f.head.getWorldQuaternion(HQ)).y))) * 180 / Math.PI);
       const tg = ev.filter(e => e.f > 0 && t >= e.t && t < e.end).map(e => { const x = th.fingerX(e.f); return guitar.localToWorld(V(x, th.stringY(e.s, x), th.STR_Z + P.HOVER)); });
       const pw = pick.getWorldPosition(V()).add(V(0.012, 0, 0.02).applyQuaternion(guitar.getWorldQuaternion(new THREE.Quaternion())));
       const T = [tip(0), tip(1)]; if (tg.length) nFret++;
@@ -110,7 +137,9 @@ async function hands(h){
         r.elbow.push(180 - E.clone().sub(S).angleTo(T[i].clone().sub(E)) * 180 / Math.PI);
         if (prev){ const d = T[i].distanceTo(prev[i]); if (d > 0.05) r.j5++; if (d > 0.10) r.j10++; if (d > r.jmax){ r.jmax = d; r.jAt = t; } }
       });
-      for (const e of onsets.get(k) || []){ const q = guitar.worldToLocal(pick.getWorldPosition(V())); pickStr.push(Math.hypot(q.y - th.stringY(e.s, q.x), q.z - th.STR_Z)); }
+      // Pena ucu: pena şeklinin sivri köşesi (guitar-model.js pickShape (0, -0.012)); merkez tur 1 tanımı
+      const dStr = (e, w) => { const q = guitar.worldToLocal(w); return Math.hypot(q.y - th.stringY(e.s, q.x), q.z - th.STR_Z); };
+      for (const e of onsets.get(k) || []){ pickStr.push(dStr(e, pick.localToWorld(V(0, -0.012, 0)))); pickMid.push(dStr(e, pick.getWorldPosition(V()))); }
       prev = T;
     }
     // Perde eli: perde+pena hatası toplamını en küçük yapan eşleşme. Taraf figürün kendi ekseninde (+z'ye bakar, sağı -x).
@@ -118,8 +147,27 @@ async function hands(h){
     const fa = med(R[1].fret) + med(R[0].pick) <= med(R[0].fret) + med(R[1].pick) ? 1 : 0;
     const side = i => f.g.worldToLocal(f.up.localToWorld(f.sh[i].clone())).x < 0 ? "sağ" : "sol";
     const neck = f.g.worldToLocal(guitar.localToWorld(V(0, 0, 0))).x - f.g.worldToLocal(guitar.localToWorld(V(th.L, 0, 0))).x;
-    return {n, nFret, t0, t1, fa, fretSide: side(fa), pickSide: side(1 - fa), neckToLeft: neck > 0, armLen: [armLen(0), armLen(1)], R, pickStr};
-  }, [P, MK]);
+    return {n, nFret, t0, t1, fa, fretSide: side(fa), pickSide: side(1 - fa), neckToLeft: neck > 0, armLen: [armLen(0), armLen(1)], R, pickStr, pickMid, k0, headY, headP, bol};
+  }, [P, MK, secs, clockSrc]);
+}
+// Baskın frekans (Hz): doğrusal eğilim çıkarılır, Hann penceresi, lo..hi arasında step adımla DFT genliğinin tepesi
+function domHz(x, fps, lo = 0.5, hi = 8, step = 0.02){
+  const n = x.length; if (n < fps * 2) return null;
+  let sx = 0, sy = 0, sxx = 0, sxy = 0; x.forEach((v, i) => { sx += i; sy += v; sxx += i * i; sxy += i * v; });
+  const b = (n * sxy - sx * sy) / (n * sxx - sx * sx), a = (sy - b * sx) / n, d = x.map((v, i) => (v - a - b * i) * (0.5 - 0.5 * Math.cos(2 * Math.PI * i / (n - 1))));
+  let best = -1, bf = null;
+  for (let j = 0, f = lo; f <= hi + 1e-9; f = +(lo + ++j * step).toFixed(6)){ let re = 0, im = 0; const w = 2 * Math.PI * f / fps;
+    for (let i = 0; i < n; i++){ re += d[i] * Math.cos(w * i); im += d[i] * Math.sin(w * i); }
+    if (re * re + im * im > best){ best = re * re + im * im; bf = f; } }
+  return bf;
+}
+// Ritim raporu: her bölümde (ölçülen aralıkla kesişen kısmında) kafa eğimi ve nod
+function rhythmReport(m){
+  const span = (a, b) => { const i0 = Math.max(0, Math.ceil(a * FPS - 1e-9) - m.k0), i1 = Math.min(m.headY.length, Math.floor(b * FPS) - m.k0 + 1); return [i0, i1]; };
+  const all = {ad: "tum", a: m.t0, b: m.t1, vurus_hz: null};
+  return {bolumler: [...m.bol, all].map(s => { const [i0, i1] = span(s.a, s.b); if (i1 - i0 < FPS) return {ad: s.ad, aralik_sn: [s.a, s.b], kare: Math.max(0, i1 - i0)};
+    const Y = m.headY.slice(i0, i1), E = m.headP.slice(i0, i1), pp = a => Math.max(...a) - Math.min(...a);
+    return {ad: s.ad, aralik_sn: [s.a, s.b], kare: i1 - i0, egim_pp_derece: pp(E), nod_hz: domHz(Y, FPS), egim_hz: domHz(E, FPS), kafaY_pp_cm: pp(Y) * 100, vurus_hz: s.vurus_hz}; })};
 }
 
 // Bir T'yi verilen sırayla çizer: 3B kare istatistikleri, yayın karesi PNG'si ve sahne durumu
@@ -176,16 +224,76 @@ function handReport(m){
   const sag = m.pickSide === "sağ" && m.fretSide === "sol" && m.neckToLeft;
   return {kare: m.n, basiliNotaKare: m.nFret, aralik_sn: [m.t0, m.t1], kolBoyu_m: m.armLen,
     elKullanimi: {perdeEli: m.fretSide, penaEli: m.pickSide, sapYonu: m.neckToLeft ? "oyuncunun solu" : "oyuncunun sağı", ozet: sag ? "sağ elle çalıyor" : "solak (sağ el perdede)"},
-    perde: arm(m.fa), pena: arm(1 - m.fa), penaTel_mm: st(m.pickStr.map(x => x * 1000))};
+    perde: arm(m.fa), pena: arm(1 - m.fa), penaTel_mm: st(m.pickStr.map(x => x * 1000)), penaTelMerkez_mm: st(m.pickMid.map(x => x * 1000))};
 }
+
+// Şarkı başına: vurgular, yoğunluk, kesmelerin notaya uzaklığı ve ses programı özeti. Kurulum render.js ile aynı (mekan değişmez, yönetmen).
+// clock.js olmayan eski bir kaynakta (SRC) yalnız kesme ve ses programı ölçülür.
+async function music(h, id){
+  await h.fresh();
+  const r = await h.page.evaluate(async ([id, P, clockSrc]) => {
+    const rng = await import(new URL("sim/rng.js", location.href).href), CL = await eval(clockSrc)(), song = window.findSong(id);
+    const sim = window.createSim({canvas: document.getElementById("gl"), audioContext: new OfflineAudioContext(2, 44100 * 2, 44100), manual: true, seed: P.SEED});
+    const rs = [rng.getState()]; sim.setCamera("director"); const p = sim.load(song); rs.push(rng.getState());
+    [0.5, 5, 12.3].forEach(t => sim.frame(t, t)); rs.push(rng.getState());
+    const ev = p.events, on = [];
+    for (let i = 0; i < ev.length; ){ let j = i; while (j + 1 < ev.length && ev[j + 1].t - ev[i].t < 0.04) j++; on.push(ev[i].t); i = j + 1; }
+    const o = {id: song.id, rs, olay: JSON.stringify(ev.map(e => [e.t, e.end, e.s, e.f, e.midi, e.m])), end: p.end, strums: JSON.stringify(p.strums),
+      cekim: JSON.stringify(p.shots.map(s => [s.t, s.end, s.cam, s.kind, s.who])), cuts: p.shots.slice(1).filter(s => s.t < sim.videoEnd()).map(s => s.t), on, nOlay: ev.length};
+    if (CL){
+      const A = CL.accents(p), tur = {}; A.forEach(a => { tur[a.k] = (tur[a.k] || 0) + 1; });
+      const I = []; for (let t = p.t0; t < p.end; t += 0.1) I.push(CL.intensity(p, t));
+      o.vurgu = {n: A.length, tur}; o.I = I; o.vurus = p.beats ? p.beats.length : 0;
+    }
+    return o;
+  }, [id, P, clockSrc]);
+  const fr = t => Math.ceil(t * FPS - 1e-9), d = r.cuts.map(c => { let b = null; for (const t of r.on){ const x = fr(c) - fr(t); if (b === null || Math.abs(x) < Math.abs(b)) b = x; } return b; });
+  const ad = d.map(Math.abs), out = {olay: r.nOlay, vurus: r.vurus,
+    kesme: {n: d.length, ...(({med, p90, max}) => ({med, p90, max}))(st(ad)), le1_yuzde: +(100 * ad.filter(x => x <= 1).length / Math.max(1, d.length)).toFixed(1),
+      sifir_yuzde: +(100 * ad.filter(x => !x).length / Math.max(1, d.length)).toFixed(1), kareler: d},
+    ses: {ozet: sha(JSON.stringify([r.rs, sha(r.olay), r.end, r.strums])), rng: r.rs, olay: sha(r.olay), end: r.end}, cekimPlani: sha(r.cekim)};
+  if (r.vurgu){ const I = st(r.I); out.vurgu = r.vurgu; out.yogunluk = {min: I.min, p10: I.p10, med: I.med, p90: I.p90, max: I.max}; }
+  return out;
+}
+
+// Kadraj: bölümde yönetmen kamerasıyla her karede kafa ve sap eli kadrajda mı (çizim yok, yalnız izdüşüm)
+async function framing(h, sec){
+  await h.fresh();
+  return h.page.evaluate(async ([P, MK, sec, clockSrc]) => {
+    const {sim, p} = eval(MK)({...P, CAM: "director"}), CL = await eval(clockSrc)(), THREE = sim.THREE, V = () => new THREE.Vector3(), f = sim.FIG.claude, rows = {};
+    const tm = x => typeof x === "number" ? x : CL ? CL.timeAt(p, +x.slice(1)) : p.t0 + +x.slice(1) * 60 / p.bpm, a = tm(sec.a), b = tm(sec.b);
+    const proj = (w, C) => { const c = w.clone().applyMatrix4(C.matrixWorldInverse), n = w.clone().project(C); return {front: c.z < 0, x: n.x, y: n.y, py: (1 - n.y) / 2 * 720}; };
+    let N = 0, head = 0, hand = 0, band = 0;
+    for (let k = Math.ceil(a * P.FPS - 1e-9); k / P.FPS <= b; k++){
+      const t = k / P.FPS; sim.update(t, t); sim.scene.updateMatrixWorld(true);
+      const cam = sim.director.cam, C = cam === "head" ? sim.cams.head : cam === "stage" ? sim.cams.stage : sim.cams.group; C.updateMatrixWorld(true);
+      const fi = (sim.rigs.parts.claude.aim || {}).fretArm ?? 0, H = proj(f.head.getWorldPosition(V()), C), F = proj(f.hands[fi].getWorldPosition(V()), C);
+      const hIn = H.front && Math.abs(H.x) <= 1 && Math.abs(H.y) <= 1, fIn = F.front && Math.abs(F.x) <= 1 && Math.abs(F.y) <= 1, fBand = F.front && Math.abs(F.x) <= 1 && F.py > 600;
+      const sh = p.shots.find(s => t >= s.t && t < s.end), key = sh ? `${sh.cam}/${sh.kind}@${sh.t.toFixed(2)}` : "-", r = rows[key] || (rows[key] = {kare: 0, kafa: 0, sapEli: 0, altBant: 0});
+      N++; r.kare++; if (hIn){ head++; r.kafa++; } if (fIn){ hand++; r.sapEli++; } if (fBand){ band++; r.altBant++; }
+    }
+    return {N, head, hand, band, rows, a, b};
+  }, [P, MK, sec, clockSrc]);
+}
+
+// Ritim bölümleri "ad:a-b" (a, b sn ya da bN). dagkrali: beş tur (her tur 32 vuruş) ve son tur + B5 kodası (doruk)
+const BOLUM_VARS = {dagkrali: "sinsi:b0-b32,tur2:b32-b64,tur3:b64-b96,tur4:b96-b128,tur5:b128-b160,doruk:b160-b183"};
+const parseSecs = s => s.split(",").filter(Boolean).map(x => { const m = /^([^:]+):(b?[\d.]+)-(b?[\d.]+)$/.exec(x.trim());
+  if (!m) throw new Error("BOLUM öğesi anlaşılmadı: " + x); const v = y => y[0] === "b" ? y : +y; return {ad: m[1], a: v(m[2]), b: v(m[3])}; });
+const SECS = parseSecs(ENVV.BOLUM ?? BOLUM_VARS[SONG] ?? "");
+const KSEC = ENVV.KADRAJ ? (ENVV.KADRAJ.includes("-") ? parseSecs("kadraj:" + ENVV.KADRAJ)[0] : SECS.find(s => s.ad === ENVV.KADRAJ)) : SECS.find(s => s.ad === "doruk");
 
 // Kare listesi: "72.4" ya da "mekan/kamera@T" (ör. "theater@45", "summit/stage@30"); boş kısım ENV/CAM'dan gelir
 const Tdef = (ENVV.T || "10.2,16.65,72.4").split(",").map(x => { const m = /^(?:([a-z]+))?(?:\/([a-z]+))?@?([\d.]+)$/.exec(x.trim());
   if (!m) throw new Error("T öğesi anlaşılmadı: " + x); return {kare: x.trim(), T: +m[3], env: m[1] || ENVN, cam: m[2] || CAM}; });
 const h = await openHarness();
-const res = {meta: {SONG, SEED, FPS, ENV: ENVN, CAM, HOVER, tarih: new Date().toISOString(), commit: (() => { try { return execSync("git rev-parse --short HEAD", {cwd: ROOT}).toString().trim(); } catch { return "?"; } })()}};
+const res = {meta: {SONG, SEED, FPS, ENV: ENVN, CAM, HOVER, src: ENVV.SRC || "src", tarih: new Date().toISOString(), commit: (() => { try { return execSync("git rev-parse --short HEAD", {cwd: ROOT}).toString().trim(); } catch { return "?"; } })()}};
 try {
-  if (!SKIP.has("el")) res.el = handReport(await hands(h));
+  if (!SKIP.has("el")){ const m = await hands(h, SECS); res.el = handReport(m); res.ritim = rhythmReport(m); }
+  if (!SKIP.has("kadraj") && KSEC){ const k = await framing(h, KSEC), pc = x => +(100 * x / Math.max(1, k.N)).toFixed(1);
+    res.kadraj = {bolum: KSEC.ad, aralik_sn: [k.a, k.b], kare: k.N, kafa_yuzde: pc(k.head), sapEliKadrajda_yuzde: pc(k.hand), sapEliAltBant_yuzde: pc(k.band), cekimler: k.rows}; }
+  if (!SKIP.has("muzik")){ const ids = ENVV.SARKILAR ? ENVV.SARKILAR.split(",") : await h.page.evaluate(() => window.SONG_IDS);
+    res.muzik = {sarkilar: {}}; for (const id of ids) res.muzik.sarkilar[id] = await music(h, id); }
   if (!SKIP.has("goruntu") || !SKIP.has("determinizm")){
     res.goruntu = []; res.determinizm = [];
     for (const {kare, T, env, cam} of Tdef){
@@ -215,8 +323,13 @@ if (e){
   for (const [n, a] of [["Perde eli", e.perde], ["Pena eli ", e.pena]])
     L.push(`  ${n} (kol ${a.kol}, ${a.taraf}): hata med ${r3(a.hata_cm.med)} / p90 ${r3(a.hata_cm.p90)} / max ${r3(a.hata_cm.max)} cm, erişim dışı %${a.erisimDisi_yuzde}, dirsek med ${r3(a.dirsek_derece.med)}° ` +
       `[${Object.entries(a.dirsekDagilim_yuzde).map(([k, v]) => `${k}:${v}`).join(" ")}], sıçrama >5cm ${a.sicrama.gt5cm}, >10cm ${a.sicrama.gt10cm}, en büyük ${r3(a.sicrama.max_cm)} cm @${r3(a.sicrama.maxAt_sn)} sn`);
-  L.push(`  Pena-tel (tek nota başlangıcı): med ${r3(e.penaTel_mm.med)} mm, p90 ${r3(e.penaTel_mm.p90)} mm (${e.penaTel_mm.n} nota); ${e.kare} kare, ${e.basiliNotaKare} basılı notalı`);
+  L.push(`  Pena-tel (tek nota başlangıcı): uç med ${r3(e.penaTel_mm.med)} mm, p90 ${r3(e.penaTel_mm.p90)} mm; merkez med ${r3(e.penaTelMerkez_mm.med)} mm (${e.penaTel_mm.n} nota); ${e.kare} kare, ${e.basiliNotaKare} basılı notalı`);
 }
+for (const s of (res.ritim && res.ritim.bolumler) || []) L.push(`  Ritim ${s.ad} [${r3(s.aralik_sn[0])}-${r3(s.aralik_sn[1])} sn]: ` + (s.egim_pp_derece === undefined ? `ölçülen aralık dışında (${s.kare} kare)` :
+  `kafa eğimi tepeden tepeye ${r3(s.egim_pp_derece)}°, nod ${r3(s.nod_hz)} Hz (eğim ${r3(s.egim_hz)} Hz${s.vurus_hz ? `, vuruş ${r3(s.vurus_hz)} Hz` : ""}), kafa yüksekliği ${r3(s.kafaY_pp_cm)} cm`));
+if (res.kadraj){ const k = res.kadraj; L.push(`  Kadraj ${k.bolum} [${r3(k.aralik_sn[0])}-${r3(k.aralik_sn[1])} sn, ${k.kare} kare]: kafa kadrajda %${k.kafa_yuzde}, sap eli kadrajda %${k.sapEliKadrajda_yuzde}, alt bantta %${k.sapEliAltBant_yuzde}`); }
+for (const [id, m] of Object.entries((res.muzik && res.muzik.sarkilar) || {})) L.push(`  Müzik ${id.padEnd(9)} ` + (m.vurgu ? `vurgu ${String(m.vurgu.n).padStart(3)} ${JSON.stringify(m.vurgu.tur)}, yoğunluk ${r3(m.yogunluk.min)}/${r3(m.yogunluk.med)}/${r3(m.yogunluk.max)}, ` : "") +
+  `kesme |kare| med ${m.kesme.med} p90 ${m.kesme.p90} max ${m.kesme.max} (≤1 kare %${m.kesme.le1_yuzde}, ${m.kesme.n} kesme), ses programı ${m.ses.ozet}`);
 for (const g of res.goruntu || []) L.push(`  Görüntü ${g.kare} (${g.env}, ${g.cam}, ${g.shot}): luma p5 ${g.luma_p5}, med ${g.luma_med}, tam beyaz %${g.tamBeyaz_yuzde}, doygunluk ${g.doygunluk}, 0-40 seviye ${g.karanlikSeviye}`);
 for (const d of res.determinizm || []) L.push(`  Determinizm ${d.kare}: ${d.ayni ? "AYNI" : "FARKLI"}  ${Object.entries(d).filter(([k]) => typeof d[k] === "object").map(([k, v]) => `${k} ${v.kare}/${v.durum}`).join("  ")}`);
 if (res.ses) L.push(`  Ses: ${res.ses.ornek} örnek, özet ${res.ses.ozet}`);

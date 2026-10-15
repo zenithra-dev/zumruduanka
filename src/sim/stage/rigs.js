@@ -2,6 +2,7 @@
 // Kişinin kendi geometrisi ve pozu members/ altında; burası ortak olanı yapar.
 import * as THREE from "three";
 import { rand } from "../rng.js";
+import { beatAt } from "../music/clock.js";
 import { FLOOR, worldOf, setFigVisible } from "./figures.js";
 import { MEMBER_RIGS } from "./members/index.js";
 
@@ -58,7 +59,7 @@ export function createRigs({scene, model, hemi, drawBanner}){
   let flash = 0; const _white = new THREE.Color(0xffffff);
   // Her karede: kişiyi çalınan notalara göre pozlar, ışık şovunu günceller. hemiBase: mekanın temel ortam ışığı.
   function updateBand(now, wall, p, hemiBase){
-    const bpm = p ? p.bpm : 90, beat = now * bpm / 60;
+    const beat = beatAt(p, now);   // ortak ritim saati: şarkının gerçek vuruşu (çalmıyorken 90 BPM boşta)
     if (wall === undefined) wall = now;
     MEMBER_RIGS.forEach(M => life(FIG[M.id], wall, beat, M.groove(p)));
     Object.values(FIG).forEach(f => blink(f, wall));

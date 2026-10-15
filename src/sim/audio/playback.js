@@ -9,7 +9,7 @@ export const DOUBLE = {on: false, jitterMs: 16, detuneCents: 2.4, velSpread: 0.1
 
 export function schedule(song, {engine, inst}){
   const { ctx, chainIn, chainIn2 } = engine, { ksBuffer, expressNote } = inst;
-  const {bpm, ev} = song.build();
+  const {bpm, ev, beats} = song.build();
   const spb = 60 / bpm, t0 = ctx.currentTime + 0.2;
   ev.sort((a, b) => a.b - b.b);
   // Akor tespiti: aynı anda (0.06 vuruş içinde) başlayan notalar; bunlara vibrato ve kayma uygulanmaz
@@ -33,13 +33,18 @@ export function schedule(song, {engine, inst}){
     const gL = play(e, t, dur, midi, busL, 0); last[e.s].push(gL);
     if (DOUBLE.on && (e.inChord || e.m)) last[e.s].push(play(e, t + (rand() - 0.5) * DOUBLE.jitterMs / 1000, dur, midi, busR, 1));
     else gL.connect(busR);   // aynı sinyal iki zincire: ortada
-    events.push({t, end: t + dur, s: e.s, f: e.f, midi, m: !!e.m});
+    // Görsel katman için notanın kendi alanları da (sese etkisi yok): v vuruş gücü (null: şarkı belirtmemiş), h legato, bend/pre yarım ses,
+    // back bükmeyi geri bırakır, inChord akor notası, b şarkının kendi vuruş biriminde başlangıç
+    events.push({t, end: t + dur, s: e.s, f: e.f, midi, m: !!e.m, v: e.v ?? null, h: !!e.h, bend: e.bend || 0, pre: e.pre || 0, back: !!e.back, inChord: !!e.inChord, b: e.b});
   });
   // Akor vuruşları (3+ tel 40 ms içinde): ışık şovu ve yönetmen için
   const strums = [];
   for (let i = 0; i < events.length; ){ let j = i; while (j + 1 < events.length && events[j + 1].t - events[i].t < 0.04) j++; if (j - i >= 2) strums.push(events[i].t); i = j + 1; }
   const end = (events.length ? Math.max(...events.map(e => e.end)) : t0) + TAIL;
-  return {events, end, bus: busL, bus2: busR, srcs, song, bpm, t0, strums, shots: []};
+  // Şarkı vuruş konumlarını verdiyse (tempo bükülen şarkılar) saniyeye çevrilir; ritim saati (music/clock.js beatAt) bunları izler
+  const p = {events, end, bus: busL, bus2: busR, srcs, song, bpm, t0, strums, shots: []};
+  if (beats && beats.length > 1) p.beats = beats.map(b => t0 + b * spb);
+  return p;
 }
 // Çalmayı keser: busu kısar, kaynakları durdurur.
 export function release(p, ctx){
