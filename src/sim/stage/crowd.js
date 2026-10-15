@@ -1,6 +1,7 @@
 // Seyirci: instanced silüetler. Sahne önünde ayakta kalabalık, tiyatroda basamaklarda oturanlar. Ritme göre zıplar, bazıları el kaldırır.
 import * as THREE from "three";
 import { rand } from "../rng.js";
+import { beatAt } from "../music/clock.js";
 import { FLOOR } from "./figures.js";
 
 export function createCrowd(scene){
@@ -25,7 +26,7 @@ export function createCrowd(scene){
   const C = {P, body, head, arm, m4: new THREE.Matrix4(), q: new THREE.Quaternion(), e: new THREE.Euler(), v: new THREE.Vector3(), sc: new THREE.Vector3()};
 
   function update(now, wall, p, envName){
-    const beat = now * (p ? p.bpm : 90) / 60, theater = envName === "theater";
+    const beat = beatAt(p, now), theater = envName === "theater";
     const energy = p ? 0.8 : 0;
     C.P.forEach((q, i) => {
       const vis = !q.seat || theater, hop = vis ? energy * (q.seat ? 0.015 : 0.05) * Math.abs(Math.sin(beat * Math.PI + q.ph * 0.15)) : 0;
