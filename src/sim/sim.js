@@ -10,7 +10,6 @@
 // manual: true → şarkı sonunda kendiliğinden durmaz (araç yönetir).
 import * as THREE from "three";
 import { seed as seedRng } from "./rng.js";
-import { STR_Z, fingerX, stringY } from "./music/theory.js";
 import { SONGS, findSong } from "./band/songs/index.js";
 import { MEMBER, BAND_NAME } from "./band/members.js";
 import { createScene } from "./stage/scene.js";
@@ -79,27 +78,10 @@ export function createSim(opts = {}){
   function update(now, wall){
     if (wall === undefined) wall = now;
     lastNow = now;
-    const act = [null,null,null,null,null,null];
-    if (playing){
-      for (const e of playing.events) if (now >= e.t && now < e.end) act[e.s] = e;
-      if (!manual && now > playing.end){ stop(); if (sim.onEnd) sim.onEnd(); }
-    }
-    const { strings, layoutString, fingers, recLed } = model;   // pena konumu üyenin pozunda (members/claude.js pickAt)
-    for (let s = 0; s < 6; s++){
-      const e = act[s], st = strings[s];
-      if (e){
-        const age = now - e.t, amp = reduceMotion ? 0.0006 : 0.0022 * Math.exp(-age * 2.5) + 0.0004;
-        layoutString(s, e.f, amp, wall * 70 + s);
-        st.mat.color.setHex(0xffc27a);
-        if (e.f > 0){ fingers[s].visible = true; fingers[s].position.set(fingerX(e.f), stringY(s, fingerX(e.f)), STR_Z + 0.004); }
-        else fingers[s].visible = false;
-      } else {
-        if (st.wasActive) layoutString(s, 0, 0, 0);
-        st.mat.color.copy(st.base); fingers[s].visible = false;
-      }
-      st.wasActive = !!e;
-    }
-    if (sim.recording) recLed.material.color.setHex(Math.floor(wall * 2) % 2 ? 0xff2a2a : 0x661111);
+    if (playing && !manual && now > playing.end){ stop(); if (sim.onEnd) sim.onEnd(); }
+    // Teller yalnız (now, olaylar)'dan: titreşim iği, basılı perde, bükme ve vibrato (guitar-model.js updateStrings); pena üyenin pozunda (claude.js pickAt)
+    model.updateStrings(now, playing && playing.events, reduceMotion);
+    if (sim.recording) model.recLed.material.color.setHex(Math.floor(wall * 2) % 2 ? 0xff2a2a : 0x661111);
     rigs.updateBand(now, wall, playing, venues.current.hemi[2]);
     fx.update(now, wall, playing);
     venues.updateEnv(wall);
