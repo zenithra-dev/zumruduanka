@@ -1,7 +1,8 @@
-// Claude'un gitarı: Stratocaster tipi gövde, sap, teller, parmaklar, pena ve sap kafasındaki kamera.
+// Claude'un gitarı: Stratocaster tipi gövde, sap, teller, pena ve sap kafasındaki kamera.
 // Gitar yerel çerçevesi: x sap boyunca (0 eşik, L köprü, eksi taraf kafa), y teller arası (+ kalın E), z kapaktan dışarı.
 import * as THREE from "three";
-import { L, FRETS, fretX, STR_Z, stringY, fingerX } from "../music/theory.js";
+import { L, FRETS, fretX, STR_Z, stringY, pressX, mtof } from "../music/theory.js";
+import { bendDisplacement, bendShape, PRE_IN, REL } from "../music/bend.js";
 
 export function createGuitarModel(scene){
   // Sağ elle çalış: gitar, Claude'un orta düzlemine (x = 0.2) göre aynalanmış bir taşıyıcıda durur. İçteki duruş solak
@@ -162,46 +163,142 @@ export function createGuitarModel(scene){
   recLed.position.set(0.012, 0.016, 0.0605); camRig.add(recLed);
   guitar.add(camRig);
 
-  /* ---------- Teller, parmaklar, pena ---------- */
-  const SEG = 60;
+  /* ---------- Teller ---------- */
+  // Kalibre (çap, m; 10-46 takım): kalın üçü nikel sarımlı (sarım deseni, daha pürüzlü), ince üçü düz çelik. Her tel burgudan eşiğe, eşikten
+  // köprüye tek bir şerit: şerit kameraya döner, üstü silindir normaliyle gölgelenir (tüp taklidi). Genişliği kalınlık + titreşim + 1 piksel;
+  // kaplama piksel başına analitik hesaplanır: kenarlar kenar yumuşatmasız çizimde de basamaklanmaz, titreşen tel saydam bir iğe yayılır.
+  // İnce tel ekranda 0.75 pikselden ince çizilmez; o zaman parlaklığı √(gerçek/çizilen) kadar kısılır (uzak çekimde kaybolmaz, kalından ayrılır).
+  const GAUGE = [0.00117, 0.00091, 0.00066, 0.00043, 0.00033, 0.000254];
+  const AMP = [0.0012, 0.0011, 0.001, 0.0009, 0.0008, 0.0007];   // vuruşta konuşan boyun ortasındaki titreşim yarı genliği (m), v = 1
+  // Nokta düzeni: burgu, eşik, eşikten basma noktasına NB parça, perde teli, perdeden köprüye NS parça (boş telde eşikten köprüye eşit aralık)
+  const NB = 6, NS = 36, NP = NB + NS + 3, CROWN = FB_TOP + 0.0011, DIP = 0.0005;   // perde telinin tepesi; parmak altında tel DIP kadar iner
+  const sm = u => u * u * (3 - 2 * u);
+  const SU = {uH: {value: 720}, uMinPx: {value: 0.75}};   // çizilen tamponun yüksekliği (px, her çizimde), en ince çizim (px)
+  const VERT = `attribute float aSide;
+attribute float aA;
+attribute float aR;
+attribute float aU;
+attribute vec3 aTan;
+uniform float uH, uMinPx;
+varying vec3 vSV;
+varying float vX, vR, vRt, vA, vPx, vU;`;
+  // Şerit kenarı: tel eksenine ve bakışa dik; px bu derinlikte bir pikselin metresi
+  const VERT_MAIN = `vec4 mvPosition = modelViewMatrix * vec4(transformed, 1.0);
+vec3 tv = normalize((modelViewMatrix * vec4(aTan, 0.0)).xyz), sv = cross(tv, normalize(-mvPosition.xyz));
+float sl = length(sv); sv = sl > 1e-6 ? sv / sl : normalize(cross(tv, vec3(0.0, 1.0, 0.0)) + vec3(0.0, 0.0, 1e-3));
+float px = 2.0 * max(-mvPosition.z, 1e-4) / (projectionMatrix[1][1] * uH), r = max(aR, 0.5 * uMinPx * px);
+vec4 c0 = projectionMatrix * mvPosition, c1 = projectionMatrix * vec4(mvPosition.xyz + sv * px, 1.0);
+vec2 sd = c1.xy / c1.w - c0.xy / c0.w; sd = length(sd) > 1e-9 ? normalize(sd * vec2(projectionMatrix[1][1] / projectionMatrix[0][0], 1.0)) : vec2(0.0, 1.0);
+vSV = sv; vX = aSide * (r + aA + px); vR = r; vRt = aR; vA = aA; vPx = px * (abs(sd.x) + abs(sd.y)); vU = aU;   // kare pikselin tele dik genişliği
+mvPosition.xyz += sv * vX;
+gl_Position = projectionMatrix * mvPosition;`;
+  // Kaplama: merkezi A·sin(ωt) ile gidip gelen r yarıçaplı telin, p genişliğinde piksel kutusunda zaman ortalaması (arksinüs dağılımı);
+  // gAs(u) = ∫0..u asin(clamp(s)) ds. A → 0 iken düz telin kutu süzgeçli kenarı.
+  const FRAG = `uniform float uWind, uPitch, uEnv;
+varying vec3 vSV;
+varying float vX, vR, vRt, vA, vPx, vU;
+float gAs(float u){ float a = min(abs(u), 1e4), b = min(a, 1.0); return a < 1.0 ? b * asin(b) + sqrt(max(0.0, 1.0 - b * b)) - 1.0 : PI_HALF * a - 1.0; }
+float strCov(float x, float r, float A, float p){ A = max(A, 1e-6); float h = 0.5 * p;
+  return A / (PI * p) * (gAs((x + h + r) / A) - gAs((x - h + r) / A) - gAs((x + h - r) / A) + gAs((x - h - r) / A)); }`;
+  const FRAG_COV = `diffuseColor.a *= clamp(strCov(vX, vR, vA, max(vPx, 1e-7)), 0.0, 1.0) * sqrt(vRt / vR);
+if (diffuseColor.a < 0.002) discard;
+float wk = uWind * clamp(1.0 - 2.0 * fwidth(vU) / uPitch, 0.0, 1.0) * vR / (vR + vA);   // sarım deseni yalnız çözülebildiği yakınlıkta
+diffuseColor.rgb *= 1.0 - 0.3 * wk * (0.5 + 0.5 * cos(6.2832 * vU / uPitch));`;
+  const FRAG_NORMAL = `float faceDirection = gl_FrontFacing ? 1.0 : -1.0;
+float sAc = clamp(vX / (vR + vA), -1.0, 1.0) * (vR + 0.5 * vA) / (vR + vA);   // titreşen tel iğde bakışa yakın gölgelenir (silindirin ortalaması)
+vec3 normal = normalize(vSV * sAc + normalize(vViewPosition) * sqrt(max(0.0, 1.0 - sAc * sAc)));   // D3D bölmesi yaklaşık: x/x > 1 → NaN, bloom karartır
+vec3 geometryNormal = normal;`;
+  // Ortam haritası yok: metal tel yalnız ışık parlamasıyla görünürdü; yansıyan yönde yarıküre ışığının gök/yer rengi ortam yansıması sayılır
+  const FRAG_ENV = `#if NUM_HEMI_LIGHTS > 0
+{ vec3 rv = reflect(-geometry.viewDir, geometry.normal);
+  for (int i = 0; i < NUM_HEMI_LIGHTS; i++) radiance += uEnv * mix(hemisphereLights[i].groundColor, hemisphereLights[i].skyColor, 0.5 * dot(rv, hemisphereLights[i].direction) + 0.5); }
+#endif`;
+  function strMat(color, roughness, wind){
+    const U = {uWind: {value: wind}, uPitch: {value: 0.0003}, uEnv: {value: 2}};
+    const m = new THREE.MeshStandardMaterial({color, metalness: 0.8, roughness, transparent: true, depthWrite: false, side: THREE.DoubleSide});
+    m.onBeforeCompile = sh => {
+      Object.assign(sh.uniforms, SU, U);
+      sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\n" + VERT).replace("#include <project_vertex>", VERT_MAIN);
+      sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\n" + FRAG).replace("#include <color_fragment>", "#include <color_fragment>\n" + FRAG_COV)
+        .replace("#include <normal_fragment_begin>", FRAG_NORMAL).replace("#include <lights_fragment_maps>", "#include <lights_fragment_maps>\n" + FRAG_ENV);
+    };
+    return m;
+  }
+  const wound = strMat(0xc9c1ae, 0.38, 1), plain = strMat(0xe6e9ec, 0.22, 0), V2 = new THREE.Vector2();
+  const onDraw = r => { const t = r.getRenderTarget(); SU.uH.value = t ? t.height : r.getDrawingBufferSize(V2).y; };
   const strings = [];
   for (let s = 0; s < 6; s++){
-    const geo = new THREE.BufferGeometry();
-    const pos = new Float32Array((SEG + 1) * 3);
-    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-    const mat = new THREE.LineBasicMaterial({color: s < 3 ? 0xc8b48a : 0xe8ecf0});
-    const line = new THREE.Line(geo, mat); line.frustumCulled = false;
-    guitar.add(line);
-    // Eşikten burguya giden kısa parça
-    const tail = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, stringY(s, 0), STR_Z), posts[s]]), mat);
-    guitar.add(tail);
-    strings.push({line, pos, mat, base: mat.color.clone(), wasActive: false});
+    const n = NP * 2, geo = new THREE.BufferGeometry();
+    const at = (name, k) => { const a = new THREE.BufferAttribute(new Float32Array(n * k), k); geo.setAttribute(name, a); return a.array; };
+    const Nn = at("normal", 3), S = at("aSide", 1), R = at("aR", 1);
+    at("position", 3); at("aTan", 3); at("aA", 1); at("aU", 1);
+    for (const k of ["position", "aTan", "aA", "aU"]) geo.attributes[k].setUsage(THREE.DynamicDrawUsage);
+    for (let i = 0; i < n; i++){ Nn[i * 3 + 2] = 1; S[i] = i & 1 ? 1 : -1; R[i] = GAUGE[s] / 2; }
+    const idx = []; for (let i = 0; i < NP - 1; i++) idx.push(2 * i, 2 * i + 1, 2 * i + 2, 2 * i + 1, 2 * i + 3, 2 * i + 2);
+    geo.setIndex(idx);
+    const mat = s < 3 ? wound : plain, mesh = new THREE.Mesh(geo, mat), pts = new Float32Array(NP * 3);
+    mesh.frustumCulled = false; mesh.onBeforeRender = onDraw; guitar.add(mesh);
+    // pts: telin ekseni (burgu, sonra eşikten köprüye); pos aynı dizinin eşik→köprü kısmı (x artan). amp, note: o karedeki titreşim ve nota (ölçüm)
+    strings.push({mesh, mat, base: mat.color, pts, pos: pts.subarray(3), amp: 0, note: null});
   }
-  // Teli yerleştirir: perdeye basılıysa parmağın orada çukur, çalınıyorsa titreşim
-  function layoutString(s, fret, amp, phase){
-    const st = strings[s], p = st.pos;
-    const xf = fret > 0 ? fretX(fret) : 0;
-    for (let i = 0; i <= SEG; i++){
-      const x = (i / SEG) * L;
-      let z = STR_Z, y = stringY(s, x);
-      if (fret > 0 && x < xf) z = STR_Z - 0.0025 * Math.max(0, 1 - Math.abs(x - fingerX(fret)) / 0.05);
-      if (amp > 0 && x >= xf){
-        const u = (x - xf) / (L - xf);
-        const w = Math.sin(Math.PI * u) * amp * Math.cos(phase);
-        y += w; z += w * 0.5;
-      }
-      p[i*3] = x; p[i*3+1] = y; p[i*3+2] = z;
+  // Teli yerleştirir: f basılan perde (0 boş tel), d basma noktasında yana itme (m, gitar y'si; bend.js bendDisplacement · bendShape ile tel boyunca),
+  // A titreşimin konuşan boyun ortasındaki yarı genliği (m), fv titreşen notanın perdesi (iğ o notanın konuşan boyunda, perdeden köprüye)
+  function layoutString(s, f, d, A, fv){
+    const st = strings[s], g = st.mesh.geometry, q = st.pts, P = g.attributes.position.array, T = g.attributes.aTan.array, W = g.attributes.aA.array, U = g.attributes.aU.array;
+    const xp = f > 0 ? pressX(f) : 0, xf = f > 0 ? fretX(f) : 0, zc = CROWN + GAUGE[s] / 2, zp = STR_Z - DIP, xv = fv > 0 ? fretX(fv) : 0;
+    q[0] = posts[s].x; q[1] = posts[s].y; q[2] = posts[s].z;
+    for (let i = 1; i < NP; i++){
+      const x = f > 0 ? (i <= NB + 1 ? xp * (i - 1) / NB : xf + (L - xf) * (i - NB - 2) / NS) : L * (i - 1) / (NP - 2);
+      // Basılı tel: eşikten parmağa hafif iner, perde telinin tepesine değer, oradan köprüye düz çıkar
+      q[i * 3] = x; q[i * 3 + 1] = stringY(s, x) + (d ? d * bendShape(xp, x) : 0);
+      q[i * 3 + 2] = f <= 0 ? STR_Z : x <= xp ? STR_Z - DIP * x / xp : x <= xf ? zp + (zc - zp) * (x - xp) / (xf - xp) : zc + (STR_Z - zc) * (x - xf) / (L - xf);
     }
-    st.line.geometry.attributes.position.needsUpdate = true;
+    for (let i = 0; i < NP; i++){
+      const a = Math.max(0, i - 1) * 3, b = Math.min(NP - 1, i + 1) * 3, x = q[i * 3], tx = q[b] - q[a], ty = q[b + 1] - q[a + 1], tz = q[b + 2] - q[a + 2], l = Math.hypot(tx, ty, tz) || 1;
+      const w = A > 0 && i > 0 && x > xv && x < L ? A * Math.sin(Math.PI * (x - xv) / (L - xv)) : 0;
+      for (let j = 2 * i; j < 2 * i + 2; j++){ P[j * 3] = x; P[j * 3 + 1] = q[i * 3 + 1]; P[j * 3 + 2] = q[i * 3 + 2]; T[j * 3] = tx / l; T[j * 3 + 1] = ty / l; T[j * 3 + 2] = tz / l; W[j] = w; U[j] = x; }
+    }
+    for (const k of ["position", "aTan", "aA", "aU"]) g.attributes[k].needsUpdate = true;
   }
-  for (let s = 0; s < 6; s++) layoutString(s, 0, 0, 0);
+  // Çizilen telin x'teki ekseni (gitar çerçevesi) → {y, z}: ölçüm (tools/sync-check.mjs) ve parmak ucunu tele oturtmak için
+  function stringAt(s, x){
+    const q = strings[s].pts; let i = 1; while (i < NP - 2 && q[(i + 1) * 3] < x) i++;
+    const a = i * 3, b = a + 3, u = q[b] > q[a] ? Math.min(1, Math.max(0, (x - q[a]) / (q[b] - q[a]))) : 0;
+    return {y: q[a + 1] + (q[b + 1] - q[a + 1]) * u, z: q[a + 2] + (q[b + 2] - q[a + 2]) * u};
+  }
+  // Titreşimin konuşan boyun ortasındaki yarı genliği (m), sesin zaman çizgisinde: tel modelinin temel harmonik sönümü (audio/guitar.js ksBuffer:
+  // tur başına d; palm mute'ta 0.9), nota bitince sesin bırakma zaman sabiti (playback.js: 0.12 sn, palm mute 0.04)
+  function ring(e, now){
+    const d = e.m ? 0.9 : 0.9988 - (e.midi - 40) * 0.000055, lam = Math.max(-mtof(e.midi) * Math.log(d), e.pm ? 6 : 0);
+    return AMP[e.s] * (e.v ?? (e.h ? 0.85 : 1)) * (e.pm ? 0.5 : 1) * Math.exp(-lam * (now - e.t)) * (now > e.end ? Math.exp(-(now - e.end) / (e.m ? 0.04 : 0.12)) : 1);
+  }
+  // Vuruşta 15 ms'de açılır; legato (penasız) notada 60 ms'de, önceki notanın titreşimini devralarak
+  function vibAmp(e, p, now){
+    const k = sm(Math.min(1, (now - e.t) / (e.h ? 0.06 : 0.015))), a = ring(e, now) * k;
+    return e.h && p ? a + ring(p, e.t) * (1 - k) : a;
+  }
+  // Her kare, yalnız (now, olaylar)'dan: telin notası c (son başlayan), ondan önceki p, ön bükmesi başlamış olabilecek sonraki n.
+  // Telin şekli (basılı perde, bükme) sahibinden: ön bükmedeki n, yoksa bitişinden REL sonrasına kadar c. İğ c'den; aynı telde yeni nota eskisini keser.
+  // Ön bükme aynı teldeki önceki nota bitmeden başlamaz (o zaman kısa sürede, gerekirse vuruşta birden itilir). calm: azaltılmış hareket.
+  function updateStrings(now, events, calm){
+    const cur = [], prv = [], nxt = [];
+    if (events) for (const e of events){
+      if (e.t <= now){ prv[e.s] = cur[e.s]; cur[e.s] = e; }
+      else if (e.t - PRE_IN <= now){ if (!nxt[e.s]) nxt[e.s] = e; }
+      else break;
+    }
+    for (let s = 0; s < 6; s++){
+      const c = cur[s], n = nxt[s], st = strings[s];
+      const pt = n && n.pre && n.f > 0 ? Math.max(n.t - PRE_IN, c ? c.end : -Infinity) : Infinity;
+      let f = 0, d = 0;
+      if (now >= pt){ f = n.f; d = pt === n.t - PRE_IN ? bendDisplacement(n, now) : bendDisplacement(n, n.t) * sm(Math.min(1, (now - pt) / Math.max(1e-3, n.t - 0.03 - pt))); }
+      else if (c && c.f > 0 && now < c.end + REL){ f = c.f; d = bendDisplacement(c, now); }
+      st.amp = c ? vibAmp(c, prv[s], now) * (calm ? 0.35 : 1) : 0; st.note = c || null;
+      layoutString(s, f, d, st.amp, c ? c.f : 0);
+    }
+  }
+  updateStrings(0, null, false);
 
-  const fingerMat = new THREE.MeshStandardMaterial({color: 0xffb35c, emissive: 0xff7a1a, emissiveIntensity: 0.9, roughness: 0.4});
-  const fingers = [];
-  for (let s = 0; s < 6; s++){
-    const m = new THREE.Mesh(new THREE.SphereGeometry(0.0055, 18, 14), fingerMat);
-    m.visible = false; guitar.add(m); fingers.push(m);
-  }
   const pickShape = new THREE.Shape();
   pickShape.moveTo(0, -0.012); pickShape.quadraticCurveTo(0.012, -0.004, 0.01, 0.008); pickShape.quadraticCurveTo(0, 0.014, -0.01, 0.008); pickShape.quadraticCurveTo(-0.012, -0.004, 0, -0.012);
   const pick = new THREE.Mesh(new THREE.ExtrudeGeometry(pickShape, {depth: 0.0012, bevelEnabled: false}), new THREE.MeshStandardMaterial({color: 0xe25b2a, roughness: 0.4}));
@@ -210,6 +307,6 @@ export function createGuitarModel(scene){
 
   rig.updateMatrixWorld(true);   // gitar sabit: ilk karede de localToWorld doğru dünya konumunu versin
   // solids: el/kol çarpışma ölçümünün katıları (tools/sync-check.mjs): gitarın doğrudan çocukları, döndürülmemiş; BoxGeometry kutu,
-  // ExtrudeGeometry şeklinin xy dış hattı ve z kalınlığıyla prizma sayılır. strings[s].pos tel çizgisi (gitar çerçevesinde, x artan).
-  return { rig, guitar, strings, layoutString, fingers, pick, recLed, camRig, HS_TOP, TOP, FB_TOP, solids: {body: bodyMesh, neck, fretboard: fb} };
+  // ExtrudeGeometry şeklinin xy dış hattı ve z kalınlığıyla prizma sayılır. Teller: stringAt(s, x) çizilen eksen; strings[s].pos aynı eksen (x artan).
+  return { rig, guitar, strings, updateStrings, stringAt, GAUGE, pick, recLed, camRig, HS_TOP, TOP, FB_TOP, solids: {body: bodyMesh, neck, fretboard: fb} };
 }
