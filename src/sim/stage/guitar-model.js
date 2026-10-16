@@ -197,7 +197,7 @@ gl_Position = projectionMatrix * mvPosition;`;
   const FRAG = `uniform float uWind, uPitch, uEnv;
 varying vec3 vSV;
 varying float vX, vR, vRt, vA, vPx, vU;
-float gAs(float u){ float a = min(abs(u), 1e4); return a < 1.0 ? a * asin(a) + sqrt(1.0 - a * a) - 1.0 : PI_HALF * a - 1.0; }
+float gAs(float u){ float a = min(abs(u), 1e4), b = min(a, 1.0); return a < 1.0 ? b * asin(b) + sqrt(max(0.0, 1.0 - b * b)) - 1.0 : PI_HALF * a - 1.0; }
 float strCov(float x, float r, float A, float p){ A = max(A, 1e-6); float h = 0.5 * p;
   return A / (PI * p) * (gAs((x + h + r) / A) - gAs((x - h + r) / A) - gAs((x + h - r) / A) + gAs((x - h - r) / A)); }`;
   const FRAG_COV = `diffuseColor.a *= clamp(strCov(vX, vR, vA, max(vPx, 1e-7)), 0.0, 1.0) * sqrt(vRt / vR);
@@ -206,7 +206,7 @@ float wk = uWind * clamp(1.0 - 2.0 * fwidth(vU) / uPitch, 0.0, 1.0) * vR / (vR +
 diffuseColor.rgb *= 1.0 - 0.3 * wk * (0.5 + 0.5 * cos(6.2832 * vU / uPitch));`;
   const FRAG_NORMAL = `float faceDirection = gl_FrontFacing ? 1.0 : -1.0;
 float sAc = clamp(vX / (vR + vA), -1.0, 1.0) * (vR + 0.5 * vA) / (vR + vA);   // titreşen tel iğde bakışa yakın gölgelenir (silindirin ortalaması)
-vec3 normal = normalize(vSV * sAc + normalize(vViewPosition) * sqrt(1.0 - sAc * sAc));
+vec3 normal = normalize(vSV * sAc + normalize(vViewPosition) * sqrt(max(0.0, 1.0 - sAc * sAc)));   // D3D bölmesi yaklaşık: x/x > 1 → NaN, bloom karartır
 vec3 geometryNormal = normal;`;
   // Ortam haritası yok: metal tel yalnız ışık parlamasıyla görünürdü; yansıyan yönde yarıküre ışığının gök/yer rengi ortam yansıması sayılır
   const FRAG_ENV = `#if NUM_HEMI_LIGHTS > 0
