@@ -11,6 +11,8 @@ export function stringY(s, x){                // s=0 kalın E, üstte
   return half - s * (2 * half / 5);
 }
 export const fingerX = f => f === 0 ? 0 : (fretX(f - 1) + fretX(f)) / 2 + (fretX(f) - fretX(f-1)) * 0.22;
+// Basılan notada parmak ucunun hedefi sap boyunca: perde telinin hemen gerisi (4 mm, dar perdelerde aralığın %35'i); tel üstünde (stringY, STR_Z)
+export const pressX = f => f > 0 ? fretX(f) - Math.min(0.004, 0.35 * (fretX(f) - fretX(f - 1))) : 0;
 export const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
 
 // Bir MIDI notasını izin verilen tellerde, önceki perdeye en yakın yere koyar.

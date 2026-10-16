@@ -1,6 +1,7 @@
 // Ritim saati ve müziğin görsel özeti: vuruş konumu, vurgular, yoğunluk. p = schedule()'ın döndürdüğü çalma (events, t0, bpm, beats?, end).
 // Hepsi zamanın saf fonksiyonu: aynı (p, now) her zaman aynı sonucu verir, kare sırası ve geçmiş önemsizdir. Ağır kısım p başına
 // bir kez hesaplanır (WeakMap), her kare yalnız ikili arama ve ara değerdir. p null ise (çalmıyor) boşta değerler döner.
+import { curveOf } from "./bend.js";
 const IDLE_BPM = 90;   // çalmıyorken boşta saat
 const GROUP = 0.04;    // bu kadar içinde başlayan notalar tek vuruş (akor, oktav)
 const GAP = 0.4;       // sessizlik: önceki notaların hepsi en az bu kadar önce bitmiş
@@ -46,8 +47,8 @@ export const onsets = cached(p => {
   }
   return out;
 });
-// Bükmenin tepeye vardığı an (guitar.js expressNote ile aynı eğri: b0'dan başlar, en çok 0.18 sn'de çıkar)
-export const bendPeak = e => { const d = e.end - e.t; return e.t + Math.min(0.08, d * 0.2) + Math.min(0.18, d * 0.4); };
+// Bükmenin tepeye vardığı an: sesin eğrisinde (music/bend.js) ilk rampanın sonu (b0'dan başlar, en çok 0.18 sn'de çıkar)
+export const bendPeak = e => { const r = curveOf(e).rate; return r.length > 1 ? r[1][2] : e.t; };
 
 /* ---------- Vurgular ---------- */
 // Vurgu listesi {t, w, k}, zamana göre sıralı. w 0..1 ağırlık, k türü: "akor" (3+ tel, w = v), "sessizlik" (susuştan sonraki ilk

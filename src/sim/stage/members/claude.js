@@ -121,6 +121,7 @@ function fretFingers(H, guitar, events, now, h){
     aim(H, H.children[4 - j], guitar.localToWorld(_h));
   }
   aim(H, H.children[5], guitar.localToWorld(_h.set(Math.min(h.x - 0.012, 0.4), -0.008, 0.021)));
+  return by;
 }
 // Pena eli: işaret parmağı ucu ile başparmak ucu penayı iki yüzünden (±y), ucun üstündeki yarısından tutar
 function pickFingers(H, guitar, pick){
@@ -235,11 +236,13 @@ export default {
     const fret = guitar.localToWorld(new THREE.Vector3(h.x, -halfFb(h.x) - KY, STR_Z + KZ0 + (KZ1 - KZ0) * k + 0.02 * h.l));
     fretBasis(h.x, FRET_Y, FRET_Z);
     poseArm(fig, 0, fret, POLE_F, {q: handQ(guitar, FRET_Y, FRET_Z, qf), off: KNUCKLE});
-    fretFingers(fig.hands[0], guitar, p && p.events, now, h);
+    const by = fretFingers(fig.hands[0], guitar, p && p.events, now, h);
     const pk = guitar.localToWorld(pick.position.clone()), mu = tp.mu, po = PICK_OFF.clone().lerp(PICK_OFF_M, mu);   // mu: palm mute payı
     poseArm(fig, 1, pk, POLE_P, {q: handQ(guitar, _py.lerpVectors(PICK_Y, PICK_Y_M, mu).normalize(), _pz.lerpVectors(PICK_Z, PICK_Z_M, mu), qp), off: po});
     pickFingers(fig.hands[1], guitar, pick);
-    m.aim = {fretArm: 0, pickArm: 1, fret, fretOff: KNUCKLE, pick: pk, pickOff: po, x: h.x, home: h.l > 0.5, win: [h.p, h.p + 3]};
+    // press: perde parmaklarının ataması {e: olay, k: parmak (1 işaret .. 4 serçe, 0 başparmak), w: basma payı}; ölçüm (sync-check) okur
+    m.aim = {fretArm: 0, pickArm: 1, fret, fretOff: KNUCKLE, pick: pk, pickOff: po, x: h.x, home: h.l > 0.5, win: [h.p, h.p + 3],
+      press: by.flatMap((c, j) => c ? [{e: c.e, k: j + 1, w: c.w}] : [])};
     halo.rotation.z = now * 0.6;
     let pa = 9, pv = 0; if (p) for (const e of p.events){ if (e.t > now) break; pa = now - e.t; pv = velOf(e); }
     visor.material.emissiveIntensity = VIS0 + VIS1 * pv * Math.exp(-pa * 12);

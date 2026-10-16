@@ -1,5 +1,6 @@
 // Gitar sesi: Karplus-Strong tel modeli ve çalma teknikleri.
 import { rand } from "../rng.js";
+import { noteCurve } from "../music/bend.js";
 
 // Tel modelinin ayarları (ses tasarımı için dışarıdan değiştirilebilir):
 //   exciter: "pulse" → fiziksel pena vuruşu: manyetiğin gördüğü hız dalgası, pena konumuna göre dikdörtgen darbe (harmonikler düzenli, gitar gibi);
@@ -69,26 +70,16 @@ export function createGuitar(engine){
     bufCache[key] = buf;
     return buf;
   }
-  // Çalış teknikleri: bend (yarım ses) teli büker, back ile notanın sonunda geri bırakır; pre (yarım ses) tel bükülü vurulur ve
-  // aşağı bırakılır (iç çekiş); lead tonda bazı uzun notalar alttan kayar; tek uzun notalarda gecikmeli vibrato, vib derinliğinin katı;
-  // palm mute (e.m ya da kalın telde çok kısa nota) koyu ve kısa; legato (e.h) pena sesi yok, yumuşak atak; her vuruşa kısa pena sesi.
+  // Çalış teknikleri: bükme (bend, back), ön bükme (pre), lead tonda alttan kayma ve gecikmeli vibrato (vib) eğrisi music/bend.js noteCurve'den
+  // (görsel aynı eğriyi okur); palm mute (e.m ya da kalın telde çok kısa nota) koyu ve kısa; legato (e.h) pena sesi yok, yumuşak atak; her vuruşa kısa pena sesi.
   function expressNote(src, g, e, t, dur, midi, srcs){
-    const pr = src.playbackRate, ampName = engine.ampName, drive = ampName !== "clean";
-    const muted = !!e.m || (drive && e.s <= 2 && dur <= 0.22 && !e.h);
-    const b0 = t + Math.min(0.08, dur * 0.2), top = Math.pow(2, (e.pre || e.bend || 0) / 12);
-    if (e.pre){ pr.setValueAtTime(top, t); pr.setValueAtTime(top, b0 + 0.1); pr.linearRampToValueAtTime(1, b0 + 0.1 + Math.min(0.35, dur * 0.4)); }
-    else if (e.bend){
-      const up = b0 + Math.min(0.18, dur * 0.4);
-      pr.setValueAtTime(1, b0); pr.linearRampToValueAtTime(top, up);
-      if (e.back){ const r = Math.max(up, t + dur * 0.55); pr.setValueAtTime(top, r); pr.linearRampToValueAtTime(1, r + Math.max(0.15, dur * 0.3)); }
-    }
-    else if (ampName === "lead" && dur >= 0.4 && !e.inChord && (e.s * 7 + e.f * 3 + Math.round(e.b * 4)) % 3 === 0){ pr.setValueAtTime(Math.pow(2, -0.3 / 12), t); pr.linearRampToValueAtTime(1, t + 0.04); }
-    // Vibrato yalnız tek notalarda: akorun telleri birbirine karşı kaymasın. Geç başlar, yavaş derinleşir, hızı notadan notaya biraz değişir.
-    if (!e.inChord && !muted && dur >= (ampName === "lead" ? 0.42 : 0.8)){
-      const lfo = ctx.createOscillator(), dep = ctx.createGain(), hz = (ampName === "clean" ? 4.6 : 5.0) + ((e.s * 3 + e.f) % 5) * 0.08 - (e.vib > 1 ? 0.5 : 0);
-      lfo.frequency.value = hz; dep.gain.setValueAtTime(0, t); dep.gain.setValueAtTime(0, t + 0.3);
-      dep.gain.linearRampToValueAtTime((ampName === "lead" ? 0.006 : 0.004) * (e.vib || 1), t + Math.min(dur, 0.9));
-      lfo.connect(dep); dep.connect(pr); lfo.start(t); lfo.stop(t + dur + 0.3); srcs.push(lfo);
+    const pr = src.playbackRate, ampName = engine.ampName, drive = ampName !== "clean", c = noteCurve(e, t, dur, ampName), muted = c.muted;
+    for (const [k, v, at] of c.rate){ if (k) pr.linearRampToValueAtTime(v, at); else pr.setValueAtTime(v, at); }
+    if (c.vib){
+      const V = c.vib, lfo = ctx.createOscillator(), dep = ctx.createGain();
+      lfo.frequency.value = V.hz; dep.gain.setValueAtTime(0, V.t0); dep.gain.setValueAtTime(0, V.a);
+      dep.gain.linearRampToValueAtTime(V.depth, V.b);
+      lfo.connect(dep); dep.connect(pr); lfo.start(V.t0); lfo.stop(V.stop); srcs.push(lfo);
     }
     if (muted){
       const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 750 + e.s * 150; lp.Q.value = 0.9;

@@ -1,13 +1,43 @@
 // Duman testi (npm test): her şarkı yüklenir, ilk saniyeleri sese dökülür, baştan/ortadan/sondan birer kare çizilir.
 // Hata, NaN, sessizlik, kara kare, boş ya da kısa çekim listesi, bozuk ritim saati ve vurgusuz şarkı arar; sonra önizleme sayfasını açıp çal/durdur dener.
+// Önce tarayıcısız: bükme ve vibrato eğrisinin ses ile görselde aynı olduğu.
 //   SECS=10 SEED=1 node tools/check.js
 import { openHarness } from "./browser.js";
+import { SONGS } from "../src/sim/band/songs/index.js";
+import { createInstruments } from "../src/sim/audio/instruments.js";
+import { schedule } from "../src/sim/audio/playback.js";
+import { curveOf } from "../src/sim/music/bend.js";
+import { seed } from "../src/sim/rng.js";
 
 const SEED = +(process.env.SEED || 1), SECS = +(process.env.SECS || 10);
-const h = await openHarness();
-const ids = await h.page.evaluate(() => window.SONG_IDS);
 let fail = 0;
 const row = (ok, text) => { console.log((ok ? "  ✓ " : "  ✗ ") + text); if (!ok) fail++; };
+
+// Sahte ses grafiği gerçek expressNote'un playbackRate otomasyonunu ve vibrato LFO'sunu (frekans, derinlik zarfı, başlat/durdur) nota başına
+// kaydeder; görselin olaydan kurduğu eğriyle (music/bend.js curveOf) birebir karşılaştırılır. Tel tamponu üretilmez.
+console.log("Bükme ve vibrato (ses ↔ görsel tek eğri):");
+for (const song of SONGS){
+  seed(SEED); const got = []; let cur = null;
+  const P = rec => ({value: 1, setValueAtTime(v, t){ if (rec) rec([0, v, t]); }, linearRampToValueAtTime(v, t){ if (rec) rec([1, v, t]); }, setTargetAtTime(){}, exponentialRampToValueAtTime(){}});
+  const N = () => ({connect(){}, start(){}, stop(){}, gain: P(), Q: P(), frequency: P(), playbackRate: P()});
+  const ctx = {sampleRate: 44100, currentTime: 0, createBiquadFilter: N,
+    createBufferSource(){ const n = N(); n.playbackRate = P(x => { if (cur) cur.rate.push(x); }); return n; },
+    createOscillator(){ const o = cur.osc = {dep: []}, n = N(); n.frequency = {set value(x){ o.hz = x; }}; n.start = t => { o.t0 = t; }; n.stop = t => { o.stop = t; }; return n; },
+    createGain(){ const n = N(); if (cur && cur.osc && !cur.dep){ cur.dep = true; n.gain = P(x => cur.osc.dep.push(x)); } return n; }};
+  const engine = {ctx, chainIn: N(), chainIn2: N(), ampName: song.amp || "crunch", noiseSrc: N}, inst = createInstruments(engine), real = inst.expressNote;
+  inst.ksBuffer = () => null;
+  inst.expressNote = (...a) => { got.push(cur = {rate: [], osc: null, dep: false}); real(...a); cur = null; };
+  const p = schedule(song, {engine, inst});
+  let ok = got.length === p.events.length, nb = 0, nv = 0;
+  p.events.forEach((e, i) => { const c = curveOf(e), g = got[i] || {rate: []}, V = c.vib, o = g.osc;
+    if (c.rate.length) nb++; if (V) nv++;
+    if (JSON.stringify(g.rate) !== JSON.stringify(c.rate)) ok = false;
+    if (!!V !== !!o || (V && (o.hz !== V.hz || o.t0 !== V.t0 || o.stop !== V.stop || JSON.stringify(o.dep) !== JSON.stringify([[0, 0, V.t0], [0, 0, V.a], [1, V.depth, V.b]])))) ok = false; });
+  row(ok, `${song.id.padEnd(9)} ${String(p.events.length).padStart(4)} nota, ${String(nb).padStart(3)} otomasyonlu, ${String(nv).padStart(3)} vibratolu`);
+}
+
+const h = await openHarness();
+const ids = await h.page.evaluate(() => window.SONG_IDS);
 
 console.log("Şarkılar (tohum " + SEED + "):");
 for (const id of ids){
