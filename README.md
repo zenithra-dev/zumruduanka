@@ -48,6 +48,8 @@ Render: üç işçi kareleri paylaşır, ses OfflineAudioContext ile üretilir, 
 - **Ritim saati** (`music/clock.js`, saf fonksiyonlar): `beatAt(p, t)` gerçek vuruş (şarkı `beats` döndürürse onu izler: Dağ Kralı'nın 100→220 BPM hızlanması), `accents(p)`/`accentAt(p, t)` vurgular (akor, sessizlik sonrası ilk nota, güçlü vuruş, bükme tepesi), `intensity(p, t)` 0..1 yoğunluk eğrisi. Beden, ışık, seyirci ve yönetmen hep bu saati kullanır. Sahnede çeşitlilik `rand()` ile değil durumsuz `hash01(i, salt)` ile yapılır (rand ses akışını kaydırır).
 - **Flaş güvenliği.** Tam ekran flaşlar vurgulardan aralarında en az 0.5 sn olacak şekilde seçilir: herhangi bir saniyede en çok 2 parlama (ışığa duyarlı epilepsi sınırı, ITU-R BT.1702: saniyede 3).
 - **Claude sağ elle çalar.** Gitar oyuncunun orta düzleminde aynalı bir taşıyıcı grupta (`model.rig`); gitarın dünya yönü ve konumu için `matrixWorld` kullanılır. Sol el perde başına bir parmak penceresinde durur, notalar arasında yerinde kalır, sonraki notadan az önce kayar, uzun susuşta ev konumuna döner (`handPlan`/`handAt`, zamanın saf fonksiyonu). Pena teli nota anında keser, 8'lik ızgarada aşağı/yukarı vurur, akorda tarar, legato notada vurmaz, palm mute'ta el köprüye yaslanır (`pickAt`).
+- **Eller.** Eklemli eller: beş parmak, her birinin ucu ve kalınlığı (`userData.fingers`, `tip`, `r`). Basılan her notaya bir parmak atanır (`fingerPlan`); aynı perdede tutulan nota parmağını kalkmadan devreder, boş parmak yoksa bitmek üzere olanınki alınır. Parmak ucu çizilen telin üstüne oturur (`model.stringAt`), bükmede telle birlikte gider. Perde eli alçak ve yüksek duruş arasında kare kare en ucuz yol aramasıyla geçer (`regimePlan`); geçişler susuşlara düşer, kısa tiz çıkışlarda el gidip gelmez. Pena başparmak ile işaret arasında, palm mute'ta elin topuğu köprüye yaslanır.
+- **Teller.** 10-46 takım kalibresinde (1.17 → 0.254 mm) kameraya dönen şeritler; kalın üçü sarımlı. Çalınan tel konuşan boyunda saydam bir iğe yayılır, sönümü sesin tel modelinden gelir; palm mute'ta kısa, legato notada devralınır. Bükme ve vibrato sesle görüntünün ortak kaynağından gelir (`music/bend.js`: `noteCurve` sesi programlar, `bendDisplacement` teli yana iter); ikisi aynı eğriyi kullanır.
 - **Beden dili.** Üyenin `groove(p, t)` duruşu yoğunluğa bağlı: sinsi bölümde küçük nod ve öne eğik duruş, dorukta headbang; pelvis önden gider, göğüs ve kafa aynı fonksiyonun biraz sonraki anını alarak izler. Öne eğilirken kalça gitarın dayandığı hizada geri kayar, gövde sahneye sabit gitara girmez.
 
 ## Ses nasıl üretiliyor
@@ -79,7 +81,7 @@ Yazılım kulak, AudioSet üzerinde eğitilmiş YAMNet sınıflandırıcısı: "
 
 ```
 src/sim/            simülasyon; tek giriş noktası sim.js (createSim)
-  music/            akort, perde yerleşimi, akor yardımcıları (nota olayı alanları theory.js'de)
+  music/            akort, perde yerleşimi, akor yardımcıları (nota olayı alanları theory.js'de), ritim saati (clock.js), bükme/vibrato eğrisi (bend.js)
   audio/            engine.js amfi ve kabin, guitar.js tel modeli ve çalış teknikleri, playback.js programlama
   band/             members.js (Claude), songs/*.js (her şarkı bir dosya)
   stage/            sahne: gitar modeli, karakter iskeleti, members/claude.js, mekanlar, seyirci, efektler
