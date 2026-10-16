@@ -167,13 +167,13 @@ export function createGuitarModel(scene){
   // Kalibre (çap, m; 10-46 takım): kalın üçü nikel sarımlı (sarım deseni, daha pürüzlü), ince üçü düz çelik. Her tel burgudan eşiğe, eşikten
   // köprüye tek bir şerit: şerit kameraya döner, üstü silindir normaliyle gölgelenir (tüp taklidi). Genişliği kalınlık + titreşim + 1 piksel;
   // kaplama piksel başına analitik hesaplanır: kenarlar kenar yumuşatmasız çizimde de basamaklanmaz, titreşen tel saydam bir iğe yayılır.
-  // İnce tel ekranda 0.75 pikselden ince çizilmez; o zaman parlaklığı √(gerçek/çizilen) kadar kısılır (uzak çekimde kaybolmaz, kalından ayrılır).
+  // İnce tel ekranda 1.2 pikselden ince çizilmez; o zaman parlaklığı (gerçek/çizilen)^0.3 kadar kısılır (uzak çekimde kaybolmaz, kalından ayrılır).
   const GAUGE = [0.00117, 0.00091, 0.00066, 0.00043, 0.00033, 0.000254];
   const AMP = [0.0012, 0.0011, 0.001, 0.0009, 0.0008, 0.0007];   // vuruşta konuşan boyun ortasındaki titreşim yarı genliği (m), v = 1
   // Nokta düzeni: burgu, eşik, eşikten basma noktasına NB parça, perde teli, perdeden köprüye NS parça (boş telde eşikten köprüye eşit aralık)
   const NB = 6, NS = 36, NP = NB + NS + 3, CROWN = FB_TOP + 0.0011, DIP = 0.0005;   // perde telinin tepesi; parmak altında tel DIP kadar iner
   const sm = u => u * u * (3 - 2 * u);
-  const SU = {uH: {value: 720}, uMinPx: {value: 0.75}};   // çizilen tamponun yüksekliği (px, her çizimde), en ince çizim (px)
+  const SU = {uH: {value: 720}, uMinPx: {value: 1.2}};   // çizilen tamponun yüksekliği (px, her çizimde), en ince çizim (px)
   const VERT = `attribute float aSide;
 attribute float aA;
 attribute float aR;
@@ -200,7 +200,7 @@ varying float vX, vR, vRt, vA, vPx, vU;
 float gAs(float u){ float a = min(abs(u), 1e4), b = min(a, 1.0); return a < 1.0 ? b * asin(b) + sqrt(max(0.0, 1.0 - b * b)) - 1.0 : PI_HALF * a - 1.0; }
 float strCov(float x, float r, float A, float p){ A = max(A, 1e-6); float h = 0.5 * p;
   return A / (PI * p) * (gAs((x + h + r) / A) - gAs((x - h + r) / A) - gAs((x + h - r) / A) + gAs((x - h - r) / A)); }`;
-  const FRAG_COV = `diffuseColor.a *= clamp(strCov(vX, vR, vA, max(vPx, 1e-7)), 0.0, 1.0) * sqrt(vRt / vR);
+  const FRAG_COV = `diffuseColor.a *= clamp(strCov(vX, vR, vA, max(vPx, 1e-7)), 0.0, 1.0) * pow(vRt / vR, 0.3);
 if (diffuseColor.a < 0.002) discard;
 float wk = uWind * clamp(1.0 - 2.0 * fwidth(vU) / uPitch, 0.0, 1.0) * vR / (vR + vA);   // sarım deseni yalnız çözülebildiği yakınlıkta
 diffuseColor.rgb *= 1.0 - 0.3 * wk * (0.5 + 0.5 * cos(6.2832 * vU / uPitch));`;
@@ -214,7 +214,7 @@ vec3 geometryNormal = normal;`;
   for (int i = 0; i < NUM_HEMI_LIGHTS; i++) radiance += uEnv * mix(hemisphereLights[i].groundColor, hemisphereLights[i].skyColor, 0.5 * dot(rv, hemisphereLights[i].direction) + 0.5); }
 #endif`;
   function strMat(color, roughness, wind){
-    const U = {uWind: {value: wind}, uPitch: {value: 0.0003}, uEnv: {value: 2}};
+    const U = {uWind: {value: wind}, uPitch: {value: 0.0003}, uEnv: {value: 2.5}};
     const m = new THREE.MeshStandardMaterial({color, metalness: 0.8, roughness, transparent: true, depthWrite: false, side: THREE.DoubleSide});
     m.onBeforeCompile = sh => {
       Object.assign(sh.uniforms, SU, U);
