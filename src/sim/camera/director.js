@@ -10,6 +10,8 @@
 //   {b, len, cam: "stage"}                      gitara yakın sahne kamerası
 //   {b, len, cam: "outro", k?}                  yükselip geri çekilen final
 //   {b, len, who: "claude", kind?: "close"|"medium"|"guitar"|"hero", side?: ±1}   üyeye kesme
+//
+// Oda (direct'e room verilince): çekim listesi aynı, her tür odanın içindeki karşılığına yerleşir (ROOM). Öteki mekânlarda kamera birebir aynı.
 import * as THREE from "three";
 import { restHead } from "../stage/figures.js";
 import { beatAt, timeAt, onsets, intensity } from "../music/clock.js";
@@ -31,6 +33,19 @@ const FRAME = {
   // Hero: aşağıdan, yüz ve gitar birlikte (kafa üstünden gövdenin altına); bakış sapa doğru kayık
   hero:   {d: 2.6, lat: 0.34, look: -0.4, rise: -0.22, lx: 0.16}
 };
+// Oda karşılıkları: konumlar kafanın hareketsiz konumuna göre karakterin çerçevesinde [sağ, yukarı, ileri] (m), çekim boyunca a → b, look bakış
+// noktası. Arka plan köşe (yatak, iki duvar, peri ışıkları); kamera önde, köşeye doğru bakar: karakter sağ üçte birde, köşe ve yatak (kedi,
+// peluşlar) solunda, tavan çizgisi kadrajın üstünde. Dolly karşı köşe tarafından gelir, yay yalnız önde (duvarlar arkada), final yükselip
+// köşeye tepeden bakar. Hepsi room.bounds içinde ve room.avoid dışında; uzaklıklar odanın derinliğine göre kısa, objektifler dar.
+const ROOM = {
+  wide:  {a: [-0.1, -0.42, 2.44], b: [-0.1, -0.34, 2.3], look: [-0.5, -0.54, 0], sd: 0.5},     // sd: yandan açılış (çekim tarafı)
+  crane: {a: [-0.1, -0.95, 2.4], b: [-0.1, -0.2, 2.4], look: [-0.5, -0.54, 0], sd: 0.5},
+  dolly: {a: [1.15, -0.35, 2.44], b: [0.35, -0.25, 1.6], look: [-0.25, -0.5, -0.3]},
+  outro: {a: [0.25, -0.3, 1.5], b: [-0.2, 0.55, 2.42], look: [-0.45, -0.38, -0.5]},
+  orbit: {r: 2.35, y: -0.4, a0: 0.2, k: 0.75, look: [-0.15, -0.5, -0.3]}   // açı a0 + k·a (kulüp yayının açısı a)
+};
+const ROOM_FOV = {wide: 45, dolly: 42, orbit: 42, outro: 46, hero: 34};
+const ROOM_FRAME = {hero: Object.assign({}, FRAME.hero, {d: 2.05})};   // kahraman ön duvara sığar; objektif kadrajı korur (28° → 34°)
 const SNAP = 0.12;    // kesme bu kadar (sn) yakın nota başlangıcına çekilir
 const CAT = {wide: "genis", dolly: "genis", orbit: "genis", outro: "genis", head: "sap", stage: "sahne"};
 const catOf = k => CAT[k] || k;
@@ -122,11 +137,32 @@ export function createDirector({FIG, groupCam, orbit, placeCams}){
   const fovOf = sh => !sh ? FOV.wide : sh.cam === "member" ? FOV[sh.kind] || FOV.medium : FOV[sh.cam] || FOV.wide;
   function setFov(f){ if (groupCam.fov !== f){ groupCam.fov = f; groupCam.updateProjectionMatrix(); } }
 
-  const _H = new THREE.Vector3(), _F = new THREE.Vector3(), _R = new THREE.Vector3(), _L = new THREE.Vector3();
-  function directPose(now, wall, sh, ros){
+  const _H = new THREE.Vector3(), _F = new THREE.Vector3(), _R = new THREE.Vector3(), _L = new THREE.Vector3(), _U = new THREE.Vector3(0, 1, 0);
+  // Kafanın hareketsiz konumu ve yüz çerçevesi (kamera yalnız zamana bağlı kalır, canlı bedene değil)
+  function frameOf(f){ _H.copy(restHead(f)); _F.set(0, 0, 1).applyQuaternion(f.g.quaternion); _R.set(1, 0, 0).applyQuaternion(f.g.quaternion); }
+  const local = (v, o, k = 1) => v.copy(_H).addScaledVector(_R, o[0] * k).addScaledVector(_U, o[1] * k).addScaledVector(_F, o[2] * k);
+  const mix = (v, a, b, u) => { const P = local(new THREE.Vector3(), a); return local(v, b).sub(P).multiplyScalar(u).add(P); };
+  // Odada geniş planlar, dolly, yay ve final; sap, sahne ve üye çekimleri false (sap ve sahne kulüptekiyle aynı, üye çekimi ROOM_FRAME ile)
+  function roomPose(wall, sh, u0, ros){
+    const c = sh ? sh.cam : "wide", f = FIG[ros[0]];
+    if (c === "head" || c === "stage" || !f || (c === "member" && FIG[sh.who] && ros.includes(sh.who))) return false;
+    frameOf(f); const P = groupCam.position, S = sh && sh.crane ? ROOM.crane : ROOM[c] || ROOM.wide;
+    setFov(ROOM_FOV[c] || ROOM_FOV.wide);
+    if (c === "orbit"){ const a = S.a0 + S.k * (sh.from + (sh.to - sh.from) * u0); local(P, [S.r * Math.sin(a), S.y, S.r * Math.cos(a)]); }
+    else if (c === "dolly" || c === "outro") mix(P, S.a, S.b, c === "outro" ? sm(Math.min(1, u0 * sh.k)) : sh.reverse ? 1 - u0 : u0);
+    // Geniş plan: yandan açılıp yerine oturur (vinç: alçaktan yükselir), çok yavaş salınım
+    else { const ue = sm(u0); mix(P, S.a, S.b, ue).addScaledVector(_R, (sh ? sh.side : 1) * S.sd * (1 - ue) + (S === ROOM.crane ? 0 : 0.1 * Math.sin(wall * 0.12))); }
+    // Elde tutulan kamera hissi: üye çekimlerindeki gibi çok küçük, yavaş titreşim (açıyla ölçekli)
+    local(_L, S.look); const hh = 0.004 * P.distanceTo(_L) * groupCam.fov / 40;
+    P.x += hh * (Math.sin(wall * 1.1) + 0.5 * Math.sin(wall * 2.3 + 1)); P.y += hh * 0.7 * Math.sin(wall * 1.5 + 2);
+    groupCam.lookAt(_L); return true;
+  }
+  function directPose(now, wall, sh, ros, R){
     cam = "group";
     setFov(fovOf(sh));
     const u0 = sh ? Math.min(1, Math.max(0, (now - sh.t) / (sh.end - sh.t))) : 0;
+    if (R && roomPose(wall, sh, u0, ros)) return;
+    if (R && sh && ROOM_FOV[sh.kind]) setFov(ROOM_FOV[sh.kind]);
     switch (sh && sh.cam){
       case "head": cam = "head"; return;
       case "stage": cam = "stage"; orbit.theta = 0.5 - u0 * 0.6; orbit.r = 1.3; orbit.phi = 1.3; placeCams(); return;   // sap tarafından gövdeye doğru yay
@@ -143,7 +179,7 @@ export function createDirector({FIG, groupCam, orbit, placeCams}){
     }
     // Kadraj kafanın hareketsiz konumuna kurulur (canlı kafa değil): kamera yalnız zamana bağlı kalır, kayma başlangıcı gibi
     // başka bir an için kurulan pozlar o anın değil bu karenin bedenine bakmaz. Bedenin salınımı kadrajda görünür.
-    const f = FIG[sh.who], u = sm(u0), sd = sh.side, fr = FRAME[sh.kind] || FRAME.medium, look = fr.look, hy = look + fr.rise * fr.d;
+    const f = FIG[sh.who], u = sm(u0), sd = sh.side, fr = (R && ROOM_FRAME[sh.kind]) || FRAME[sh.kind] || FRAME.medium, look = fr.look, hy = look + fr.rise * fr.d;
     _H.copy(restHead(f));
     _F.set(0, 0, 1).applyQuaternion(f.g.quaternion); _R.set(1, 0, 0).applyQuaternion(f.g.quaternion);
     let d = fr.d, lat = fr.lat;
@@ -171,26 +207,27 @@ export function createDirector({FIG, groupCam, orbit, placeCams}){
 
   // Bazı geçişler kesme yerine yumuşak kayma: önceki çekimin bitiş konumundan (ve objektifinden) yeni çekime 0.9 sn'de akar.
   // Başlangıç konumu önceki çekimin bitiş anından hesaplanır, "son karede kamera neredeydi"den değil.
-  const camPrev = {sh: null, from: null};
-  function direct(now, wall, playing, ros){
+  // Odada (room) kayma yolu kabuğun içinde ve eşya kutularının dışında kalmalı; mekân değişince kayma yeniden kurulur.
+  const camPrev = {sh: null, from: null, R: null};
+  function direct(now, wall, playing, ros, R = null){
     const shots = playing && playing.shots ? playing.shots : null;
     let sh = shots ? shots.find(x => now >= x.t && now < x.end) : null;
     if (!sh && shots && shots.length && now >= shots[shots.length - 1].t) sh = shots[shots.length - 1];
-    if (sh !== camPrev.sh){
-      camPrev.sh = sh; camPrev.from = null;
+    if (sh !== camPrev.sh || R !== camPrev.R){
+      camPrev.sh = sh; camPrev.R = R; camPrev.from = null;
       const idx = sh && sh.glide ? shots.indexOf(sh) : -1;
       if (idx > 0 && MOVES_GROUP[shots[idx - 1].cam]){
         const prev = shots[idx - 1];
-        directPose(prev.end, prev.end, prev, ros);
+        directPose(prev.end, prev.end, prev, ros, R);
         camPrev.from = {pos: groupCam.position.clone(), q: groupCam.quaternion.clone(), fov: groupCam.fov};
         // Kayma yolu bir üyenin içinden geçecekse normal kesmeye dön
-        directPose(sh.t + 0.9, sh.t + 0.9, sh, ros); const A = camPrev.from.pos, B = groupCam.position.clone();
-        for (let k = 1; k < 12 && camPrev.from; k++){ const P = A.clone().lerp(B, k / 12);
+        directPose(sh.t + 0.9, sh.t + 0.9, sh, ros, R); const A = camPrev.from.pos, B = groupCam.position.clone();
+        for (let k = 1; k < 12 && camPrev.from; k++){ const P = A.clone().lerp(B, k / 12); if (R && !R.inside(P)) camPrev.from = null;
           Object.keys(FIG).forEach(n => { if (!camPrev.from || !ros.includes(n)) return; const o = restHead(FIG[n]);
             if (Math.hypot(P.x - o.x, P.z - o.z) < 0.45 && P.y < o.y + 0.2) camPrev.from = null; }); }
       }
     }
-    directPose(now, wall, sh, ros);
+    directPose(now, wall, sh, ros, R);
     if (camPrev.from && sh){
       const k = Math.min(1, (now - sh.t) / 0.9), e = k * k * (3 - 2 * k);
       if (k < 1){
@@ -202,5 +239,7 @@ export function createDirector({FIG, groupCam, orbit, placeCams}){
       // from kayma bitince de silinmez: aynı çekimde geriye atlanan kare de kaymayı yeniden bulmalı
     }
   }
-  return { planShots, direct, directPose, get cam(){ return cam; } };
+  // Odada sabit grup kamerası (sim camMode "group"): geniş planın oturmuş konumu, çok yavaş salınım; kesme yok
+  function fixed(wall, ros){ cam = "group"; roomPose(wall, null, 1, ros); }
+  return { planShots, direct, directPose, fixed, get cam(){ return cam; } };
 }

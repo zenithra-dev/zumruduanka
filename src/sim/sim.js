@@ -92,7 +92,8 @@ export function createSim(opts = {}){
     venues.updateEnv(wall);
     if (show) crowd.update(now, wall, playing, venues.envName);
     if (oda) venues.oda.update(now, wall, playing);
-    if (camMode === "director") director.direct(now, wall, playing, roster());
+    if (camMode === "director") director.direct(now, wall, playing, roster(), oda ? venues.oda : null);   // odada çekimlerin oda içi karşılıkları
+    else if (camMode === "group" && oda) director.fixed(wall, roster());
     else if (camMode === "group"){
       if (S.groupCam.fov !== 40){ S.groupCam.fov = 40; S.groupCam.updateProjectionMatrix(); }   // yönetmen objektifi çekime göre değiştiriyor
       S.groupCam.position.set(0.15 + 0.45 * Math.sin(wall * 0.12), 0.8, 4.4 + 0.25 * Math.sin(wall * 0.09));
