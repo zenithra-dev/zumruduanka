@@ -15,7 +15,8 @@ import { hash01 } from "../rng.js";
 import { FLOOR as FIG_FLOOR, mat } from "./figures.js";
 import { canvasTexture } from "./canvas-tex.js";
 import { FLOOR, CEIL, SHELL, BED, SEAT, SLOTS, LIGHTS, WALLS, CAMERA } from "./room/layout.js";
-import { buildBed } from "./room/bed.js";
+import { buildBedding } from "./room-props.js";
+import { buildCat } from "./cat.js";
 import { buildLights } from "./room/lights.js";
 import { buildDecor, onWall } from "./room/decor.js";
 import { buildProps } from "./room/props.js";
@@ -62,7 +63,8 @@ export function createRoom({renderer} = {}){
     const sk = new THREE.Mesh(new THREE.BoxGeometry(L.w, 0.08, 0.014), trim); sk.position.copy(c).setY(FLOOR + 0.04).addScaledVector(n, 0.007); sk.rotation.y = m.rotation.y; group.add(sk);
     return {ad: L.ad, plane: new THREE.Plane().setFromNormalAndCoplanarPoint(n, c), o: L.o, u: L.u, n: L.n, w: L.w, h: CEIL - FLOOR, decor: L.decor, mesh: m};
   });
-  const parts = {bed: buildBed(), lights: buildLights(), decor: buildDecor({aniso}), props: buildProps()};
+  const parts = {bed: buildBedding({aniso}), lights: buildLights(), decor: buildDecor({aniso}), props: buildProps()};
+  parts.cat = buildCat({aniso, surfaceAt: parts.bed.surfaceAt});   // kara kedi (cat.js) battaniyenin gerçek yüzeyinde
   Object.values(parts).forEach(p => { group.add(p.group); (p.textures || []).forEach(t => textures.push(t)); });
 
   const bounds = box3(CAMERA.bounds.x, CAMERA.bounds.y, CAMERA.bounds.z);
@@ -115,8 +117,8 @@ export function createRoom({renderer} = {}){
   }
   // Eşyaların gerçek kutuları (her ağın dünya kutusu): kamera ölçümünün payından bağımsız denetimi
   function solids(){ group.updateMatrixWorld(true); const out = [];
-    [parts.bed, parts.props].forEach(p => p.group.traverse(o => { if (o.isMesh) out.push(new THREE.Box3().setFromObject(o)); })); return out; }
-  function update(now, wall, p){ parts.lights.update(now, wall, p); parts.props.update(now, wall, p); }
+    [parts.bed, parts.props, parts.cat].forEach(p => p.group.traverse(o => { if (o.isMesh) out.push(new THREE.Box3().setFromObject(o)); })); return out; }
+  function update(now, wall, p){ parts.lights.update(now, wall, p); parts.props.update(now, wall, p); parts.cat.update(now, wall, p); }
 
   const slots = Object.assign({}, SLOTS, {isik: LIGHTS});
   const room = {group, parts, textures, walls, bed, slots, bounds, avoid, shell: SHELL, subject: subj, free: false, lastPull: 0, inside, confine, solids, update,
