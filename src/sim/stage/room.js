@@ -20,6 +20,7 @@ import { buildDecor, onWall } from "./room/decor.js";
 import { buildProps } from "./room/props.js";
 import { buildAmp } from "./room/amp.js";
 import { buildShell } from "./room/shell.js";
+import { buildWallDecor } from "./wall-decor.js";
 
 export { onWall };
 const box3 = (x, y, z) => new THREE.Box3(new THREE.Vector3(x[0], y[0], z[0]), new THREE.Vector3(x[1], y[1], z[1]));
@@ -33,6 +34,10 @@ export function createRoom({renderer} = {}){
   // Kabuk (room/shell.js): zemin, duvarlar, tavan, süpürgelik; ampullerin ışık haritası için ışık parçasını kullanır
   const shell = buildShell({aniso, lights: parts.lights}), walls = shell.walls;
   [shell, ...Object.values(parts)].forEach(p => { group.add(p.group); (p.textures || []).forEach(t => textures.push(t)); });
+  // Duvar dekoru (wall-decor.js): posterler, plaklar, polaroidler, notlar, biletler, çıkartmalar, çerçeveli resim. Dokuları oda sahneye
+  // girince çizilir (kuruluştaki geçici ekleme sayılmaz, venues.js hemen çıkarır): kulüpte kanvas belleği ve çizim süresi yok.
+  parts.duvar = buildWallDecor({walls, aniso, textures}); group.add(parts.duvar.group);
+  { let out = false; group.addEventListener("removed", () => { out = true; }); group.addEventListener("added", () => { if (out) parts.duvar.paint(); }); }
 
   const bounds = box3(CAMERA.bounds.x, CAMERA.bounds.y, CAMERA.bounds.z);
   const avoid = CAMERA.avoid.map(a => ({ad: a.ad, box: box3(a.x, a.y, a.z)}));
