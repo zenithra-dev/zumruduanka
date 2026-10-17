@@ -81,7 +81,9 @@ export const CAMERA = {
     {ad: "yatak", x: [-1.35, 0.80], y: [FLOOR, FLOOR + 0.72], z: [-1.45, -0.34]},
     {ad: "yatakBasi", x: [-1.35, -0.60], y: [FLOOR, FLOOR + 1.16], z: [-1.45, -0.34]},
     {ad: "yatakAyak", x: [0.60, 0.80], y: [FLOOR, FLOOR + 0.91], z: [-1.45, -0.34]},
-    {ad: "amfi", x: [0.93, 1.49], y: [FLOOR, FLOOR + 0.44], z: [-1.45, -1.12]}
+    {ad: "amfi", x: [0.93, 1.49], y: [FLOOR, FLOOR + 0.44], z: [-1.45, -1.12]},
+    {ad: "kedi", x: [-1.02, -0.22], y: [FLOOR, FLOOR + 0.89], z: [-1.22, -0.55]},          // battaniyedeki kara kedi (kulak ve bıyık dahil)
+    {ad: "kediYastik", x: [-0.71, 0.42], y: [FLOOR, FLOOR + 0.80], z: [-1.45, -1.08]}      // uzun kedi yastığının üstü
   ],
   subject: [CHAR.x, FLOOR + 1.37, CHAR.z],   // kadrajın konusu (göğüs): dışarıda kalan kamera bu noktaya doğru içeri çekilir
   fovMax: 60, near: 0.35                     // içeri çekilince objektif açılır (en çok fovMax), konuya en az near kalır

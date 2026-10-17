@@ -1,7 +1,7 @@
 // Kara kedi: battaniyenin üstünde yan yatmış, ön patileri uzanmış, başı kalkık; kuyruğu karnının önünden dolanır. Gövde işaretli uzaklık
 // alanından (elipsoid ve kapsüllerin yumuşak birleşimi) yüzey ağı (surface nets), iskeletle deri: nefes (karın), baş, kuyruk zinciri. Kulak,
 // göz, göz kapağı, burun ve bıyık baş kemiğinin çocukları. Siyah tüy: kenarda ışıltı (sheen) ve uçları açık tüy kabukları (room-props furShells).
-// Animasyon zamanın saf fonksiyonu (durum yok): nefes, kuyruk ucu, kulak seğirmesi, yavaş göz kırpma ve yarı kapalı gözler; zamanlamalar hash01
+// Animasyon zamanın saf fonksiyonu (durum yok): nefes, kuyruk ucu, kulak seğirmesi, yavaş göz kırpma ve ara ara süzülen gözler; zamanlamalar hash01
 // ile, müzik yoğunlaştıkça (clock.js intensity) kulaklar daha sık oynar ve sese döner, baş kalkar, gözler açılır.
 //
 //   const cat = buildCat({aniso, surfaceAt});   // {group, update(now, wall, p), textures, bones, body}
@@ -22,6 +22,8 @@ const QH = new THREE.Quaternion().setFromEuler(new THREE.Euler(HEAD_ROLL, HEAD_Y
 const head = p => V(...p).applyQuaternion(QH).add(V(...NECK)).toArray();   // baş yerelinden (köken NECK, x yüz yönü) kedi yereline
 const TAIL = [[-0.198, 0.05, -0.012, 0.02], [-0.252, 0.034, 0.022, 0.018], [-0.268, 0.022, 0.08, 0.017], [-0.232, 0.02, 0.142, 0.016],
   [-0.155, 0.02, 0.175, 0.015], [-0.075, 0.022, 0.182, 0.0135], [-0.005, 0.03, 0.172, 0.011]];
+// Baş yerelinde göz (z: ±), burun ve kulak kökü (z: ±); göz merkezi yüzeyin 2 mm içinde, kulak kökü 2 mm
+const EYE = [0.082, 0.061, 0.024], NOSE = [0.1015, 0.043, 0], EAR = [0.04, 0.082, 0.031];
 // Kemikler: 0 kök, 1 karın (nefes), 2 baş, 3-4 kulaklar, 5-10 kuyruk
 const B_ROOT = 0, B_BELLY = 1, B_HEAD = 2, B_TAIL = 5;
 
@@ -35,8 +37,10 @@ const PRIMS = [
   E([0.075, 0.07, 0.006], [0.08, 0.07, 0.072], B_BELLY, 0.025), E([0.085, 0.102, -0.012], [0.05, 0.048, 0.05], B_BELLY, 0.02),
   E([-0.1, 0.085, 0.032], [0.072, 0.052, 0.058], B_BELLY, 0.02),
   C([0.11, 0.112, 0.01], head([0.016, 0.025, 0]), 0.05, 0.041, t => [[B_BELLY, 1 - sstep(0.25, 0.85, t)], [B_HEAD, sstep(0.25, 0.85, t)]], 0.02),
-  HE([0.046, 0.056, 0], [0.05, 0.046, 0.056], 0.016), HE([0.052, 0.08, 0], [0.032, 0.02, 0.042], 0.012), HE([0.066, 0.03, 0], [0.036, 0.03, 0.05], 0.012),
-  HE([0.088, 0.035, 0], [0.022, 0.018, 0.026], 0.008), HE([0.08, 0.02, 0], [0.016, 0.011, 0.015], 0.006),
+  // Baş (önden üçgen): üstte dar kafatası ve alın, göz hizasının altında en geniş elmacıklar, ince burun sırtı, iki bıyık yastığı, küçük çene
+  HE([0.044, 0.056, 0], [0.048, 0.04, 0.044], 0.016), HE([0.058, 0.072, 0], [0.03, 0.019, 0.034], 0.012), HE([0.062, 0.037, 0], [0.034, 0.026, 0.052], 0.012),
+  HE([0.088, 0.054, 0], [0.022, 0.012, 0.014], 0.008), HE([0.094, 0.031, -0.0105], [0.015, 0.0135, 0.0145], 0.007), HE([0.094, 0.031, 0.0105], [0.015, 0.0135, 0.0145], 0.007),
+  HE([0.084, 0.017, 0], [0.013, 0.0095, 0.012], 0.006),
   // ön bacaklar uzanmış (yan yatınca ikisi üst üste), arka bacaklar: üstteki dizden kıvrık, ayağı geride; alttaki altta
   C([0.08, 0.034, 0.048], [0.245, 0.02, 0.072], 0.024, 0.017, B_ROOT, 0.012), E([0.265, 0.016, 0.074], [0.026, 0.016, 0.02], B_ROOT, 0.008),
   C([0.085, 0.068, 0.036], [0.232, 0.045, 0.108], 0.022, 0.016, B_ROOT, 0.012), E([0.25, 0.04, 0.112], [0.025, 0.016, 0.02], B_ROOT, 0.008),
@@ -140,15 +144,18 @@ function placeholder(){
 }
 
 /* ---------- Gözler ---------- */
-// Göz küresi dokusu (eşdikdörtgen; +x yönü dokunun ortası): sarı-yeşil iris, ışınsal lifler, loş odada genişlemiş dikey göz bebeği
-const eyeTex = aniso => canvasTexture(128, 64, (g, w, h) => {
+// Göz küresi dokusu (eşdikdörtgen; +x yönü dokunun ortası): altın-yeşil iris (koyu limbus halkası), ışınsal lifler, loş odada açılmış dikey göz
+// bebeği ve sol üstte ışık parıltısı (parıltı gözle birlikte durur; kapak kapanınca örtülür)
+const eyeTex = aniso => canvasTexture(256, 128, (g, w, h) => {
   g.fillStyle = "#2c2816"; g.fillRect(0, 0, w, h);
-  const rx = w * 0.11, ry = h * 0.22; g.translate(w / 2, h / 2); g.scale(rx / ry, 1);
-  const gr = g.createRadialGradient(0, 0, ry * 0.15, 0, 0, ry); gr.addColorStop(0, "#efe356"); gr.addColorStop(0.6, "#c3cb3a"); gr.addColorStop(0.92, "#7c8a22"); gr.addColorStop(1, "#3a3a12");
+  const rx = w * 0.125, ry = h * 0.25; g.translate(w / 2, h / 2); g.scale(rx / ry, 1);
+  const gr = g.createRadialGradient(0, 0, ry * 0.12, 0, 0, ry); gr.addColorStop(0, "#f7ef72"); gr.addColorStop(0.45, "#dade46"); gr.addColorStop(0.8, "#97aa2c"); gr.addColorStop(0.93, "#55621a"); gr.addColorStop(1, "#1d2108");
   g.fillStyle = gr; g.beginPath(); g.arc(0, 0, ry, 0, 6.29); g.fill();
-  g.lineWidth = 0.7; for (let i = 0; i < 48; i++){ const a = i / 48 * 6.283 + 0.3 * hash01(i, 301), r0 = ry * (0.38 + 0.1 * hash01(i, 302));
+  g.lineWidth = 1.2; for (let i = 0; i < 64; i++){ const a = i / 64 * 6.283 + 0.3 * hash01(i, 301), r0 = ry * (0.38 + 0.1 * hash01(i, 302));
     g.strokeStyle = `rgba(${hash01(i, 303) > 0.5 ? "250,240,140" : "70,80,10"},0.35)`; g.beginPath(); g.moveTo(Math.cos(a) * r0, Math.sin(a) * r0); g.lineTo(Math.cos(a) * ry * 0.93, Math.sin(a) * ry * 0.93); g.stroke(); }
-  g.fillStyle = "#040404"; g.beginPath(); g.ellipse(0, 0, ry * 0.34, ry * 0.78, 0, 0, 6.29); g.fill();
+  g.fillStyle = "#040404"; g.beginPath(); g.ellipse(0, 0, ry * 0.4, ry * 0.8, 0, 0, 6.29); g.fill();
+  const hl = g.createRadialGradient(-ry * 0.38, -ry * 0.42, 0, -ry * 0.38, -ry * 0.42, ry * 0.2); hl.addColorStop(0, "rgba(255,255,250,1)"); hl.addColorStop(0.55, "rgba(255,255,250,0.85)"); hl.addColorStop(1, "rgba(255,255,250,0)");
+  g.fillStyle = hl; g.fillRect(-ry, -ry, 2 * ry, 2 * ry);
 }, {ad: "kediGoz", fonts: false, anisotropy: aniso});
 
 /* ---------- Kurulum ---------- */
@@ -160,20 +167,21 @@ export function buildCat({aniso = 1, surfaceAt} = {}){
   // İskelet
   const bone = (p, parent) => { const b = new THREE.Bone(); b.position.set(...p); if (parent) parent.add(b); return b; };
   const root = bone([0, 0, 0]), belly = bone([0, 0, 0], root), hb = bone(NECK, root);
-  const earAt = s => head([0.036, 0.093, s * 0.031]).map((v, i) => v - NECK[i]);
+  const earAt = s => head([EAR[0], EAR[1], s * EAR[2]]).map((v, i) => v - NECK[i]);
   const earL = bone(earAt(-1), hb), earR = bone(earAt(1), hb);
   const tail = []; TAIL.slice(0, 6).forEach((p, i) => tail.push(bone(i ? p.slice(0, 3).map((v, k) => v - TAIL[i - 1][k]) : p.slice(0, 3), i ? tail[i - 1] : root)));
   const bones = [root, belly, hb, earL, earR, ...tail];
   const hold = placeholder(), body = new THREE.SkinnedMesh(hold, skin);
   body.add(root); body.frustumCulled = false; body.visible = false; g.add(body);
   const skeleton = new THREE.Skeleton(bones); body.bind(skeleton);
-  // Kabuklar ışıltısız Standard (Physical'den ucuz; uçta ışıltıyı taban verir)
-  const shellM = new THREE.MeshStandardMaterial({color: furC, roughness: 0.6, vertexColors: true, skinning: true});
-  const FUR = {n: 2, h: 0.007}, shells = furShells(hold, {...FUR, color: 0x141317, tip: 0x26232b, den: 800, cut: [0.2, 0.52], rad: [0.55, 0.4], like: shellM, skinning: true}).map(s => {
-    const m = new THREE.SkinnedMesh(s.geo, s.mat); m.frustumCulled = false; m.visible = false; m.bind(skeleton, body.bindMatrix); g.add(m); return m; });
+  // Kabuklar Lambert (köşe başına ışık): örtme payıyla karıştıkları için taban (Physical, ışıltılı) ile ışık modeli farkı benek değil hafif ton olur;
+  // yakın planda kabuk her pikselde gölgelendiğinden ucuz model şart. Işıltıyı taban verir
+  const shellM = new THREE.MeshLambertMaterial({color: furC, vertexColors: true, skinning: true});
+  const FUR = {n: 2, h: 0.007}, shells = furShells(hold, {...FUR, color: 0x141317, tip: 0x211f26, den: 1150, cut: [0.15, 0.45], rad: [0.55, 0.42], like: shellM, skinning: true, order: 12}).map(s => {
+    const m = new THREE.SkinnedMesh(s.geo, s.mat); m.renderOrder = s.order; m.frustumCulled = false; m.visible = false; m.bind(skeleton, body.bindMatrix); g.add(m); return m; });
   // Gövde ve kabuklar: yüz tüyü kısa, göz ve burnun çevresinde yok (teller gözü örtmesin)
   function realize(){
-    const geo = catGeometry(), eyeC = [-1, 1].map(s => V(...head([0.087, 0.062, s * 0.0235]))), noseC = V(...head([0.108, 0.041, 0])), P = geo.attributes.position;
+    const geo = catGeometry(), eyeC = [-1, 1].map(s => V(...head([EYE[0], EYE[1], s * EYE[2]]))), noseC = V(...head(NOSE)), P = geo.attributes.position;
     const SI = geo.attributes.skinIndex.array, SW = geo.attributes.skinWeight.array, sc = new Float32Array(P.count), q = V();
     for (let i = 0; i < P.count; i++){ q.fromBufferAttribute(P, i); let wh = 0; for (let k = 0; k < 4; k++) if (SI[4 * i + k] === B_HEAD) wh += SW[4 * i + k];
       sc[i] = (1 - 0.5 * wh) * sstep(0.013, 0.024, Math.min(eyeC[0].distanceTo(q), eyeC[1].distanceTo(q))) * sstep(0.008, 0.018, noseC.distanceTo(q)); }
@@ -184,27 +192,34 @@ export function buildCat({aniso = 1, surfaceAt} = {}){
   g.updateMatrixWorld = function(force){ if (!built) realize(); THREE.Object3D.prototype.updateMatrixWorld.call(this, force); };   // room.solids() de gerçek ağı görsün
   // Baş çerçevesi (baş kemiğinin altında, yüze dönük): gözler ve kapakları, burun, bıyıklar
   const face = new THREE.Group(); face.quaternion.copy(QH); hb.add(face);
-  const eyeM = new THREE.MeshStandardMaterial({map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.4, roughness: 0.08});
+  const eyeM = new THREE.MeshStandardMaterial({map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.55, roughness: 0.2});
   const lids = [];
+  // Gözler: badem (biraz geniş, dış köşesi yukarı), yüze dönük
   for (const s of [-1, 1]){
-    const pv = new THREE.Group(); pv.position.set(0.087, 0.062, s * 0.0235); pv.rotation.set(0, -s * 0.22, 0.06); face.add(pv);
+    const pv = new THREE.Group(); pv.position.set(EYE[0], EYE[1], s * EYE[2]); pv.rotation.set(-s * 0.14, -s * 0.24, 0.06); pv.scale.set(1, 0.93, 1.06); face.add(pv);
     pv.add(new THREE.Mesh(new THREE.SphereGeometry(0.0115, 18, 12), eyeM));
     const up = new THREE.Mesh(new THREE.SphereGeometry(0.0124, 16, 7, 0, 2 * PI, 0, PI / 2), furS); pv.add(up); lids.push(up);
     pv.add(new THREE.Mesh(new THREE.SphereGeometry(0.0122, 16, 4, 0, 2 * PI, PI * 0.76, PI * 0.24), furS));
   }
-  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.0058, 14, 10), mat(0x261d20, {roughness: 0.3})); nose.position.set(0.108, 0.041, 0); nose.scale.set(0.6, 0.5, 0.9); face.add(nose);
-  const wp = [];
-  for (const s of [-1, 1]) for (let i = 0; i < 4; i++){ const a = V(0.098, 0.032 - i * 0.003, s * 0.02), m = V(0.11, 0.03 - i * 0.008, s * (0.05 + 0.004 * i)), b = V(0.112, 0.022 - i * 0.014, s * (0.078 + 0.006 * i));
-    wp.push(a, m, m, b); }
-  face.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(wp), new THREE.LineBasicMaterial({color: 0x8c857b})));
-  // Kulaklar: yassı koniler (ağzı öne), içi koyu pembe-gri; tüy kabuklu
-  const earGeo = new THREE.ConeGeometry(0.024, 0.05, 16); earGeo.translate(0, 0.019, 0); earGeo.scale(0.42, 1, 1);
-  const innerGeo = new THREE.ConeGeometry(0.017, 0.037, 12); innerGeo.translate(0, 0.016, 0); innerGeo.scale(0.25, 1, 1);
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.0058, 14, 10), mat(0x261d20, {roughness: 0.3})); nose.position.set(...NOSE); nose.scale.set(0.6, 0.5, 0.9); face.add(nose);
+  // Bıyıklar: bıyık yastıklarından çıkan, uca doğru sarkan ince eğriler (4 parça); soluk ve yarı saydam. Çizgi her uzaklıkta 1 piksel: saydamlık
+  // telin (≈ 0.2 mm) piksel payından (onBeforeRender, kameranın uzaklığı ve objektifi): yakında görünür, uzakta silinir
+  const wp = [], wq = (a, m, b, t) => a.clone().multiplyScalar((1 - t) ** 2).addScaledVector(m, 2 * t * (1 - t)).addScaledVector(b, t * t);
+  for (const s of [-1, 1]) for (let i = 0; i < 4; i++){ const a = V(0.1, 0.035 - i * 0.004, s * (0.019 + 0.0015 * i)), m = V(0.113, 0.035 - i * 0.008, s * (0.047 + 0.004 * i)), b = V(0.111, 0.023 - i * 0.015, s * (0.076 + 0.006 * i));
+    for (let k = 0; k < 4; k++) wp.push(wq(a, m, b, k / 4), wq(a, m, b, (k + 1) / 4)); }
+  const whisk = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(wp), new THREE.LineBasicMaterial({color: 0x77726b, transparent: true, opacity: 0.45, depthWrite: false}));
+  const _w = V(), _v = V(), _s = new THREE.Vector2();
+  whisk.onBeforeRender = (r, sc, cam) => { const d = cam.getWorldPosition(_w).distanceTo(whisk.getWorldPosition(_v)), px = 2 * d * Math.tan((cam.fov || 40) * PI / 360) / r.getDrawingBufferSize(_s).y;
+    whisk.material.opacity = clamp(0.0002 / px, 0.04, 0.45); };
+  face.add(whisk);
+  // Kulaklar: yassı koniler (ağzı öne), içi koyu pembe-gri; tüy kabuklu; başın üst köşelerinde (önden üçgen)
+  const earGeo = new THREE.ConeGeometry(0.026, 0.054, 16); earGeo.translate(0, 0.02, 0); earGeo.scale(0.42, 1, 1);
+  const innerGeo = new THREE.ConeGeometry(0.019, 0.04, 12); innerGeo.translate(0, 0.017, 0); innerGeo.scale(0.25, 1, 1);
   const en = earGeo.attributes.normal, earSc = Array.from({length: en.count}, (_, i) => sstep(-0.1, 0.4, -en.getX(i)));   // kulağın içinde tüy yok
-  const earShells = furShells(earGeo, {n: 2, h: 0.003, color: furC, tip: 0x26232b, den: 900, cut: [0.2, 0.5], rad: [0.5, 0.38], scale: earSc, like: furS});
+  const earShells = furShells(earGeo, {n: 2, h: 0.003, color: furC, tip: 0x26232b, den: 900, cut: [0.2, 0.5], rad: [0.5, 0.38], scale: earSc, like: furS, order: 12});
   for (const [b, s] of [[earL, -1], [earR, 1]]){
     const e = new THREE.Group(); e.quaternion.copy(QH).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(s * 0.32, 0, 0.14))); b.add(e);
-    e.add(new THREE.Mesh(earGeo, furS)); earShells.forEach(x => e.add(new THREE.Mesh(x.geo, x.mat)));
+    e.add(new THREE.Mesh(earGeo, furS)); earShells.forEach(x => e.add(Object.assign(new THREE.Mesh(x.geo, x.mat), {renderOrder: x.order})));
     const inner = new THREE.Mesh(innerGeo, mat(0x4b3437, {roughness: 0.85})); inner.position.set(0.0042, -0.002, 0); e.add(inner);
   }
   g.position.set(CAT_SPOT.x, (surfaceAt ? surfaceAt(CAT_SPOT.x, CAT_SPOT.z) : 0) - 0.003, CAT_SPOT.z); g.rotation.y = CAT_SPOT.yaw;
@@ -226,10 +241,10 @@ export function buildCat({aniso = 1, surfaceAt} = {}){
     [[earL, -1, 401], [earR, 1, 411]].forEach(([b, s, salt]) => {
       const ev = slotAt(w, 2.2, 0.32, salt, t0 => 0.06 + 0.5 * Ik(t0)), tw = ev ? Math.sin(PI * ev.tau / 0.32) ** 2 * (0.7 + 0.3 * hash01(ev.k, salt + 2)) : 0;
       b.rotation.set(s * (0.45 * tw + 0.12 * I), s * (-0.25 * I + 0.06 * Math.sin(2 * PI * w / 7.7 + s)), 0.3 * tw); });
-    // Gözler: uykulu yarı açık (yavaş değişir, müzikte açılır) ve arada yavaş kırpma
+    // Gözler: çoğunlukla açık, ara ara biraz süzülür (yavaş değişir, müzikte açılır) ve arada yavaş kırpma
     const bl = (() => { const ev = slotAt(w, 5.3, 1.15, 421, () => 0.5); if (!ev) return 0; const hold = 0.15 + 0.35 * hash01(ev.k, 423), t = ev.tau;
       return t < 0.25 ? sstep(0, 0.25, t) : t < 0.25 + hold ? 1 : 1 - sstep(0.25 + hold, 0.65 + hold, t); })();
-    const c0 = 0.1 + 0.33 * sstep(0.5, 0.92, 0.5 + 0.5 * Math.sin(2 * PI * w / 37 + 1.3)) - 0.12 * I, c = c0 + (1 - c0) * bl;   // kırpma tabandan yumuşakça
+    const c0 = Math.max(0, 0.05 + 0.22 * sstep(0.5, 0.92, 0.5 + 0.5 * Math.sin(2 * PI * w / 37 + 1.3)) - 0.1 * I), c = c0 + (1 - c0) * bl;   // kırpma tabandan yumuşakça
     lids.forEach(l => { l.rotation.z = (50 - 140 * c) * PI / 180; });
     // Kuyruk: uca doğru büyüyen yavaş dalga (zincirde gecikmeli), ucu hafif kalkıp kıvrılır; arada bir yavaş sallanma (8 sn'lik yuvalar)
     const fl = slotAt(w, 8, 1.8, 431, t0 => 0.25 + 0.3 * Ik(t0)), flick = fl ? Math.sin(PI * fl.tau / 1.8) ** 2 : 0;
