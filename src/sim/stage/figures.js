@@ -142,7 +142,7 @@ export function figure(scene, o){
   const fig = {g, up, torso, head, headY: 0.75, hip, arms, hands, sh, V, legs: legs.length ? legs : null, reach: o.reach || 0.31, ph: rand() * 6.28, sway: o.sway === undefined ? 1 : o.sway,
     strapSide: o.strapSide || 1};
   fig.nod = a => nodHead(fig, a); fig.stance = s => poseLegs(fig, s);
-  fig.strapAnchors = now => strapAnchors(fig, now); fig.bodySd = p => bodySd(fig, p);
+  fig.strapAnchors = now => strapAnchors(fig, now); fig.bodySd = p => bodySd(fig, p); fig.bodySdFn = o => bodySdFn(fig, o);
   return fig;
 }
 /* ---------- Askının bedene sarıldığı yerler ---------- */
@@ -151,7 +151,9 @@ export function figure(scene, o){
 //   üstü), omuz (omuz üstü), kurek (kürek kemiği), sirt (sırt ortası), bel (öbür yanın bel arkası), kalca (öbür kalçanın yanı), karin (karnın
 //   o yanı). p yüzey noktası, n dışa birim normal, t askının oradaki gidiş yönü (yüzeye teğet, alt pime doğru), r yüzeyin t yönündeki eğrilik
 //   yarıçapı (m). Askı bu noktaların hepsine değmek zorunda değil: çözücü gergin askının yüzeyde kaldığı noktaları seçer.
-//   fig.bodySd(p) → dünya noktasının beden yüzeyine işaretli uzaklığı (m, içeride eksi; gövde ve omuzlar, kollar hariç).
+//   fig.bodySd(p) → dünya noktasının beden yüzeyine işaretli uzaklığı (m, içeride eksi; gövde, omuzlar ve boyun, kollar hariç).
+//   fig.bodySdFn(o) → aynı uzaklığın bu karenin duruşuyla bir kez kurulan işlevi (p → m; matrisler bir kez çözülür, askı çözücüsü binlerce kez sorar);
+//   o.legs: bacaklar da (uyluk, baldır, diz; askının alt açıklığı kalçanın yanından iner).
 // Zamanın saf fonksiyonu: üyenin bu karedeki duruşundan (rigs.life sonrası; nefes torso ölçeğinde) okunur, durum biriktirmez. now imzada:
 // Kanade'nin kemik animasyonu now'dan örneklenecek. strapSide +1: askı figürün solundaki (+x) omuzdan geçer (sağ elle çalan).
 const ANCH = [["gogus", 0.6, 0.49], ["omuz", Math.PI / 2, 0.5663], ["kurek", Math.PI - 0.6, 0.45], ["sirt", Math.PI, 0.33], ["bel", Math.PI + 0.65, 0.17],
@@ -179,17 +181,39 @@ export function strapAnchors(fig, now){
     return {id: a.id, p: a.p.clone().applyMatrix4(T.matrixWorld), n: a.n.clone().applyMatrix3(_nm).normalize(), t: t.transformDirection(T.matrixWorld), r: kap > 1e-3 ? 1 / kap : 10};
   });
 }
-const _q = new THREE.Vector3(), _iu = new THREE.Matrix4();
-export function bodySd(fig, p){
+// Boyun: kesik koni (figure'daki silindir: y 0.57..0.67, taban 0.055, tepe 0.045)
+const NK_Y0 = 0.57, NK_Y1 = 0.67, NK_R0 = 0.055, NK_R1 = 0.045;
+export function bodySdFn(fig, o = {}){
   fig.g.updateMatrixWorld(true);
-  const q = _q.copy(p).applyMatrix4(_iu.copy(fig.up.matrixWorld).invert()), sc = fig.torso.scale;
-  let d = 9;
-  for (const sd of [-1, 1]){ const x = (q.x - sd * SH_X) / SH_S.x, y = (q.y - SH_Y) / SH_S.y, z = q.z / SH_S.z; d = Math.min(d, (Math.hypot(x, y, z) - SH_R) * SH_S.y); }
-  q.set(q.x / sc.x, q.y / sc.y, q.z / sc.z);
-  const R = torsoR(Math.min(0.61, Math.max(-0.04, q.y)));
-  const f = Math.hypot(q.x, q.z / TZ) - R[0], dl = f / gradF(q, R[1]).length();
-  return Math.min(d, Math.max(dl, q.y - 0.61, -0.04 - q.y));
+  const e = new THREE.Matrix4().copy(fig.up.matrixWorld).invert().elements, sc = fig.torso.scale, ix = 1 / sc.x, iy = 1 / sc.y, iz = 1 / sc.z, N = TORSO_P.length;
+  // bacak parçaları (dünya): kesik koni [a, b, ra, rb], diz küre (a = b)
+  const LG = [];
+  if (o.legs && fig.legs) for (const L of fig.legs){ for (const m of [L.thigh, L.shin]){ const g = m.geometry.parameters;
+      LG.push([m.localToWorld(new THREE.Vector3(0, -0.5, 0)), m.localToWorld(new THREE.Vector3(0, 0.5, 0)), g.radiusBottom * m.scale.x, g.radiusTop * m.scale.x]); }
+    const k = L.knee.getWorldPosition(new THREE.Vector3()); LG.push([k, k, L.knee.geometry.parameters.radius, L.knee.geometry.parameters.radius]); }
+  // bacakların sınır kutusu (yarıçap payıyla): uzaktaki noktada parça parça bakmadan kutuya uzaklık
+  const bb = new THREE.Box3(); for (const [a, b, ra] of LG){ bb.expandByPoint(a.clone().addScalar(ra)); bb.expandByPoint(a.clone().addScalar(-ra)); bb.expandByPoint(b.clone().addScalar(ra)); bb.expandByPoint(b.clone().addScalar(-ra)); }
+  const legSd = p => { const ox = Math.max(bb.min.x - p.x, 0, p.x - bb.max.x), oy = Math.max(bb.min.y - p.y, 0, p.y - bb.max.y), oz = Math.max(bb.min.z - p.z, 0, p.z - bb.max.z), ob = Math.sqrt(ox * ox + oy * oy + oz * oz);
+    if (ob > 0.05) return ob;
+    let d = 9; for (const [a, b, ra, rb] of LG){ const bx = b.x - a.x, by = b.y - a.y, bz = b.z - a.z, l = bx * bx + by * by + bz * bz;
+    const u = l > 1e-12 ? Math.min(1, Math.max(0, ((p.x - a.x) * bx + (p.y - a.y) * by + (p.z - a.z) * bz) / l)) : 0, dx = p.x - a.x - u * bx, dy = p.y - a.y - u * by, dz = p.z - a.z - u * bz;
+    d = Math.min(d, Math.sqrt(dx * dx + dy * dy + dz * dz) - ra - (rb - ra) * u); } return d; };
+  return p => {
+    const x = e[0] * p.x + e[4] * p.y + e[8] * p.z + e[12], y = e[1] * p.x + e[5] * p.y + e[9] * p.z + e[13], z = e[2] * p.x + e[6] * p.y + e[10] * p.z + e[14];
+    let d = 9;
+    for (let sd = -1; sd <= 1; sd += 2){ const a = (x - sd * SH_X) / SH_S.x, b = (y - SH_Y) / SH_S.y, c = z / SH_S.z; d = Math.min(d, (Math.sqrt(a * a + b * b + c * c) - SH_R) * SH_S.y); }
+    const nr = Math.sqrt(x * x + z * z) - (NK_R0 + (NK_R1 - NK_R0) * Math.min(1, Math.max(0, (y - NK_Y0) / (NK_Y1 - NK_Y0)))), ny = Math.max(NK_Y0 - y, y - NK_Y1);
+    d = Math.min(d, nr > 0 || ny > 0 ? Math.sqrt(Math.max(nr, 0) ** 2 + Math.max(ny, 0) ** 2) : Math.max(nr, ny));
+    // gövde: profil yarıçapı R(y), eğimi k; F = ρ − R, gradyanıyla birinci dereceden uzaklık (bodySd'nin eski tanımı)
+    const qx = x * ix, qy = y * iy, qz = z * iz, yc = Math.min(0.61, Math.max(-0.04, qy));
+    let i = 0; while (i < N - 2 && yc > TORSO_P[i + 1][1]) i++;
+    const [r0, y0] = TORSO_P[i], [r1, y1] = TORSO_P[i + 1], k = (r1 - r0) / (y1 - y0), rho = Math.max(1e-6, Math.sqrt(qx * qx + qz * qz / (TZ * TZ)));
+    const gx = qx / rho, gz = qz / (TZ * TZ * rho), dl = (rho - (r0 + k * (yc - y0))) / Math.sqrt(gx * gx + k * k + gz * gz);
+    d = Math.min(d, Math.max(dl, qy - 0.61, -0.04 - qy));
+    return LG.length ? Math.min(d, legSd(p)) : d;
+  };
 }
+export function bodySd(fig, p){ return bodySdFn(fig)(p); }
 // Kafa boyun dibinden döner (a > 0 öne eğilir): merkezi öne ve biraz aşağı kayar
 const NECK = 0.11;
 export function nodHead(fig, a){ fig.head.rotation.x = a; fig.head.position.set(0, fig.headY - NECK + NECK * Math.cos(a), NECK * Math.sin(a)); }

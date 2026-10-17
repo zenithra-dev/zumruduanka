@@ -17,6 +17,7 @@ import { createScene } from "./stage/scene.js";
 import { createGuitarModel } from "./stage/guitar-model.js";
 import { createBanner } from "./stage/banner.js";
 import { createRigs } from "./stage/rigs.js";
+import { createStrap } from "./stage/strap.js";
 import { createFx } from "./stage/fx.js";
 import { createVenues, ENVS } from "./stage/venues.js";
 import { createCrowd } from "./stage/crowd.js";
@@ -43,6 +44,7 @@ export function createSim(opts = {}){
   const model = createGuitarModel(S.scene);
   const bannerKit = createBanner(S.scene);
   const rigs = createRigs({scene: S.scene, model, hemi: S.hemi, drawBanner: bannerKit.drawBanner});
+  const strap = createStrap({scene: S.scene, model, member: rigs.parts.claude});   // askı: her karede pimlerden ve bedenden (rigs.parts.claude.strap)
   const fx = createFx(S.scene);
   const prefs = {amp: "crunch", room: 1.4, volume: 0.75};
   let engine = null, inst = null;
@@ -100,6 +102,7 @@ export function createSim(opts = {}){
       S.groupCam.lookAt(0, -0.05, -0.8);
     }
     rigs.applyRoster(roster(), headCamOn());
+    strap.update(now, headCamOn());   // beden bu karenin duruşunda; sap kamerasında beden gizli, askı da
     // Odada kamera duvardan, tavandan ve eşyadan geçmez: dışarıda kalan kamera bakış yönünde içeri çekilir (room.js confine)
     if (oda){ const c = activeCam(); if (c === S.groupCam) venues.oda.confine(c); else if (c === S.stageCam) venues.oda.confine(c, S.orbit.target, false); }
   }
@@ -171,7 +174,7 @@ export function createSim(opts = {}){
     THREE, canvas, scene: S.scene, renderer: S.renderer,
     cams: {head: S.headCam, stage: S.stageCam, group: S.groupCam}, orbit: S.orbit,
     songs: SONGS, findSong, members: MEMBER, bandName: BAND_NAME, envs: ENVS, amps: AMPS,
-    model, rigs, fx, venues, crowd, director, FIG: rigs.FIG, oda: venues.oda,
+    model, rigs, strap, fx, venues, crowd, director, FIG: rigs.FIG, oda: venues.oda,
     manual, seed, recording: false, onEnd: null,
     get playing(){ return playing; },
     get current(){ return current; }, set current(s){ current = s; },
