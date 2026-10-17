@@ -35,6 +35,7 @@ npm test                       # duman testi: her şarkı için ses + kare, sonr
 npm run render -- kaf          # video → out/zumruduanka-kaf-dagi.mp4 (şarkı id'si ya da indeksi)
 SEED=7 npm run render -- improv            # farklı tohum: farklı doğaçlama
 SONG=kaf ENV=theater T=12 npm run shot     # tek kare → out/shot.png (LIST=1 çekim listesini yazar)
+ENV=oda npm run render -- agit             # odada çekim (mekânlar: club varsayılan, theater, summit, oda)
 SONG=kaf DUR=30 npm run audtest            # ilk 30 sn ses → out/test.wav, tepe/RMS/NaN raporu
 SONG=dagkrali BASE=out/tur1/taban.json node tools/sync-check.mjs   # görüntü ölçümü: eller ↔ gitar, saflık, determinizm
 ```
@@ -50,6 +51,7 @@ Render: üç işçi kareleri paylaşır, ses OfflineAudioContext ile üretilir, 
 - **Claude sağ elle çalar.** Gitar oyuncunun orta düzleminde aynalı bir taşıyıcı grupta (`model.rig`); gitarın dünya yönü ve konumu için `matrixWorld` kullanılır. Sol el perde başına bir parmak penceresinde durur, notalar arasında yerinde kalır, sonraki notadan az önce kayar, uzun susuşta ev konumuna döner (`handPlan`/`handAt`, zamanın saf fonksiyonu). Pena teli nota anında keser, 8'lik ızgarada aşağı/yukarı vurur, akorda tarar, legato notada vurmaz, palm mute'ta el köprüye yaslanır (`pickAt`).
 - **Eller.** Eklemli eller: beş parmak, her birinin ucu ve kalınlığı (`userData.fingers`, `tip`, `r`). Basılan her notaya bir parmak atanır (`fingerPlan`); aynı perdede tutulan nota parmağını kalkmadan devreder, boş parmak yoksa bitmek üzere olanınki alınır. Parmak ucu çizilen telin üstüne oturur (`model.stringAt`), bükmede telle birlikte gider. Perde eli alçak ve yüksek duruş arasında kare kare en ucuz yol aramasıyla geçer (`regimePlan`); geçişler susuşlara düşer, kısa tiz çıkışlarda el gidip gelmez. Pena başparmak ile işaret arasında, palm mute'ta elin topuğu köprüye yaslanır.
 - **Teller.** 10-46 takım kalibresinde (1.17 → 0.254 mm) kameraya dönen şeritler; kalın üçü sarımlı. Çalınan tel konuşan boyunda saydam bir iğe yayılır, sönümü sesin tel modelinden gelir; palm mute'ta kısa, legato notada devralınır. Bükme ve vibrato sesle görüntünün ortak kaynağından gelir (`music/bend.js`: `noteCurve` sesi programlar, `bendDisplacement` teli yana iter); ikisi aynı eğriyi kullanır.
+- **Oda mekânı** (`sim.setEnv("oda")`, `ENV=oda`; varsayılan mekân değişmez). Peri ışıklı, posterli bir yatak odası köşesi: `stage/room.js` ve `stage/room/` (yerleşim sayıları `room/layout.js`, kabuk, ışık, amfi), `stage/fairy-lights.js`, `stage/room-props.js` (karyola, tekstiller, peluşlar), `stage/cat.js` (kara kedi, zamanın saf fonksiyonu), `stage/wall-decor.js` (kendi posterlerimiz, plaklar, polaroidler, notlar). Odada kalabalık, sahne ışık demetleri ve tam ekran flaş kapalı. Yönetmen her çekim türünü oda içi bir karşılığa yerleştirir; `room.confine` kamerayı odanın içinde tutar. `room.bed.seat` yatağın kenarına oturmak için kalça noktası, yön ve minder yüksekliği verir. Canvas dokuları yalnız vendor yazı tipleriyle ve yazı tipleri yüklendikten sonra çizilir (`canvas-tex.js`); render işçileri bu yüzden aynı kareyi üretir.
 - **Beden dili.** Üyenin `groove(p, t)` duruşu yoğunluğa bağlı: sinsi bölümde küçük nod ve öne eğik duruş, dorukta headbang; pelvis önden gider, göğüs ve kafa aynı fonksiyonun biraz sonraki anını alarak izler. Öne eğilirken kalça gitarın dayandığı hizada geri kayar, gövde sahneye sabit gitara girmez.
 
 ## Ses nasıl üretiliyor
@@ -58,7 +60,7 @@ Render: üç işçi kareleri paylaşır, ses OfflineAudioContext ile üretilir, 
 2. **Manyetik.** Bobin ve kablo rezonansı: 3.6 ila 5 kHz'de rezonanslı alçak geçiren.
 3. **Amfi.** Sıkılaştırma, ön vurgulama (kırpmadan önce bas kısılır), asimetrik yumuşak kırpma (lamba kademesi, çift harmonikler), kuplaj ve cızırtı süzgeçleri, ton katı, presence, güç kademesi, geri vurgulama. Üç ön ayar: temiz, crunch, lead.
 4. **Kabin.** 12" gitar hoparlörünün tipik eğrisinden tasarlanmış darbe yanıtı (80 Hz altı kesik, 130 Hz tınlama, 480 Hz çukur, 2.6 kHz presence, 5 kHz üstü düşüş) ve yakın mikrofonun kısa yansımaları. Gerçek bir kabin IR'ı varsa `createEngine`'e `cabIR` ile verilebilir.
-5. **Mekan.** Haas çiftleme, yankı, mekana göre uzunluğu değişen sentetik oda.
+5. **Mekan.** Haas çiftleme, yankı, mekana göre uzunluğu değişen sentetik oda. Oda mekânında yankı küçük ve kuru bir yatak odası yanıtı (durumsuz, hash01 ile); ses programı mekândan bağımsız.
 
 ## Ses tasarımı döngüsü
 
