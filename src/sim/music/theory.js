@@ -1,6 +1,6 @@
 // Gitar ölçüleri, akort ve nota yerleşimi yardımcıları.
 export const L = 0.648;                       // ölçek uzunluğu: eşik -> köprü (metre)
-export const FRETS = 22;
+export const FRETS = 24;
 export const fretX = n => L * (1 - Math.pow(2, -n / 12));
 export const OPEN = [40, 45, 50, 55, 59, 64];  // E2 A2 D3 G3 B3 E4 (MIDI)
 export const NAMES = ["E","A","D","G","B","e"];
