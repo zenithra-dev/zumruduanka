@@ -13,7 +13,8 @@
 import * as THREE from "three";
 import { FLOOR as FIG_FLOOR } from "./figures.js";
 import { FLOOR, CEIL, SHELL, BED, SEAT, SLOTS, LIGHTS, WALLS, CAMERA } from "./room/layout.js";
-import { buildBed } from "./room/bed.js";
+import { buildBedding } from "./room-props.js";
+import { buildCat } from "./cat.js";
 import { buildLights } from "./room/lights.js";
 import { buildDecor, onWall } from "./room/decor.js";
 import { buildProps } from "./room/props.js";
@@ -27,7 +28,8 @@ export function createRoom({renderer} = {}){
   if (FLOOR !== FIG_FLOOR) throw new Error("room/layout.js FLOOR figures.js ile aynı olmalı");
   const aniso = renderer ? Math.min(8, renderer.capabilities.getMaxAnisotropy()) : 1;
   const group = new THREE.Group(), textures = [];
-  const parts = {bed: buildBed(), lights: buildLights(), decor: buildDecor({aniso}), props: buildProps(), amp: buildAmp({aniso})};
+  const parts = {bed: buildBedding({aniso}), lights: buildLights(), decor: buildDecor({aniso}), props: buildProps(), amp: buildAmp({aniso})};
+  parts.cat = buildCat({aniso, surfaceAt: parts.bed.surfaceAt});   // kara kedi (cat.js) battaniyenin gerçek yüzeyinde
   // Kabuk (room/shell.js): zemin, duvarlar, tavan, süpürgelik; ampullerin ışık haritası için ışık parçasını kullanır
   const shell = buildShell({aniso, lights: parts.lights}), walls = shell.walls;
   [shell, ...Object.values(parts)].forEach(p => { group.add(p.group); (p.textures || []).forEach(t => textures.push(t)); });
@@ -82,10 +84,10 @@ export function createRoom({renderer} = {}){
   }
   // Eşyaların gerçek kutuları (her ağın dünya kutusu): kamera ölçümünün payından bağımsız denetimi
   function solids(){ group.updateMatrixWorld(true); const out = [];
-    [parts.bed, parts.props, parts.amp].forEach(p => p.group.traverse(o => { if (o.isMesh) out.push(new THREE.Box3().setFromObject(o)); })); return out; }
+    [parts.bed, parts.props, parts.amp, parts.cat].forEach(p => p.group.traverse(o => { if (o.isMesh) out.push(new THREE.Box3().setFromObject(o)); })); return out; }
   // Tembel dokular (kabuk, amfi; room/tex.js): ilk güncellemede ya da dokular ilk okunduğunda bir kez boyanır (kulüp kurulumu ödemez)
   const paint = () => [shell, ...Object.values(parts)].forEach(p => p.paint && p.paint());
-  function update(now, wall, p){ paint(); parts.lights.update(now, wall, p); parts.props.update(now, wall, p); }
+  function update(now, wall, p){ paint(); parts.lights.update(now, wall, p); parts.props.update(now, wall, p); parts.cat.update(now, wall, p); }
 
   const slots = Object.assign({}, SLOTS, {isik: LIGHTS});
   const room = {group, parts, get textures(){ paint(); return textures; }, walls, bed, slots, bounds, avoid, shell: SHELL, subject: subj, free: false, lastPull: 0, inside, confine, solids, update,
