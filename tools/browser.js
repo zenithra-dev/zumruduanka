@@ -8,8 +8,10 @@ export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "
 
 async function ready(page){
   await page.waitForFunction(() => !!window.createSim, null, {timeout: 30000});
-  // Tuvale yazılan üç yazı tipi (pankart, söz, HUD) hazır olmadan kare üretilmez; aksi halde kareler arasında yazı tipi değişir.
+  // Tuvale yazılan yazı tipleri (pankart, söz, HUD, oda dokuları) hazır olmadan kare üretilmez; aksi halde kareler arasında yazı tipi değişir.
+  // Sayfada canvas-tex.js loadFonts varsa onun bütün listesi (kalınlıklar ve latin-ext dahil), yoksa (SRC ile eski kaynak) eski üçlü.
   const fonts = await page.evaluate(() => Promise.race([
+    window.loadFonts ? window.loadFonts(15000) :
     Promise.all(["800 20px 'Big Shoulders Display'", "600 20px Figtree", "500 20px 'JetBrains Mono'"].map(f => document.fonts.load(f, "ZÜMRÜDÜANKA şğıç"))).then(r => r.every(x => x.length > 0)),
     new Promise(r => setTimeout(() => r(false), 15000))]));
   if (!fonts) console.error("UYARI: yazı tipleri yüklenemedi (src/vendor/fonts), yedek yazı tipleriyle devam");

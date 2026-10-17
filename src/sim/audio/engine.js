@@ -1,5 +1,5 @@
 // Amfi zinciri, master bus, yankı ve oda. Bir AudioContext'e (gerçek ya da offline) bağlı tek motor.
-import { rand } from "../rng.js";
+import { rand, hash01 } from "../rng.js";
 
 // pickup: manyetiğin rezonans frekansı (kablo ve bobin; kısık ses = koyu), bias: lamba kademesinin asimetrisi (çift harmonikler),
 // pres: tonlamadan sonra 3.9 kHz presence, lp: kabin sonrası emniyet kesimi
@@ -57,6 +57,21 @@ function roomIR(ctx, sec){
   }
   return b;
 }
+// Küçük, kuru oda (yatak odası): durumsuz gürültü (hash01; rand() akışına dokunmaz), yakın erken yansımalar, daha koyu kuyruk.
+// r = {sec, pre, dark, level, er: [[sn, kazanç]], salt} (venues.js ENVS.oda.room)
+function stillRoomIR(ctx, r){
+  const sr = ctx.sampleRate, len = Math.floor(sr * r.sec), b = ctx.createBuffer(2, len, sr), pd = Math.floor(sr * r.pre);
+  for (let ch = 0; ch < 2; ch++){
+    const d = b.getChannelData(ch); let lp = 0;
+    for (let i = pd; i < len; i++){
+      const t = (i - pd) / sr, a = Math.min(r.dark, 0.35 + t * 9);
+      lp = lp * a + (hash01(i + ch * len, r.salt) * 2 - 1) * (1 - a);
+      d[i] = lp * Math.exp(-6.9 * t / r.sec) * r.level;
+    }
+    r.er.forEach(([e, g]) => { const j = pd + Math.floor(sr * (e + ch * 0.0011)); if (j < len) d[j] += g; });
+  }
+  return b;
+}
 
 export function createEngine(ctx, prefs = {}){
   let ampName = prefs.amp || "crunch", roomSec = prefs.room || 1.4;
@@ -110,7 +125,7 @@ export function createEngine(ctx, prefs = {}){
     ampL.apply(a); ampR.apply(a); wet.gain.value = a.wet; gtrRev.gain.value = a.rev;
   }
   function setCabIR(buf){ ampL.cab.buffer = buf; ampR.cab.buffer = buf; }
-  function setRoom(sec){ roomSec = sec; reverb.buffer = roomIR(ctx, sec); }
+  function setRoom(sec){ roomSec = sec; reverb.buffer = typeof sec === "number" ? roomIR(ctx, sec) : stillRoomIR(ctx, sec); }
   function setVolume(v){ master.gain.value = v * 0.62; }
   let noiseBuf = null;
   function noiseSrc(){

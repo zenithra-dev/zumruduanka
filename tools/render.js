@@ -9,34 +9,37 @@
 //   IMG=jpg ...                            # PNG yerine JPEG 0.98 (daha küçük, bir kayıplı adım fazla)
 //   HUD=1 ...                              # önizleme görünümü: geliştirme HUD'u ve sabit alt bant (hata ayıklama)
 //   NO_AUDIO=1 ...                         # ses yazılmaz (yalnız kare kontrolü; video için ses gerekir)
+//   ENV=oda ...                            # mekan (varsayılan club). Şarkı yüklendikten sonra kurulur: ses programı kulüple aynı, değişen yalnız yankı
 import fs from "node:fs";
 import path from "node:path";
 import { openHarness, ROOT, slug } from "./browser.js";
 
 const SR = 44100, FPS = +(process.env.FPS || 30);
-const SONG = process.env.SONG || "0", W = +(process.env.W || 0), N = +(process.env.N || 1), SEED = +(process.env.SEED || 1);
+const SONG = process.env.SONG || "0", W = +(process.env.W || 0), N = +(process.env.N || 1), SEED = +(process.env.SEED || 1), ENV = process.env.ENV || "club";
 const OUT = path.resolve(process.env.OUT || path.join(ROOT, "out/work"));
 const JPG = process.env.IMG === "jpg", EXT = JPG ? "jpg" : "png", HUD = !!process.env.HUD;
 fs.mkdirSync(path.join(OUT, "frames"), {recursive: true});
 
 const h = await openHarness();
 const { page } = h;
-const info = await page.evaluate(async ([SR, SONG, SEED, wantAudio]) => {
+const info = await page.evaluate(async ([SR, SONG, SEED, wantAudio, ENV]) => {
   const song = window.findSong(SONG);
   if (!song) throw new Error("Şarkı bulunamadı: " + SONG);
   const off = new OfflineAudioContext(2, Math.ceil(SR * (window.songLength(song) + 1)), SR);
   const sim = window.sim = window.createSim({canvas: document.getElementById("gl"), audioContext: off, manual: true, seed: SEED});
   sim.setCamera("director"); sim.load(song);
+  if (ENV !== "club"){ if (!sim.envs[ENV]) throw new Error("Mekan bulunamadı: " + ENV); sim.setEnv(ENV); }
+  if (sim.whenReady) await sim.whenReady();   // kanvas dokuları vendor yazı tipleriyle çizilmeden kare yok
   const out = {end: sim.playing.end, videoEnd: sim.videoEnd(), id: song.id, name: song.name, shots: sim.playing.shots.length, peak: 0, wav: null};
   if (wantAudio){ const buf = await off.startRendering(); out.peak = window.peakOf(buf); out.wav = window.encodeWav(buf, out.peak > 0 ? 0.89 / out.peak : 1); }
   return out;
-}, [SR, SONG, SEED, W === 0 && !process.env.NO_AUDIO]);
+}, [SR, SONG, SEED, W === 0 && !process.env.NO_AUDIO, ENV]);
 if (info.wav){
   fs.writeFileSync(path.join(OUT, "audio.wav"), Buffer.from(info.wav, "base64"));
   fs.writeFileSync(path.join(OUT, "name.txt"), "zumruduanka-" + slug(info.name));
   console.log("ses yazıldı, tepe", info.peak.toFixed(3));
 }
-console.log("şarkı", info.id, "bitiş", info.end.toFixed(2), "sn,", info.shots, "çekim, tohum", SEED);
+console.log("şarkı", info.id, "bitiş", info.end.toFixed(2), "sn,", info.shots, "çekim, tohum", SEED, "mekan", ENV);
 if (process.env.AUDIO_ONLY){ await h.close(); process.exit(0); }
 
 const total = Math.ceil(info.videoEnd * FPS);

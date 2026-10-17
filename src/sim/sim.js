@@ -5,6 +5,7 @@
 //   sim.frame(now, wall);            // o ana göre sahneyi günceller ve çizer
 //   sim.composite(ctx2d, 1280, 720); // kareyi grup adı, şarkı ve HUD ile 2B tuvale basar (önizleme/kayıt)
 //   sim.composite(ctx2d, 1280, 720, {broadcast: true, t}); // yayın karesi: HUD yok, alt bant yalnız ilk çekimde, açılış/kapanış kararması
+//   await sim.whenReady();           // kanvas dokuları vendor yazı tipleriyle çizildi (sim.texReady); araçlar kareden önce bekler
 //
 // Tarayıcıda now = audio.ctx.currentTime, wall = performance.now()/1000; render aracında ikisi de kare zamanı.
 // manual: true → şarkı sonunda kendiliğinden durmaz (araç yönetir).
@@ -20,6 +21,7 @@ import { createFx } from "./stage/fx.js";
 import { createVenues, ENVS } from "./stage/venues.js";
 import { createCrowd } from "./stage/crowd.js";
 import { linearize } from "./stage/finish.js";
+import { texPending, whenTexReady } from "./stage/canvas-tex.js";
 import { createDirector } from "./camera/director.js";
 import { createEngine, AMPS } from "./audio/engine.js";
 import { createInstruments } from "./audio/instruments.js";
@@ -44,8 +46,10 @@ export function createSim(opts = {}){
   const fx = createFx(S.scene);
   const prefs = {amp: "crunch", room: 1.4, volume: 0.75};
   let engine = null, inst = null;
-  const venues = createVenues({scene: S.scene, hemi: S.hemi, key: S.key, floor: S.floor, banner: bannerKit.banner, clubItems: [S.back, S.ampG, S.truss],
-    onRoom(sec){ prefs.room = sec; if (engine) engine.setRoom(sec); }});
+  // Durumsuz oda yanıtı (ENVS.oda.room nesne) prefs.room'u değiştirmez: motor her zaman sayısal yankıyla kurulur (aynı sayıda rand()), sonra ona
+  // geçer. Böylece oda, yükleme öncesi ya da sonrası seçilsin, ses programı kulüple aynı kalır; değişen yalnız yankı.
+  const venues = createVenues({scene: S.scene, renderer: S.renderer, hemi: S.hemi, key: S.key, floor: S.floor, banner: bannerKit.banner, clubItems: [S.back, S.ampG, S.truss],
+    onRoom(r){ if (typeof r === "number") prefs.room = r; prefs.roomSpec = typeof r === "number" ? null : r; if (engine) engine.setRoom(r); }});
   const crowd = createCrowd(S.scene);
   linearize(S.scene, model.strings.map(s => s.base)); // sRGB hex renkler → lineer (finish.js), tellerin dinlenme rengi dahil
   const director = createDirector({FIG: rigs.FIG, groupCam: S.groupCam, orbit: S.orbit, placeCams: () => S.placeCams(model)});
@@ -60,7 +64,7 @@ export function createSim(opts = {}){
       return engine;
     }
     const ctx = audioContext || new (window.AudioContext || window.webkitAudioContext)();
-    engine = createEngine(ctx, prefs); inst = createInstruments(engine);
+    engine = createEngine(ctx, prefs); if (prefs.roomSpec) engine.setRoom(prefs.roomSpec); inst = createInstruments(engine);
     return engine;
   }
   function stop(){ if (!playing) return; const p = playing; playing = null; if (engine) release(p, engine.ctx); }
@@ -82,10 +86,12 @@ export function createSim(opts = {}){
     // Teller yalnız (now, olaylar)'dan: titreşim iği, basılı perde, bükme ve vibrato (guitar-model.js updateStrings); pena üyenin pozunda (claude.js pickAt)
     model.updateStrings(now, playing && playing.events, reduceMotion);
     if (sim.recording) model.recLed.material.color.setHex(Math.floor(wall * 2) % 2 ? 0xff2a2a : 0x661111);
+    const show = venues.current.show !== false, oda = venues.envName === "oda";
     rigs.updateBand(now, wall, playing, venues.current.hemi[2]);
-    fx.update(now, wall, playing);
+    if (show) fx.update(now, wall, playing);
     venues.updateEnv(wall);
-    crowd.update(now, wall, playing, venues.envName);
+    if (show) crowd.update(now, wall, playing, venues.envName);
+    if (oda) venues.oda.update(now, wall, playing);
     if (camMode === "director") director.direct(now, wall, playing, roster());
     else if (camMode === "group"){
       if (S.groupCam.fov !== 40){ S.groupCam.fov = 40; S.groupCam.updateProjectionMatrix(); }   // yönetmen objektifi çekime göre değiştiriyor
@@ -93,6 +99,13 @@ export function createSim(opts = {}){
       S.groupCam.lookAt(0, -0.05, -0.8);
     }
     rigs.applyRoster(roster(), headCamOn());
+    // Odada kamera duvardan, tavandan ve eşyadan geçmez: dışarıda kalan kamera bakış yönünde içeri çekilir (room.js confine)
+    if (oda){ const c = activeCam(); if (c === S.groupCam) venues.oda.confine(c); else if (c === S.stageCam) venues.oda.confine(c, S.orbit.target, false); }
+  }
+  // Mekan: görüntü, ışık ve yankı venues.js'te; sahne şovu (hüzme, flaş, kalabalık, kor ve anka) yalnız ENVS show'u olan mekanda
+  function setEnv(n){
+    venues.setEnv(n); const on = venues.current.show !== false;
+    rigs.setStage(on); crowd.setVisible(on); [fx.embers, fx.sparks, fx.phoenix].forEach(o => { o.visible = on; });
   }
   function activeCam(){
     const m = camMode === "director" ? director.cam : camMode;
@@ -157,12 +170,13 @@ export function createSim(opts = {}){
     THREE, canvas, scene: S.scene, renderer: S.renderer,
     cams: {head: S.headCam, stage: S.stageCam, group: S.groupCam}, orbit: S.orbit,
     songs: SONGS, findSong, members: MEMBER, bandName: BAND_NAME, envs: ENVS, amps: AMPS,
-    model, rigs, fx, venues, crowd, director, FIG: rigs.FIG,
+    model, rigs, fx, venues, crowd, director, FIG: rigs.FIG, oda: venues.oda,
     manual, seed, recording: false, onEnd: null,
     get playing(){ return playing; },
     get current(){ return current; }, set current(s){ current = s; },
     get camMode(){ return camMode; }, setCamera(m){ camMode = m; },
-    get envName(){ return venues.envName; }, setEnv(n){ venues.setEnv(n); },
+    get envName(){ return venues.envName; }, setEnv,
+    get texReady(){ return texPending() === 0; }, whenReady: ms => whenTexReady(ms),
     get ampName(){ return prefs.amp; }, setAmp(n){ prefs.amp = n; if (engine) engine.setAmp(n); },
     get volume(){ return prefs.volume; }, setVolume(v){ prefs.volume = v; if (engine) engine.setVolume(v); },
     get audio(){ return engine; },
@@ -170,7 +184,7 @@ export function createSim(opts = {}){
     ensureAudio, load, stop, roster, update, render, frame(now, wall){ update(now, wall); render(); },
     resize, hudLabel, composite, overlayAt, videoEnd, placeCams(){ S.placeCams(model); }
   };
-  venues.setEnv("club");
+  setEnv("club");
   S.placeCams(model);
   resize();
   if (typeof document !== "undefined" && document.fonts && document.fonts.ready) document.fonts.ready.then(() => rigs.invalidateBanner());

@@ -12,11 +12,12 @@ const OUT = path.resolve(process.env.OUT || path.join(ROOT, "out/shot.png"));
 fs.mkdirSync(path.dirname(OUT), {recursive: true});
 
 const h = await openHarness();
-const r = await h.page.evaluate(([SONG, ENV, CAM, T, SEED]) => {
+const r = await h.page.evaluate(async ([SONG, ENV, CAM, T, SEED]) => {
   const off = new OfflineAudioContext(2, 44100 * 2, 44100); // yalnızca zamanlama için; ses üretilmez
   const sim = window.sim = window.createSim({canvas: document.getElementById("gl"), audioContext: off, manual: true, seed: SEED});
   sim.setEnv(ENV); sim.setCamera(CAM);
   if (SONG !== ""){ const song = sim.findSong(SONG); if (!song) throw new Error("Şarkı bulunamadı: " + SONG); sim.load(song); }
+  if (sim.whenReady) await sim.whenReady();   // kanvas dokuları vendor yazı tipleriyle çizilmeden kare yok
   sim.frame(T, T);
   const cv = Object.assign(document.createElement("canvas"), {width: 1280, height: 720});
   sim.composite(cv.getContext("2d"), 1280, 720);

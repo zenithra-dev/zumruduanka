@@ -1,11 +1,13 @@
 // Önizleme sayfası: simülasyonu tarayıcıda sürer, kontrolleri bağlar, tab şeridini ve kaydı yönetir.
 import { createSim } from "../sim/sim.js";
 import { NAMES } from "../sim/music/theory.js";
+import { loadFonts } from "../sim/stage/canvas-tex.js";
 
 const $ = id => document.getElementById(id);
 const gl = $("gl");
 // Tohum: ?seed=5 ile sabitlenebilir; verilmezse her açılışta farklı (doğaçlama her seferinde yeni).
 const seed = +(new URLSearchParams(location.search).get("seed") || (Date.now() >>> 0));
+await loadFonts(4000);   // oda dokularının yazıları vendor yazı tipleriyle çizilsin (yetişmezse yüklenince çizilir)
 const sim = createSim({canvas: gl, seed});
 window.sim = sim;
 const { songs: SONGS, members: MEMBER } = sim;

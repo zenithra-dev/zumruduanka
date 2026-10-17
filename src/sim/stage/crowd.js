@@ -108,5 +108,7 @@ export function createCrowd(scene){
     });
     C.body.instanceMatrix.needsUpdate = C.head.instanceMatrix.needsUpdate = C.arm.instanceMatrix.needsUpdate = true;
   }
-  return { update };
+  // Sahne şovu olmayan mekanda (oda) kalabalık gizli; sim.js o zaman update çağırmaz
+  function setVisible(v){ [body, head, arm].forEach(m => { m.visible = !!v; }); }
+  return { update, setVisible };
 }

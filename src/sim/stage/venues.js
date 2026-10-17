@@ -1,19 +1,25 @@
-// Mekanlar: kulüp sahnesi, antik tiyatro, Kaf Dağı zirvesi. Gökyüzü, meşaleler ve mekan geçişi.
+// Mekanlar: kulüp sahnesi, antik tiyatro, Kaf Dağı zirvesi, oda (yatak odası köşesi, room.js). Gökyüzü, meşaleler ve mekan geçişi.
 import * as THREE from "three";
 import { rand } from "../rng.js";
 import { FLOOR, mat } from "./figures.js";
+import { createRoom } from "./room.js";
 
 // grade: Finish geçişinin mekana göre derecelendirmesi (pozlama, doygunluk, S eğrisi, vinyet, gren, gölge/ışık tonu)
+// room: yankının oda boyu (sn) ya da durumsuz küçük oda yanıtı (engine.js stillRoomIR; rand() tüketmez, ses programı kulüple aynı kalır).
+// show: false → sahne şovu yok (ışık hüzmeleri, tam ekran flaş, kalabalık, kor ve anka kuşu); banner: false → sahne pankartı gizli
 export const ENVS = {
   club:    {name: "Kulüp sahnesi", bg: 0x16110e, fog: [4, 10], hemi: [0xffe6c8, 0x1a1010, 0.4], floor: true, sky: false, room: 1.3, key: [0xfff1dd, 0.5],
     grade: {exposure: 1.4, sat: 0.85, contrast: 0.12, vig: 0.32, grain: 0.03, sh: [0.95, 0.98, 1.06], hi: [1.05, 1, 0.94]}},
   theater: {name: "Antik tiyatro", bg: 0x0b0f1e, fog: [8, 30], hemi: [0x5a6a9c, 0x2a1d12, 0.25], floor: false, sky: true, room: 2.6, key: [0x8ea6e0, 0.15],
     grade: {exposure: 1.4, sat: 0.8, contrast: 0.12, vig: 0.32, grain: 0.03, sh: [0.92, 0.97, 1.1], hi: [1.06, 1, 0.92]}},
   summit:  {name: "Kaf Dağı zirvesi", bg: 0x070b18, fog: [10, 45], hemi: [0x7c96dc, 0x141820, 0.45], floor: false, sky: true, room: 3.4, key: [0x9fb4ec, 0.3],
-    grade: {exposure: 1.4, sat: 0.85, contrast: 0.12, vig: 0.32, grain: 0.03, sh: [0.94, 0.98, 1.08], hi: [1.03, 1, 0.96]}}
+    grade: {exposure: 1.4, sat: 0.85, contrast: 0.12, vig: 0.32, grain: 0.03, sh: [0.94, 0.98, 1.08], hi: [1.03, 1, 0.96]}},
+  oda:     {name: "Oda", bg: 0x140e0b, fog: [4, 16], hemi: [0xffd2a0, 0x24180f, 0.13], floor: false, sky: false, key: [0xffdcb4, 0.1], show: false, banner: false,
+    room: {sec: 0.4, pre: 0.004, dark: 0.9, level: 1.2, er: [[0.0032, 0.42], [0.0051, 0.3], [0.0074, 0.24], [0.0098, 0.17], [0.0131, 0.12], [0.0176, 0.08]], salt: "oda-yanki"},
+    grade: {exposure: 1.3, sat: 0.88, contrast: 0.1, vig: 0.38, grain: 0.03, sh: [0.97, 0.97, 1.03], hi: [1.06, 1, 0.92]}}
 };
 
-export function createVenues({scene, hemi, key, floor, banner, clubItems, onRoom}){
+export function createVenues({scene, renderer, hemi, key, floor, banner, clubItems, onRoom}){
   const ENV = {club: new THREE.Group(), theater: new THREE.Group(), summit: new THREE.Group()}, fin = scene.userData.finish;
   Object.values(ENV).forEach(g => scene.add(g));
   (clubItems || []).forEach(m => ENV.club.add(m));
@@ -82,21 +88,24 @@ export function createVenues({scene, hemi, key, floor, banner, clubItems, onRoom
     for (let i = 0; i < 18; i++){ const a = i / 18 * Math.PI * 2, r = 3.5 + (i % 3) * 0.3; const st = new THREE.Mesh(new THREE.DodecahedronGeometry(0.18 + (i % 4) * 0.07), stones);
       st.position.set(Math.cos(a) * r, FLOOR + 0.08, -1 + Math.sin(a) * r); st.rotation.set(i, i * 2, 0); S.add(st); }
   }
+  // Oda: rand() kullanmaz (kurulum sırası ses akışını etkilemez); yalnız seçilince sahnede
+  const oda = createRoom({renderer}); ENV.oda = oda.group; scene.add(oda.group);
   let envName = "club";
   function setEnv(n){
     envName = n; const e = ENVS[n];
     Object.keys(ENV).forEach(k => { ENV[k].visible = k === n; });
+    if (n !== "oda") scene.remove(oda.group); else if (oda.group.parent !== scene) scene.add(oda.group);
     floor.visible = e.floor; sky.visible = e.sky;
     // Önce derecelendirme: gök ve sis, son işlemden sonra tam e.bg çıkacak HDR değere kurulur. Işık renkleri sRGB hex (linearize çevirir).
     fin.grade(e.grade); fin.backdrop(e.bg, scene.background); scene.fog.color.copy(scene.background); scene.fog.near = e.fog[0]; scene.fog.far = e.fog[1];
     hemi.color.setHex(e.hemi[0]); hemi.groundColor.setHex(e.hemi[1]); hemi.intensity = e.hemi[2];
     key.color.setHex(e.key[0]); key.intensity = e.key[1];
-    banner.position.set(0, n === "club" ? 1.8 : 2.2, n === "club" ? -3.15 : -3.0);
+    banner.position.set(0, n === "club" ? 1.8 : 2.2, n === "club" ? -3.15 : -3.0); banner.visible = e.banner !== false;
     if (onRoom) onRoom(e.room);
   }
   function updateEnv(wall){
     fin.frame(wall);
     torches.forEach(t => { const f = 0.85 + 0.15 * Math.sin(wall * 13 + t.ph) * Math.sin(wall * 7.3 + t.ph * 2); t.flame.scale.set(1, f * 1.1, 1); t.L.intensity = 1.0 * f + 0.25; });
   }
-  return { ENV, sky, setEnv, updateEnv, get envName(){ return envName; }, get current(){ return ENVS[envName]; } };
+  return { ENV, sky, oda, setEnv, updateEnv, get envName(){ return envName; }, get current(){ return ENVS[envName]; } };
 }
