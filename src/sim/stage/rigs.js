@@ -82,7 +82,7 @@ export function createRigs({scene, model, hemi, drawBanner}){
     for (const a of flashes(p)){ if (a.t > now) break; if (now - a.t < 1) h = Math.max(h, a.w * Math.exp(-(now - a.t) / FLASH_TAU)); }
     return Math.min(1, h) * (0.55 + 0.45 * intensity(p, now));
   }
-  let flash = 0;
+  let flash = 0, stage = true;   // stage: mekanda sahne şovu var mı (ENVS show; odada yok: hüzme ve flaş kapalı)
   // Her karede: kişiyi çalınan notalara göre pozlar, ışık şovunu günceller. hemiBase: mekanın temel ortam ışığı.
   function updateBand(now, wall, p, hemiBase){
     const beat = beatAt(p, now);   // ortak ritim saati: şarkının gerçek vuruşu (çalmıyorken 90 BPM boşta)
@@ -93,7 +93,7 @@ export function createRigs({scene, model, hemi, drawBanner}){
     MEMBER_RIGS.forEach(M => M.pose(parts[M.id], ctx));
     // Işık şovu: vurguda flaş (hüzmeler kendi renginde parlar; pozlama darbesini sim.js Finish'e verir), hüzmeler ritimle salınır,
     // yoğun yerde biraz daha dolgun. Ortam ışığı (hemi) flaşta değişmez: eklenen beyaz ışık siyahları açıp görüntüyü grileştiriyordu.
-    flash = flashAt(p, now);
+    flash = stage ? flashAt(p, now) : 0;
     const I = intensity(p, now);
     beamList.forEach((b, i) => {
       const sw = p ? 0.16 : 0.05, ph = i * 1.3;
@@ -103,5 +103,6 @@ export function createRigs({scene, model, hemi, drawBanner}){
     });
     hemi.intensity = hemiBase;
   }
-  return { FIG, LIGHTS, beams, parts, applyRoster, updateBand, invalidateBanner(){ rosterKey = ""; }, get flash(){ return flash; } };
+  function setStage(on){ stage = !!on; beamList.forEach(b => { b.visible = stage; }); }
+  return { FIG, LIGHTS, beams, parts, applyRoster, updateBand, setStage, invalidateBanner(){ rosterKey = ""; }, get flash(){ return flash; } };
 }

@@ -1,5 +1,6 @@
 // Duman testi (npm test): her şarkı yüklenir, ilk saniyeleri sese dökülür, baştan/ortadan/sondan birer kare çizilir.
-// Hata, NaN, sessizlik, kara kare, boş ya da kısa çekim listesi, bozuk ritim saati ve vurgusuz şarkı arar; sonra önizleme sayfasını açıp çal/durdur dener.
+// Hata, NaN, sessizlik, kara kare, boş ya da kısa çekim listesi, bozuk ritim saati ve vurgusuz şarkı arar; oda mekânında bir şarkı (dokular, kareler,
+// flaş, kamera sınırı); sonra önizleme sayfasını açıp çal/durdur dener.
 // Önce tarayıcısız: bükme ve vibrato eğrisinin ses ile görselde aynı olduğu.
 //   SECS=10 SEED=1 node tools/check.js
 import { openHarness } from "./browser.js";
@@ -98,6 +99,40 @@ for (const id of ids){
   await h.fresh();
 }
 
+// Oda mekânı (kısa): kanvas dokuları yazı tipiyle çizildi, üç kare (NaN yok, kara değil), bütün şarkıda flaş yok ve yönetmenin kamerası odanın içinde
+console.log("Oda mekânı:");
+{
+  const errs = []; const onErr = e => errs.push(e.message); h.page.on("pageerror", onErr);
+  const r = await h.page.evaluate(async () => {
+    const sim = window.createSim({canvas: document.getElementById("gl"), audioContext: new OfflineAudioContext(2, 44100 * 2, 44100), manual: true, seed: 1});
+    sim.setEnv("oda"); sim.setCamera("director"); const p = sim.load(window.findSong("kaf")); await sim.whenReady();
+    const R = sim.oda, cam = () => { const c = sim.director.cam; return c === "head" ? sim.cams.head : c === "stage" ? sim.cams.stage : sim.cams.group; };
+    const cv = Object.assign(document.createElement("canvas"), {width: 1280, height: 720}), g = cv.getContext("2d"), lum = [];
+    for (const t of [p.t0 + 0.5, (p.t0 + p.end) / 2, p.end - 0.3]){
+      sim.frame(t, t); g.drawImage(sim.canvas, 0, 0, 1280, 720); const d = g.getImageData(0, 0, 1280, 720).data; let s = 0, n = 0;
+      for (let i = 0; i < d.length; i += 4 * 101){ s += d[i] + d[i + 1] + d[i + 2]; n++; } lum.push(s / n / 3);
+    }
+    let n = 0, out = 0, fl = 0, nan = 0;
+    for (let k = Math.ceil(p.t0 * 30); k / 30 < sim.videoEnd(); k++){ const t = k / 30; sim.update(t, t); const c = cam().position; n++;
+      if (!R.inside(c)) out++; if (sim.rigs.flash > 0.001) fl++; if (![...c.toArray(), ...sim.FIG.claude.head.getWorldPosition(new sim.THREE.Vector3()).toArray()].every(Number.isFinite)) nan++; }
+    const tex = R.textures.every(t => !t.canvasJob.fonts || t.canvasJob.withFonts);
+    return {lum, n, out, fl, nan, tex: tex && sim.texReady, nTex: R.textures.length};
+  }).catch(e => ({error: e.message}));
+  h.page.off("pageerror", onErr);
+  const probs = [];
+  if (r.error) probs.push("hata: " + r.error);
+  if (errs.length) probs.push("sayfa hatası: " + errs.join(" | "));
+  if (!r.error){
+    if (r.lum.some(l => l < 6)) probs.push("kara kare");
+    if (r.nan) probs.push("NaN kare: " + r.nan);
+    if (r.fl) probs.push("flaş: " + r.fl + " kare");
+    if (r.out) probs.push("kamera odanın dışında: " + r.out + " kare");
+    if (!r.tex) probs.push("doku yazı tipi beklemeden çizildi");
+  }
+  row(!probs.length, r.error ? "oda: " + probs.join("; ") : `kaf odada: ${r.n} kare, kamera dışarıda ${r.out}, flaş ${r.fl}, ${r.nTex} doku yazı tipiyle ${r.tex ? "evet" : "hayır"}, parlaklık ${r.lum.map(x => x.toFixed(0)).join("/")}` + (probs.length ? "  ← " + probs.join("; ") : ""));
+  await h.fresh();
+}
+
 console.log("Önizleme sayfası:");
 {
   const page = await h.browser.newPage({viewport: {width: 1280, height: 1000}});
@@ -112,6 +147,9 @@ console.log("Önizleme sayfası:");
     const s2 = await page.evaluate(() => ({playing: !!window.sim.playing, cam: window.sim.camMode, env: window.sim.envName}));
     row(s1.playing && s1.now > 0.5, "çal: " + s1.hud + " (ses saati " + s1.now.toFixed(2) + " sn)");
     row(!s2.playing && s2.cam === "head" && s2.env === "summit", "kamera/mekan değiştir ve durdur: " + JSON.stringify(s2));
+    await page.click("#env-oda"); await page.waitForTimeout(400);
+    const s3 = await page.evaluate(() => ({env: window.sim.envName, doku: window.sim.texReady}));
+    row(s3.env === "oda" && s3.doku, "oda mekânı: " + JSON.stringify(s3));
   } catch (e){ row(false, "önizleme: " + e.message); }
   row(!errs.length, errs.length ? "sayfa hataları: " + errs.join(" | ") : "sayfa hatası yok");
   await page.close();

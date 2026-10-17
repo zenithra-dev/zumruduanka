@@ -15,6 +15,8 @@
 //   node tools/sync-check.mjs --fark a.json b.json           # tarayıcısız: iki ölçümü karşılaştır
 //   node tools/sync-check.mjs --wav a.wav b.wav              # tarayıcısız: iki WAV'ı örnek örnek karşılaştır
 //   node tools/sync-check.mjs --ham a.ses.f32 b.ses.f32      # tarayıcısız: AUDIO=1'in yazdığı iki ham ses tamponunu karşılaştır
+//   ODA=1 ...                                                # oda mekânı (res.oda: kamera sınırı, flaş, parlaklık, doku, kare süresi); ENV=oda ya da T'de
+//                                                            # "oda@..." varsa kendiliğinden. Ayarlar ve tanımlar tools/oda-olcum.mjs (SURE=club, SERBEST=1 ...)
 // Tanımlar:
 //   el ucu: el + 4.5 cm el ekseni (poseArm'ın IK hedefi). Perde eli, hatayı en küçük yapan kol eşleşmesiyle bulunur (solak/sağlak fark etmez).
 //   perde hedefi: o an basılı (f>0) notalardan ele en yakını, telin HOVER (2 cm) üstü; yalnız basılı nota olan karelerde ölçülür.
@@ -48,6 +50,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { odaOlc, odaRows, odaLines } from "./oda-olcum.mjs";
 
 const ENVV = process.env, ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const r3 = v => typeof v === "number" ? +v.toFixed(3) : v;
@@ -80,6 +83,7 @@ function diffTable(a, b){
       rows.push([`${id}: ses saniyelik RMS en büyük fark`, "", m <= SES_TOL.secRms ? `${m.toExponential(1)} (gürültü)` : `${m.toExponential(2)} FARKLI`, m > SES_TOL.secRms]); } }
   for (const s of (b.ritim && b.ritim.bolumler) || []){ const o = ((a.ritim && a.ritim.bolumler) || []).find(x => x.ad === s.ad) || {};
     for (const k of ["egim_pp_derece", "nod_hz", "egim_hz", "kafaY_pp_cm", "vurus_hz"]) rows.push([`ritim ${s.ad} ${k}`, o[k], s[k]]); }
+  rows.push(...odaRows(a, b));
   for (const [id, m] of Object.entries((b.muzik && b.muzik.sarkilar) || {})){ const o = (a.muzik && a.muzik.sarkilar && a.muzik.sarkilar[id]) || {};
     rows.push([`vurgu ${id}`, o.vurgu && o.vurgu.n, m.vurgu && m.vurgu.n]);
     rows.push([`kesme ${id} |kare| med / ≤1 kare %`, o.kesme && `${o.kesme.med} / ${o.kesme.le1_yuzde}`, m.kesme && `${m.kesme.med} / ${m.kesme.le1_yuzde}`]);
@@ -126,6 +130,7 @@ const P = {SONG, SEED, FPS, ENVN, CAM, HOVER, T0: ENVV.T0 ? +ENVV.T0 : null, T1:
 // len verilirse render.js'teki ses kurulumu birebir: mekan değiştirilmez (mekan reverb'ü, yani sesi değiştirir)
 const MK = `(P, len) => { const off = new OfflineAudioContext(2, Math.ceil(44100 * (len || 2)), 44100);
   const sim = window.sim = window.createSim({canvas: document.getElementById("gl"), audioContext: off, manual: true, seed: P.SEED});
+  if (sim.texReady === false) throw new Error("kanvas dokuları yazı tipi bekliyor");
   if (!len) sim.setEnv(P.ENVN); sim.setCamera(len ? "director" : P.CAM); const p = sim.load(window.findSong(P.SONG)); return {sim, p, off}; }`;
 
 // Bölüm sınırı: sayı (sn) ya da "bN" (N. vuruşun anı; clock.js yoksa sabit tempo). Sayfada çözülür.
@@ -421,6 +426,7 @@ const KSEC = ENVV.KADRAJ ? (ENVV.KADRAJ.includes("-") ? parseSecs("kadraj:" + EN
 // Kare listesi: "72.4" ya da "mekan/kamera@T" (ör. "theater@45", "summit/stage@30"); boş kısım ENV/CAM'dan gelir
 const Tdef = (ENVV.T || "10.2,16.65,72.4").split(",").map(x => { const m = /^(?:([a-z]+))?(?:\/([a-z]+))?@?([\d.]+)$/.exec(x.trim());
   if (!m) throw new Error("T öğesi anlaşılmadı: " + x); return {kare: x.trim(), T: +m[3], env: m[1] || ENVN, cam: m[2] || CAM}; });
+const ODA = !!ENVV.ODA || ENVN === "oda" || Tdef.some(x => x.env === "oda");
 const h = await openHarness();
 const res = {meta: {SONG: SONGL.join(","), SEED, FPS, ENV: ENVN, CAM, HOVER, src: ENVV.SRC || "src", tarih: new Date().toISOString(), commit: (() => { try { return execSync("git rev-parse --short HEAD", {cwd: ROOT}).toString().trim(); } catch { return "?"; } })()}};
 try {
@@ -429,6 +435,9 @@ try {
     if (!i){ res.el = handReport(m); res.ritim = rhythmReport(m); } else (res.ek = res.ek || {})[id] = {el: handReport(m), ritim: rhythmReport(m)}; }
   if (!SKIP.has("kadraj") && KSEC){ const k = await framing(h, KSEC), pc = x => +(100 * x / Math.max(1, k.N)).toFixed(1);
     res.kadraj = {bolum: KSEC.ad, aralik_sn: [k.a, k.b], kare: k.N, kafa_yuzde: pc(k.head), sapEliKadrajda_yuzde: pc(k.hand), sapEliAltBant_yuzde: pc(k.band), cekimler: k.rows}; }
+  if (ODA && !SKIP.has("oda")) res.oda = await odaOlc(h, {SEED, FPS, SONG, ids: ENVV.SARKILAR ? ENVV.SARKILAR.split(",") : await h.page.evaluate(() => window.SONG_IDS),
+    sureEnv: ENVV.SURE ? ENVV.SURE.split(",") : undefined, tur: ENVV.SURE_TUR ? +ENVV.SURE_TUR : undefined, serbest: !!ENVV.SERBEST, skip: SKIP,
+    T0: ENVV.ODA_T0 ? +ENVV.ODA_T0 : undefined, SN: ENVV.ODA_SN ? +ENVV.ODA_SN : undefined});
   if (!SKIP.has("muzik")){ const ids = ENVV.SARKILAR ? ENVV.SARKILAR.split(",") : await h.page.evaluate(() => window.SONG_IDS);
     res.muzik = {sarkilar: {}}; for (const id of ids) res.muzik.sarkilar[id] = await music(h, id); }
   if (!SKIP.has("goruntu") || !SKIP.has("determinizm")){
@@ -487,6 +496,7 @@ for (const [id, x] of Object.entries(res.ek || {})){
 }
 for (const s of (res.ritim && res.ritim.bolumler) || []) L.push(`  Ritim ${s.ad} [${r3(s.aralik_sn[0])}-${r3(s.aralik_sn[1])} sn]: ` + (s.egim_pp_derece === undefined ? `ölçülen aralık dışında (${s.kare} kare)` :
   `kafa eğimi tepeden tepeye ${r3(s.egim_pp_derece)}°, nod ${r3(s.nod_hz)} Hz (eğim ${r3(s.egim_hz)} Hz${s.vurus_hz ? `, vuruş ${r3(s.vurus_hz)} Hz` : ""}), kafa yüksekliği ${r3(s.kafaY_pp_cm)} cm`));
+if (res.oda) L.push(...odaLines(res.oda));
 if (res.kadraj){ const k = res.kadraj; L.push(`  Kadraj ${k.bolum} [${r3(k.aralik_sn[0])}-${r3(k.aralik_sn[1])} sn, ${k.kare} kare]: kafa kadrajda %${k.kafa_yuzde}, sap eli kadrajda %${k.sapEliKadrajda_yuzde}, alt bantta %${k.sapEliAltBant_yuzde}`); }
 for (const [id, m] of Object.entries((res.muzik && res.muzik.sarkilar) || {})) L.push(`  Müzik ${id.padEnd(9)} ` + (m.vurgu ? `vurgu ${String(m.vurgu.n).padStart(3)} ${JSON.stringify(m.vurgu.tur)}, yoğunluk ${r3(m.yogunluk.min)}/${r3(m.yogunluk.med)}/${r3(m.yogunluk.max)}, ` : "") +
   `kesme |kare| med ${m.kesme.med} p90 ${m.kesme.p90} max ${m.kesme.max} (≤1 kare %${m.kesme.le1_yuzde}, ${m.kesme.n} kesme), ses programı ${m.ses.ozet}`);
