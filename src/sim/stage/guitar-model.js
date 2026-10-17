@@ -52,6 +52,9 @@ export function createGuitarModel(scene){
   ]);
   bodyMesh.position.z = 0.004; guitar.add(bodyMesh);
   const TOP = 0.045;
+  // Askı pimleri (gitar yerel): pim başının merkezi (askı ucunun takıldığı yer) ve pimin dışa ekseni (topN, bottomN). Gövde hattının verilen
+  // yöndeki en dış noktasında, kalınlığın ortasında, kenarın (bevel dahil) PIN_L ötesinde: üstü boynuz ucunda, altı gövdenin alt ucunda.
+  const strapPins = edgePins(body, [-0.94, 0.34], [1, 0], 0.004, TOP / 2);
 
   // Pena koruyucu
   const pg = new THREE.Shape();
@@ -71,10 +74,11 @@ export function createGuitarModel(scene){
 
   const chrome = new THREE.MeshStandardMaterial({color: 0xdfe3e8, metalness: 0.95, roughness: 0.18});
   const cream = new THREE.MeshStandardMaterial({color: 0xd8cfba, roughness: 0.6});
+  const hardware = [];   // gövde üstü donanımın kutuları (solids.hardware: ölçüm)
   // Manyetikler (tek bobin); köprüdekinin ince tel ucu köprüye daha yakın
   [[0.488, 0], [0.548, 0], [0.606, 0.12]].forEach(([x, rot]) => {
     const p = new THREE.Mesh(new THREE.BoxGeometry(0.019, 0.07, 0.008), cream);
-    p.position.set(x, 0, TOP + 0.006); p.rotation.z = rot; guitar.add(p);
+    p.position.set(x, 0, TOP + 0.006); p.rotation.z = rot; guitar.add(p); hardware.push(p);
     for (let s = 0; s < 6; s++){
       const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.0022, 0.0022, 0.003, 12), chrome);
       pole.rotation.x = Math.PI / 2;
@@ -85,10 +89,10 @@ export function createGuitarModel(scene){
   });
   // Köprü ve eyerler
   const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.072, 0.004), chrome);
-  bridge.position.set(0.66, 0, TOP + 0.004); guitar.add(bridge);
+  bridge.position.set(0.66, 0, TOP + 0.004); guitar.add(bridge); hardware.push(bridge);
   for (let s = 0; s < 6; s++){
     const sad = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.009, 0.01), chrome);
-    sad.position.set(L + 0.002 + s * 0.0006, stringY(s, L), TOP + 0.009); guitar.add(sad);
+    sad.position.set(L + 0.002 + s * 0.0006, stringY(s, L), TOP + 0.009); guitar.add(sad); hardware.push(sad);
   }
   // Düğmeler ve seçici
   [[0.665, -0.072], [0.70, -0.088], [0.735, -0.098]].forEach(([x, y]) => {
@@ -305,8 +309,30 @@ vec3 geometryNormal = normal;`;
   // Pena dik durur: ucu (şeklin (0, -0.012) köşesi) tellere (-z) bakar, yüzü vuruş yönünde (±y). Yerini her karede claude.js pickAt verir.
   pick.rotation.x = Math.PI / 2; pick.position.set(0.575, 0, STR_Z + 0.016 + 0.012); guitar.add(pick);
 
+  // Tremolo (iskelet; bugünkü sabit köprüde kol yok, noktalar tur 4 tasarımındaki kilitli tremolonun yerleri): pivot köprünün bıçak ekseninin
+  // ortası (eksen gitar y), socket kol yuvasının gövde üstündeki noktası (eksen gitar z); gitar yerel. setArm(a) kolu a = {yaw: yuva ekseni
+  // çevresinde dinlenme yönünden açı (rad), dive: köprünün bıçak ekseni çevresinde eğimi (rad, + dalış)} duruşuna koyar; yalnız a'dan (zamanın saf
+  // fonksiyonu, durum biriktirmez). armPts(): kolun ekseni [{p: gitar yerel, r: yarıçap}] (ölçüm, sync-check); kol yokken null. dive sesi
+  // değiştirir: ses tarafı (bend.js) bağlanmadan 0 kalır.
+  const tremolo = {pivot: new THREE.Vector3(L - 0.009, 0, TOP), socket: new THREE.Vector3(L + 0.044, -0.048, TOP), arm: null, setArm(){}, armPts: () => null};
+
   rig.updateMatrixWorld(true);   // gitar sabit: ilk karede de localToWorld doğru dünya konumunu versin
   // solids: el/kol çarpışma ölçümünün katıları (tools/sync-check.mjs): gitarın doğrudan çocukları, döndürülmemiş; BoxGeometry kutu,
-  // ExtrudeGeometry şeklinin xy dış hattı ve z kalınlığıyla prizma sayılır. Teller: stringAt(s, x) çizilen eksen; strings[s].pos aynı eksen (x artan).
-  return { rig, guitar, strings, updateStrings, stringAt, GAUGE, pick, recLed, camRig, HS_TOP, TOP, FB_TOP, solids: {body: bodyMesh, neck, fretboard: fb} };
+  // ExtrudeGeometry şeklinin xy dış hattı ve z kalınlığıyla prizma sayılır; hardware: köprü, eyerler, manyetikler (dönükse eksene hizalı sınır kutusu).
+  // Teller: stringAt(s, x) çizilen eksen; strings[s].pos aynı eksen (x artan).
+  return { rig, guitar, strings, updateStrings, stringAt, GAUGE, pick, recLed, camRig, HS_TOP, TOP, FB_TOP, solids: {body: bodyMesh, neck, fretboard: fb, hardware}, strapPins, tremolo };
+}
+
+// Gövde hattında (d1, d2 yönlerinde) en dıştaki iki nokta: pim başı kenardan bev + PIN_L ötede, z yüksekliğinde; n hattın dışa normali
+const PIN_L = 0.009;
+function edgePins(shape, d1, d2, bev, z){
+  const P = shape.getSpacedPoints(400), N = P.length - 1;
+  const one = ([dx, dy]) => {
+    let k = 0; for (let i = 1; i < N; i++) if (P[i].x * dx + P[i].y * dy > P[k].x * dx + P[k].y * dy) k = i;
+    const a = P[(k + N - 1) % N], b = P[(k + 1) % N], n = new THREE.Vector3(b.y - a.y, a.x - b.x, 0).normalize();
+    if (n.x * dx + n.y * dy < 0) n.negate();
+    return {p: new THREE.Vector3(P[k].x, P[k].y, z).addScaledVector(n, bev + PIN_L), n};
+  };
+  const t = one(d1), b = one(d2);
+  return {top: t.p, bottom: b.p, topN: t.n, bottomN: b.n};
 }

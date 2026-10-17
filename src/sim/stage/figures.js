@@ -16,8 +16,10 @@ export function setLimb(m, a, b){
 }
 // Bacak parçası: kalın uç gövde tarafında (a), ince uç uzakta (b)
 function seg(g, r, m, a, b){ const x = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.85, r, 1, 10), m); g.add(x); setLimb(x, a, b); return x; }
-const TORSO = (() => { const pts = [[0.14, -0.04], [0.158, 0.04], [0.15, 0.14], [0.138, 0.24], [0.162, 0.36], [0.18, 0.46], [0.15, 0.54], [0.07, 0.6], [0.0, 0.61]].map(([r, y]) => new THREE.Vector2(r, y));
-  const g = new THREE.LatheGeometry(pts, 24); g.scale(1, 1, 0.74); return g; })();
+// Gövde: profilin (yarıçap, y) döndürülmesi, derinliği TZ kadar basık (+z önü, +x figürün solu). Omuzlar SH_S ile basık SH_R küreleri.
+const TORSO_P = [[0.14, -0.04], [0.158, 0.04], [0.15, 0.14], [0.138, 0.24], [0.162, 0.36], [0.18, 0.46], [0.15, 0.54], [0.07, 0.6], [0.0, 0.61]], TZ = 0.74;
+const TORSO = (() => { const g = new THREE.LatheGeometry(TORSO_P.map(([r, y]) => new THREE.Vector2(r, y)), 24); g.scale(1, 1, TZ); return g; })();
+const SH_X = 0.2, SH_Y = 0.52, SH_R = 0.07, SH_S = new THREE.Vector3(1, 0.85, 0.9);
 /* ---------- Eklemli el ---------- */
 // Sağ el olarak kurulur (sol el figure'da x aynasıdır). Kök grup bilek eklemi: +y parmaklara, +z avucun baktığı yana, +x başparmak yanına.
 // Boğumlar kapsül Mesh'ler, her biri bir sonrakinin ebeveyni: konumu eklem, +y boğum yönü, +z yastık (avuç) yanı, x bükülme ekseni.
@@ -125,7 +127,7 @@ export function figure(scene, o){
   const up = new THREE.Group(); up.position.y = hip; g.add(up);
   const torso = new THREE.Mesh(TORSO, o.cloth); up.add(torso);
   const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.152, 0.152, 0.035, 24), mat(0x1a1612, {roughness: 0.5})); belt.scale.z = 0.74; belt.position.y = 0.06; up.add(belt);
-  [-1, 1].forEach(sd => { const s = new THREE.Mesh(new THREE.SphereGeometry(0.07, 14, 10), o.cloth); s.scale.set(1, 0.85, 0.9); s.position.set(sd * 0.2, 0.52, 0); up.add(s); });
+  [-1, 1].forEach(sd => { const s = new THREE.Mesh(new THREE.SphereGeometry(SH_R, 14, 10), o.cloth); s.scale.copy(SH_S); s.position.set(sd * SH_X, SH_Y, 0); up.add(s); });
   const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.055, 0.1, 10), o.skin); neck.position.y = 0.62; up.add(neck);
   const head = new THREE.Group(); head.position.y = 0.75; up.add(head);
   const skull = new THREE.Mesh(new THREE.SphereGeometry(0.115, 24, 18), o.skin); skull.scale.set(0.95, 1.08, 1); head.add(skull);
@@ -137,9 +139,56 @@ export function figure(scene, o){
   // makeHand sağ el kurar; +x tarafındaki (sol) el aynasıdır: başparmak doğru yanda kalsın
   const hands = [0, 1].map(i => { const h = makeHand(scene, o.skin); if (i === 0) h.scale.x = -1; return h; });
   const sh = [V(0.21, 0.52, 0), V(-0.21, 0.52, 0)];
-  const fig = {g, up, torso, head, headY: 0.75, hip, arms, hands, sh, V, legs: legs.length ? legs : null, reach: o.reach || 0.31, ph: rand() * 6.28, sway: o.sway === undefined ? 1 : o.sway};
+  const fig = {g, up, torso, head, headY: 0.75, hip, arms, hands, sh, V, legs: legs.length ? legs : null, reach: o.reach || 0.31, ph: rand() * 6.28, sway: o.sway === undefined ? 1 : o.sway,
+    strapSide: o.strapSide || 1};
   fig.nod = a => nodHead(fig, a); fig.stance = s => poseLegs(fig, s);
+  fig.strapAnchors = now => strapAnchors(fig, now); fig.bodySd = p => bodySd(fig, p);
   return fig;
+}
+/* ---------- Askının bedene sarıldığı yerler ---------- */
+// Askı bağlantı sözleşmesi (karakter değişse de korunmalı; Kanade'de aynı imza kemiklerinden dolar):
+//   fig.strapAnchors(now) → [{id, p, n, t, r}] dünya koordinatında, üst pimden (sap tarafı omzu) alt pime sırayla: gogus (omzun önü, göğüs
+//   üstü), omuz (omuz üstü), kurek (kürek kemiği), sirt (sırt ortası), bel (öbür yanın bel arkası), kalca (öbür kalçanın yanı), karin (karnın
+//   o yanı). p yüzey noktası, n dışa birim normal, t askının oradaki gidiş yönü (yüzeye teğet, alt pime doğru), r yüzeyin t yönündeki eğrilik
+//   yarıçapı (m). Askı bu noktaların hepsine değmek zorunda değil: çözücü gergin askının yüzeyde kaldığı noktaları seçer.
+//   fig.bodySd(p) → dünya noktasının beden yüzeyine işaretli uzaklığı (m, içeride eksi; gövde ve omuzlar, kollar hariç).
+// Zamanın saf fonksiyonu: üyenin bu karedeki duruşundan (rigs.life sonrası; nefes torso ölçeğinde) okunur, durum biriktirmez. now imzada:
+// Kanade'nin kemik animasyonu now'dan örneklenecek. strapSide +1: askı figürün solundaki (+x) omuzdan geçer (sağ elle çalan).
+const ANCH = [["gogus", 0.6, 0.49], ["omuz", Math.PI / 2, 0.5663], ["kurek", Math.PI - 0.6, 0.45], ["sirt", Math.PI, 0.33], ["bel", Math.PI + 0.65, 0.17],
+  ["kalca", 1.5 * Math.PI, 0.08], ["karin", 2 * Math.PI - 0.85, 0.09]];
+// Profilin y'deki yarıçapı R ve eğimi dR/dy (profil dışında null)
+function torsoR(y){
+  for (let i = 0; i + 1 < TORSO_P.length; i++){ const [r0, y0] = TORSO_P[i], [r1, y1] = TORSO_P[i + 1];
+    if (y >= y0 && y <= y1){ const k = (r1 - r0) / (y1 - y0); return [r0 + k * (y - y0), k]; } }
+  return null;
+}
+// Gövde yüzeyi F = √(x² + (z/TZ)²) − R(y) (gövde yerel): gradyanı ve t yönündeki normal eğrilik (Hessian; profil parça parça doğrusal)
+const _gF = new THREE.Vector3();
+function gradF(q, k, o = _gF){ const rho = Math.max(1e-6, Math.hypot(q.x, q.z / TZ)); return o.set(q.x / rho, -k, q.z / (TZ * TZ * rho)); }
+function curvF(q, t, g){ const rho = Math.max(1e-6, Math.hypot(q.x, q.z / TZ)); return (t.x * q.z - t.z * q.x) ** 2 / (TZ * TZ * rho ** 3) / g.length(); }
+const _nm = new THREE.Matrix3();
+export function strapAnchors(fig, now){
+  fig.g.updateMatrixWorld(true);
+  const T = fig.torso, s = fig.strapSide, P = ANCH.map(([id, ph, y]) => { const [R, k] = torsoR(y), a = s * ph;
+    const p = new THREE.Vector3(R * Math.sin(a), y, TZ * R * Math.cos(a)); return {id, p, k, n: gradF(p, k, new THREE.Vector3()).normalize()}; });
+  _nm.getNormalMatrix(T.matrixWorld);
+  return P.map((a, i) => {
+    const b = P[Math.min(P.length - 1, i + 1)].p, c = P[Math.max(0, i - 1)].p, t = new THREE.Vector3().subVectors(b, c);
+    t.addScaledVector(a.n, -t.dot(a.n)).normalize();
+    const kap = curvF(a.p, t, gradF(a.p, a.k));
+    return {id: a.id, p: a.p.clone().applyMatrix4(T.matrixWorld), n: a.n.clone().applyMatrix3(_nm).normalize(), t: t.transformDirection(T.matrixWorld), r: kap > 1e-3 ? 1 / kap : 10};
+  });
+}
+const _q = new THREE.Vector3(), _iu = new THREE.Matrix4();
+export function bodySd(fig, p){
+  fig.g.updateMatrixWorld(true);
+  const q = _q.copy(p).applyMatrix4(_iu.copy(fig.up.matrixWorld).invert()), sc = fig.torso.scale;
+  let d = 9;
+  for (const sd of [-1, 1]){ const x = (q.x - sd * SH_X) / SH_S.x, y = (q.y - SH_Y) / SH_S.y, z = q.z / SH_S.z; d = Math.min(d, (Math.hypot(x, y, z) - SH_R) * SH_S.y); }
+  q.set(q.x / sc.x, q.y / sc.y, q.z / sc.z);
+  const R = torsoR(Math.min(0.61, Math.max(-0.04, q.y)));
+  const f = Math.hypot(q.x, q.z / TZ) - R[0], dl = f / gradF(q, R[1]).length();
+  return Math.min(d, Math.max(dl, q.y - 0.61, -0.04 - q.y));
 }
 // Kafa boyun dibinden döner (a > 0 öne eğilir): merkezi öne ve biraz aşağı kayar
 const NECK = 0.11;
