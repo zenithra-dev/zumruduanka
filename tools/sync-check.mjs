@@ -11,7 +11,7 @@
 //   KADRAJ=doruk ...                                         # kadraj ölçümünün bölümü (varsayılan: "doruk" bölümü varsa o)
 //   SARKILAR=kaf,dagkrali ...                                # vurgu ve ses programı ölçülen şarkılar (varsayılan hepsi)
 //   SRC=yol/src ...                                          # başka bir kaynak ağacını ölç (ör. eski sürümle ses programı karşılaştırması)
-//   SKIP=el,goruntu,determinizm,muzik,kadraj                 # bölüm atla
+//   SKIP=el,goruntu,determinizm,muzik,kadraj,govde,doku      # bölüm atla (govde: görüntü karelerinin gövde maskesi)
 //   node tools/sync-check.mjs --fark a.json b.json           # tarayıcısız: iki ölçümü karşılaştır
 //   node tools/sync-check.mjs --wav a.wav b.wav              # tarayıcısız: iki WAV'ı örnek örnek karşılaştır
 //   node tools/sync-check.mjs --ham a.ses.f32 b.ses.f32      # tarayıcısız: AUDIO=1'in yazdığı iki ham ses tamponunu karşılaştır
@@ -43,6 +43,20 @@
 //     arkası, telDisi dış tellerin dışında kalan, telUstu tel düzleminin üstü.
 //   bukme / vibrato: |bend.js bendDisplacement| ≥ 0.5 mm olan karelerde beklenen itme ↔ çizilen tel (strings[s].pos ya da model.stringAt, basma noktasında);
 //     parmakTel: notanın parmak ucu ↔ çizilen tel (yanal), parmakBeklenen: parmak ucu ↔ beklenen bükülü tel (yanal).
+//   kolGovde bosluk_mm: aynı parçaların gövdeye en yakın geçişi (eksi: içinde); yeni gövde hattı kollara doğru büyürse küçülür.
+//   kolDonanim: aynı ölçü gövde üstü donanımla (model.solids.hardware: köprü, eyerler, manyetikler; kutu ya da prizma).
+//   Tur 4 (gitar ve askı; sözleşme yoksa "yok"): mm
+//   aski: pimler model.strapPins (gitar yerel), bağlantı noktaları figure.strapAnchors(now), beden yüzeyi figure.bodySd; askının kendisi üyenin
+//     m.strap'i {pts: eksen örnekleri (dünya, üst pimden alt pime), across?: örnek başına genişlik yönü, w, th: genişlik ve kalınlık, restLen: dinlenme
+//     boyu, ends?: {top, bottom} pime takılan uçlar}. yol_m: üst pim → bağlantı noktaları → alt pim çizgisinin boyu; pimBosluk: askı ucu ↔ pim;
+//     giris: askı örneklerinin (eksen ve iki kenar, kalınlığın yarısıyla) gitar gövdesine, bedene, kollara (üst kol, ön kol, dirsek), ellere (avuç,
+//     parmaklar) girişi, kare başına en derini; boyOrani: görünür boy (eksen çizgisi) / restLen.
+//   tremolo: kol model.tremolo.armPts() [{p: gitar yerel, r}] (iskelette null); kol ↔ pena eli (avuç, parmaklar), pena (merkez, 12 mm), pena ön kolu,
+//     perde eli arası en küçük yüzey uzaklığı (eksi: içinde) ve kolun tellere, gövdeye girişi.
+//   govde (görüntü karelerinde): gövdeye (model.solids.body ve çocukları) düşen pikseller, örtenler hariç: ayrı bir maske çiziminde gövde beyaz,
+//     opak her şey siyah, saydamlar gizli, teller siyah; maskesi ≥250 olan pikseller. tamBeyaz250_yuzde: 3B karede üç kanalı da ≥250 olanların payı,
+//     enParlak: en parlak gövde pikselinin lumasi (BT.601), p99. flas: o anki vurgu flaşı (rigs.flash).
+//   doku: gitarın malzemelerindeki dokuların (map, roughnessMap, clearcoat..., kanvas ya da veri) piksel özeti iki temiz sayfada aynı mı.
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
@@ -71,7 +85,12 @@ const KEYS3 = ["el.perdeParmak.uc_mm.med", "el.perdeParmak.uc_mm.p90", "el.perde
   "el.penaParmak.gt3mm_yuzde", "el.kolGovde.perde.kol.kare", "el.kolGovde.perde.kol.max_mm", "el.kolGovde.perde.onKol.kare", "el.kolGovde.perde.avuc.kare",
   "el.kolGovde.pena.kol.kare", "el.kolGovde.pena.kol.max_mm", "el.penaTutus.basparmak_mm.med", "el.penaTutus.isaret_mm.med", "el.penaTutus.tutuyor_yuzde",
   "el.palmMute.kare", "el.palmMute.kopru_mm.med", "el.palmMute.kopru_mm.p90", "el.bukme.nota", "el.bukme.beklenen_mm.max", "el.bukme.tel_mm.max", "el.bukme.telHata_mm.med",
-  "el.bukme.telHata_mm.p90", "el.bukme.parmakTel_mm.med", "el.bukme.parmakBeklenen_mm.med", "el.vibrato.telHata_mm.med", "el.vibrato.parmakBeklenen_mm.med"];
+  "el.bukme.telHata_mm.p90", "el.bukme.parmakTel_mm.med", "el.bukme.parmakBeklenen_mm.med", "el.vibrato.telHata_mm.med", "el.vibrato.parmakBeklenen_mm.med",
+  "el.kolGovde.perde.onKol.bosluk_mm.min", "el.kolGovde.perde.avuc.bosluk_mm.min", "el.kolGovde.pena.onKol.bosluk_mm.min", "el.kolGovde.pena.avuc.bosluk_mm.min",
+  "el.kolDonanim.pena.onKol.kare", "el.kolDonanim.pena.onKol.max_mm", "el.kolDonanim.pena.avuc.max_mm", "el.kolDonanim.perde.kol.max_mm",
+  "el.aski.yol_m.med", "el.aski.pimBedenBosluk_mm.ust.min", "el.aski.pimBedenBosluk_mm.alt.min", "el.aski.pimBosluk_mm.ust.max", "el.aski.pimBosluk_mm.alt.max",
+  "el.aski.giris_mm.govde.max_mm", "el.aski.giris_mm.beden.max_mm", "el.aski.giris_mm.kol.max_mm", "el.aski.giris_mm.el.max_mm", "el.aski.boyOrani.max",
+  "el.tremolo.kolPenaEli_mm.min", "el.tremolo.kolPena_mm.min", "el.tremolo.kolTel_mm.max", "el.tremolo.kolGovde_mm.max"];
 function diffTable(a, b){
   const rows = [...KEYS, ...KEYS3].map(k => [k, pick(a, k), pick(b, k)]).filter(r => r[1] !== undefined || r[2] !== undefined);
   for (const [id, x] of Object.entries(b.ek || {})){ const o = (a.ek && a.ek[id]) || {};
@@ -85,7 +104,9 @@ function diffTable(a, b){
     rows.push([`kesme ${id} |kare| med / ≤1 kare %`, o.kesme && `${o.kesme.med} / ${o.kesme.le1_yuzde}`, m.kesme && `${m.kesme.med} / ${m.kesme.le1_yuzde}`]);
     if (o.ses) rows.push([`ses programı ${id}`, o.ses.ozet, m.ses.ozet, o.ses.ozet !== m.ses.ozet]); }
   for (const g of b.goruntu || []){ const o = (a.goruntu || []).find(x => x.kare === g.kare) || {};
-    for (const k of ["luma_p5", "tamBeyaz_yuzde", "doygunluk", "karanlikSeviye"]) rows.push([`goruntu ${g.kare} ${k}`, o[k], g[k]]); }
+    for (const k of ["luma_p5", "tamBeyaz_yuzde", "doygunluk", "karanlikSeviye"]) rows.push([`goruntu ${g.kare} ${k}`, o[k], g[k]]);
+    for (const k of ["tamBeyaz250_yuzde", "enParlak", "p99"]) rows.push([`goruntu ${g.kare} govde.${k}`, o.govde && o.govde[k], g.govde && g.govde[k]]); }
+  if (a.doku || b.doku) rows.push(["doku determinizmi", a.doku && (a.doku.durum || a.doku.ayni), b.doku && (b.doku.durum || b.doku.ayni)]);
   for (const d of b.determinizm || []){ const o = (a.determinizm || []).find(x => x.kare === d.kare) || {}; rows.push([`determinizm ${d.kare}`, o.ayni, d.ayni]); }
   if (a.ses && b.ses){ const x = a.ses.saniyelikRMS, y = b.ses.saniyelikRMS; let m = x.length === y.length ? 0 : 1; x.forEach((v, i) => { m = Math.max(m, Math.abs(v - (y[i] ?? 0))); });
     rows.push(["ses saniyelik RMS en büyük fark", "", m <= SES_TOL.secRms ? `${m.toExponential(1)} (gürültü)` : `${m.toExponential(2)} FARKLI`, m > SES_TOL.secRms]); }
@@ -150,7 +171,7 @@ const handsExtra = `(sim, p, th, B, P) => {
   }
   const kids = G.children.filter(o => o.isMesh && o.geometry), ext = d => kids.find(o => o.geometry.type === "ExtrudeGeometry" && o.geometry.parameters.options && o.geometry.parameters.options.depth === d);
   const SO = sim.model.solids || {body: ext(0.037), fretboard: ext(0.006), neck: kids.find(o => o.geometry.type === "BoxGeometry" && o.scale.x > 0.3)};
-  const BODY = solid(SO.body), NECK = [solid(SO.neck), solid(SO.fretboard), BODY].filter(Boolean);
+  const BODY = solid(SO.body), NECK = [solid(SO.neck), solid(SO.fretboard), BODY].filter(Boolean), HW = (SO.hardware || []).map(solid).filter(Boolean);
   const sd = (S, q) => {   // işaretli uzaklık (m): dışarıda +, içeride -
     if (S.box){ const b = S.box, dx = Math.max(b.min.x - q.x, q.x - b.max.x), dy = Math.max(b.min.y - q.y, q.y - b.max.y), dz = Math.max(b.min.z - q.z, q.z - b.max.z);
       return dx > 0 || dy > 0 || dz > 0 ? Math.hypot(Math.max(dx, 0), Math.max(dy, 0), Math.max(dz, 0)) : Math.max(dx, dy, dz); }
@@ -173,8 +194,59 @@ const handsExtra = `(sim, p, th, B, P) => {
     return {y: Q[i * 3 + 1] + (Q[i * 3 + 4] - Q[i * 3 + 1]) * u, z: Q[i * 3 + 2] + (Q[i * 3 + 5] - Q[i * 3 + 2]) * u}; };
   const PX = th.pressX || th.fingerX, ARM = () => [0, 1].map(() => ({kol: [], on: [], ust: [], avuc: []}));
   const X = {fi: 0, pi: 1, kaynak: FING(0) ? "parmak" : "avuc", pp: {d: [], on: [], back: [], lat: [], hi: [], un: 0, n: 0}, fd: [[], []], fj: [[], []], fa: [0, 0], fw: [null, null],
-    ts: [], arm: ARM(), hold: {th: [], ix: [], seg: [], ok: 0, n: 0}, pm: {d: [], dx: [], dy: [], dz: [], heel: null},
+    ts: [], arm: ARM(), hwArm: HW.length ? ARM() : null, hold: {th: [], ix: [], seg: [], ok: 0, n: 0}, pm: {d: [], dx: [], dy: [], dz: [], heel: null},
     bend: {bukme: {nota: [], exp: [], vis: [], err: [], ft: [], fe: []}, vibrato: {nota: [], exp: [], vis: [], err: [], ft: [], fe: []}}, bendOk: !!B};
+  // Tur 4: askı ve tremolo kolu (sözleşmeler başta tanımlar bölümünde)
+  const SP = sim.model.strapPins, TR = sim.model.tremolo, ANC = f.strapAnchors ? t => f.strapAnchors(t) : null;
+  X.AS = {pin: !!SP, anc: !!ANC, sd: !!f.bodySd, yol: [], pimOmuz: [], pimKalca: [], pimBeden: [[], []], n: 0, gap: [[], []], dep: {govde: [], beden: [], kol: [], el: []}, oran: []};
+  X.TM = {tr: !!TR, var: !!(TR && TR.armPts && TR.armPts()), n: 0, el: [], pena: [], onKol: [], perde: [], tel: [], govde: []};
+  const segDist = (q, a, b) => { const ex = b.x - a.x, ey = b.y - a.y, ez = b.z - a.z, l = ex * ex + ey * ey + ez * ez;
+    const u = l > 1e-12 ? Math.max(0, Math.min(1, ((q.x - a.x) * ex + (q.y - a.y) * ey + (q.z - a.z) * ez) / l)) : 0;
+    return [Math.hypot(q.x - a.x - u * ex, q.y - a.y - u * ey, q.z - a.z - u * ez), u]; };
+  const boxSd = (q, b) => { const dx = Math.max(b.min.x - q.x, q.x - b.max.x), dy = Math.max(b.min.y - q.y, q.y - b.max.y), dz = Math.max(b.min.z - q.z, q.z - b.max.z);
+    return dx > 0 || dy > 0 || dz > 0 ? Math.hypot(Math.max(dx, 0), Math.max(dy, 0), Math.max(dz, 0)) : Math.max(dx, dy, dz); };
+  // Kare başına engeller (dünya): kolların parçaları ve dirsekler (k "kol"), parmak boğumları ve avuç kutusu (k "el"); i kol indeksi
+  const obst = () => { const C = [], Bx = [];
+    [0, 1].forEach(i => { const A = f.arms[i], H = f.hands[i], F = FING(i);
+      for (const [o, w] of [[A.up, "ustKol"], [A.fo, "onKol"]]){ const l = limb(o); C.push({a: l.a, b: l.b, ra: l.ra, rb: l.rb, k: "kol", i, w}); }
+      const e = A.el.getWorldPosition(V()), er = (A.el.geometry.parameters.radius || 0.048) * A.el.scale.x; C.push({a: e, b: e, ra: er, rb: er, k: "kol", i, w: "dirsek"});
+      if (F) F.forEach(o => { const P = chain(H, o), r = o.userData.r ?? 0.008; for (let s = 0; s + 1 < P.length; s++) C.push({a: P[s], b: P[s + 1], ra: r, rb: r, k: "el", i, w: "parmak"}); });
+      const P = H.userData && H.userData.palm; if (P){ P.geometry.computeBoundingBox(); Bx.push({inv: new THREE.Matrix4().copy(P.matrixWorld).invert(), bb: P.geometry.boundingBox, k: "el", i, w: "avuc"}); } });
+    return {C, Bx}; };
+  // q (yarıçap h) engellerin (süzgeçten geçenlerin) içine ne kadar giriyor (m; eksi: o kadar uzakta)
+  const _bq = V();
+  const into = (q, h, O, pass) => { let d = -9;
+    for (const c of O.C) if (pass(c)){ const [s, u] = segDist(q, c.a, c.b); d = Math.max(d, h + c.ra + (c.rb - c.ra) * u - s); }
+    for (const b of O.Bx) if (pass(b)) d = Math.max(d, h - boxSd(_bq.copy(q).applyMatrix4(b.inv), b.bb));
+    return d; };
+  function strapStep(t){
+    const A = X.AS, Pt = G.localToWorld(SP.top.clone()), Pb = G.localToWorld(SP.bottom.clone());
+    if (f.bodySd){ A.pimBeden[0].push(f.bodySd(Pt)); A.pimBeden[1].push(f.bodySd(Pb)); }
+    if (ANC){ const N = ANC(t), at = id => (N.find(a => a.id === id) || N[0]).p; let L = Pt.distanceTo(N[0].p) + N[N.length - 1].p.distanceTo(Pb);
+      for (let i = 1; i < N.length; i++) L += N[i].p.distanceTo(N[i - 1].p);
+      A.yol.push(L); A.pimOmuz.push(Pt.distanceTo(at("omuz"))); A.pimKalca.push(Pb.distanceTo(at("kalca"))); }
+    const S = m && m.strap; if (!S || !S.pts || S.pts.length < 2) return;
+    const O = obst(), h = (S.th || 0.002) / 2, e = S.ends || {top: S.pts[0], bottom: S.pts[S.pts.length - 1]};
+    A.n++; A.gap[0].push(e.top.distanceTo(Pt)); A.gap[1].push(e.bottom.distanceTo(Pb));
+    let dg = -9, db = -9, dk = -9, de = -9, len = 0;
+    S.pts.forEach((c, j) => { if (j) len += c.distanceTo(S.pts[j - 1]);
+      const ac = S.across && S.across[j], Q = ac && S.w ? [c, c.clone().addScaledVector(ac, S.w / 2), c.clone().addScaledVector(ac, -S.w / 2)] : [c];
+      for (const q of Q){ if (BODY) dg = Math.max(dg, h - sd(BODY, loc(q))); if (f.bodySd) db = Math.max(db, h - f.bodySd(q));
+        dk = Math.max(dk, into(q, h, O, o => o.k === "kol")); de = Math.max(de, into(q, h, O, o => o.k === "el")); } });
+    A.dep.govde.push(dg); A.dep.beden.push(db); A.dep.kol.push(dk); A.dep.el.push(de); if (S.restLen) A.oran.push(len / S.restLen);
+  }
+  function tremStep(fi, pi){
+    const A = TR.armPts(); if (!A || A.length < 2) return;
+    const M = X.TM, O = obst(), pk = pick.getWorldPosition(V()), GA = sim.model.GAUGE || [];
+    let dEl = 9, dPk = 9, dFo = 9, dFr = 9, dT = -9, dG = -9;
+    for (let j = 0; j + 1 < A.length; j++){ const a = A[j], b = A[j + 1], n = Math.max(1, Math.ceil(a.p.distanceTo(b.p) / 0.004));   // eksen boyunca 4 mm adım
+      for (let s = 0; s <= n; s++){ const u = s / n, ql = a.p.clone().lerp(b.p, u), r = a.r + (b.r - a.r) * u, q = G.localToWorld(ql.clone());
+        dEl = Math.min(dEl, -into(q, r, O, c => c.i === pi && c.k === "el")); dFo = Math.min(dFo, -into(q, r, O, c => c.i === pi && c.w === "onKol"));
+        dFr = Math.min(dFr, -into(q, r, O, c => c.i === fi && c.k === "el")); dPk = Math.min(dPk, q.distanceTo(pk) - r - 0.012);
+        if (BODY) dG = Math.max(dG, r - sd(BODY, ql));
+        if (ql.x > 0 && ql.x < th.L + 0.005) for (let k = 0; k < 6; k++){ const sv = strAt(k, Math.min(th.L, ql.x)); if (sv) dT = Math.max(dT, r + (GA[k] || 0.001) / 2 - Math.hypot(ql.y - sv.y, ql.z - sv.z)); } } }
+    M.n++; M.el.push(dEl); M.pena.push(dPk); M.onKol.push(dFo); M.perde.push(dFr); M.tel.push(dT); M.govde.push(dG);
+  }
   // Notanın parmak ucu: atanmış parmak (m.aim.press), yoksa işaret..serçeden en yakını, parmak sözleşmesi yoksa avuç ucu
   const noteTip = (e, fi, tw) => { const F = FING(fi); if (!F) return {w: palmTip(fi), as: false};
     const c = m && m.aim && m.aim.press && m.aim.press.find(x => x.e === e); if (c && F[c.k]) return {w: tipW(F[c.k]), as: true};
@@ -197,6 +269,10 @@ const handsExtra = `(sim, p, th, B, P) => {
     // (c) kolun (üst kol, ön kol ve bilek, avuç) gitar gövdesine girmesi
     if (BODY) [0, 1].forEach(i => { const A = f.arms[i], R = X.arm[i], u = limbDepth(A.up, BODY), o = limbDepth(A.fo, BODY), a = palmDepth(f.hands[i], BODY);
       R.ust.push(u); R.on.push(o); R.avuc.push(a); R.kol.push(Math.max(u, o)); });
+    // (c2) aynı parçaların gövde üstü donanıma (solids.hardware: köprü, eyerler, manyetikler) girişi
+    if (HW.length) [0, 1].forEach(i => { const A = f.arms[i], R = X.hwArm[i]; let u = -9, o = -9, a = -9;
+      for (const S of HW){ u = Math.max(u, limbDepth(A.up, S)); o = Math.max(o, limbDepth(A.fo, S)); a = Math.max(a, palmDepth(f.hands[i], S)); }
+      R.ust.push(u); R.on.push(o); R.avuc.push(a); R.kol.push(Math.max(u, o)); });
     // (d) pena başparmak ile işaret parmağı arasında mı
     const PF = FING(pi);
     if (PF){ const c = pick.localToWorld(V(0, 0.001, 0.0006)), a = tipW(PF[0]), b = tipW(PF[1]), ab = b.clone().sub(a), u = c.clone().sub(a).dot(ab) / Math.max(1e-12, ab.lengthSq());
@@ -213,6 +289,9 @@ const handsExtra = `(sim, p, th, B, P) => {
       const tw = G.localToWorld(V(xp, th.stringY(e.s, xp) + dE, th.STR_Z)), q = loc(noteTip(e, fi, tw).w), sp = strAt(e.s, q.x);
       if (!C.nota.includes(e)) C.nota.push(e); C.exp.push(Math.abs(dE)); C.vis.push(Math.abs(dV)); C.err.push(Math.abs(dV - dE));
       if (sp) C.ft.push(Math.abs(q.y - sp.y)); C.fe.push(Math.abs(q.y - th.stringY(e.s, q.x) - dE * B.bendShape(xp, q.x))); }
+    // (g) askı ve (h) tremolo kolu
+    if (SP) strapStep(t);
+    if (X.TM.var) tremStep(fi, pi);
   };
   // Sayfadan çıkış: olaylar sayıya çevrilir
   const done = () => { for (const C of Object.values(X.bend)) C.nota = C.nota.length; return X; };
@@ -225,18 +304,28 @@ function extraReport(X){
   const depth = i => { const w = X.fw[i]; return {kare: X.fd[i].length, derinlik_mm: mm(pos(X.fd[i])), gt3mm_yuzde: gt3(X.fd[i]), eksenIcinde_yuzde: pc(X.fa[i], X.fd[i].length),
     enDerin: w ? {mm: w.d * 1000, sn: w.t, parmak: AD[w.j]} : null,
     parmaklar: Object.fromEntries(X.fj[i].map((a, j) => a && [AD[j], {p90_mm: mm(pos(a)).p90, max_mm: mm(pos(a)).max, gt3mm_yuzde: gt3(a)}]).filter(Boolean))}; };
-  const part = (a, at) => { let mx = -9, k = -1; a.forEach((x, i) => { if (x > mx){ mx = x; k = i; } }); const c = a.filter(x => x > 0.005).length;
-    return {kare: c, yuzde: pc(c, a.length), temas_kare: a.filter(x => x > 0).length, max_mm: Math.max(0, mx) * 1000, maxAt_sn: k < 0 ? null : at[k]}; };
-  const arm = i => { const R = X.arm[i]; return R.kol.length ? {kol: part(R.kol, X.ts), onKol: part(R.on, X.ts), ustKol: part(R.ust, X.ts), avuc: part(R.avuc, X.ts)} : null; };
+  const part = (a, at) => { let mx = -9, k = -1; a.forEach((x, i) => { if (x > mx){ mx = x; k = i; } }); const c = a.filter(x => x > 0.005).length, b = mm(a.map(x => -x));
+    return {kare: c, yuzde: pc(c, a.length), temas_kare: a.filter(x => x > 0).length, max_mm: Math.max(0, mx) * 1000, maxAt_sn: k < 0 ? null : at[k], bosluk_mm: {min: b.min, p10: b.p10, med: b.med}}; };
+  const arm = (i, Q = X.arm) => { const R = Q[i]; return R.kol.length ? {kol: part(R.kol, X.ts), onKol: part(R.on, X.ts), ustKol: part(R.ust, X.ts), avuc: part(R.avuc, X.ts)} : null; };
   const bend = C => ({nota: C.nota, kare: C.exp.length, beklenen_mm: mm(C.exp), tel_mm: mm(C.vis), telHata_mm: mm(C.err), parmakTel_mm: mm(C.ft), parmakBeklenen_mm: mm(C.fe)});
+  const dep = a => { const s = mm(a); return {max_mm: s.max, p90_mm: s.p90, gt1mm_yuzde: pc(a.filter(x => x > 0.001).length, a.length), gt3mm_yuzde: pc(a.filter(x => x > 0.003).length, a.length)}; };
+  const ms = a => a.length ? st(a) : null, A = X.AS, T = X.TM;
+  const aski = !A || !A.pin ? {durum: "yok (model.strapPins)"} : {pimler: "var", baglanti: A.anc ? "var" : "yok (figure.strapAnchors)", beden: A.sd ? "var" : "yok (figure.bodySd)",
+    yol_m: ms(A.yol), ustPimOmuz_m: ms(A.pimOmuz), altPimKalca_m: ms(A.pimKalca), pimBedenBosluk_mm: A.sd ? {ust: mm(A.pimBeden[0]), alt: mm(A.pimBeden[1])} : null,
+    kare: A.n, ...(A.n ? {pimBosluk_mm: {ust: mm(A.gap[0]), alt: mm(A.gap[1])}, giris_mm: Object.fromEntries(Object.entries(A.dep).map(([k, a]) => [k, dep(a)])), boyOrani: ms(A.oran)}
+      : {durum: "askı yok (m.strap)"})};
+  const near = a => { const s = mm(a); return {min: s.min, p10: s.p10, med: s.med, temas_kare: a.filter(x => x < 0).length}; };
+  const tremolo = !T || !T.tr ? {durum: "yok (model.tremolo)"} : !T.var ? {durum: "iskelet: kol yok (tremolo.armPts null)"} :
+    {kare: T.n, kolPenaEli_mm: near(T.el), kolPena_mm: near(T.pena), kolPenaOnKol_mm: near(T.onKol), kolPerdeEli_mm: near(T.perde), kolTel_mm: {max: mm(T.tel).max}, kolGovde_mm: {max: mm(T.govde).max}};
   return {
     perdeParmak: {kaynak: X.kaynak, notaKare: X.pp.n, uc_mm: mm(X.pp.d), baslangic_mm: mm(X.pp.on), atanmamis_yuzde: pc(X.pp.un, X.pp.n),
       perdeGerisi_mm: mm(X.pp.back), telYanal_mm: mm(X.pp.lat), telUstu_mm: mm(X.pp.hi)},
     parmakSap: depth(fi), penaParmak: depth(pi),
     kolGovde: {esik_mm: 5, perde: arm(fi), pena: arm(pi)},
+    kolDonanim: X.hwArm ? {esik_mm: 5, perde: arm(fi, X.hwArm), pena: arm(pi, X.hwArm)} : {durum: "yok (solids.hardware)"},
     penaTutus: X.hold.n ? {kare: X.hold.n, basparmak_mm: mm(X.hold.th), isaret_mm: mm(X.hold.ix), ara_mm: mm(X.hold.seg), tutuyor_yuzde: pc(X.hold.ok, X.hold.n)} : null,
     palmMute: X.pm.d.length ? {kare: X.pm.d.length, nokta: X.pm.heel, kopru_mm: mm(X.pm.d), kopruX_mm: mm(X.pm.dx), telDisi_mm: mm(X.pm.dy), telUstu_mm: mm(X.pm.dz)} : {kare: 0},
-    bukme: X.bendOk ? bend(X.bend.bukme) : null, vibrato: X.bendOk ? bend(X.bend.vibrato) : null};
+    bukme: X.bendOk ? bend(X.bend.bukme) : null, vibrato: X.bendOk ? bend(X.bend.vibrato) : null, aski, tremolo};
 }
 async function hands(h, secs, P){
   await h.fresh();
@@ -306,9 +395,9 @@ function rhythmReport(m){
 }
 
 // Bir T'yi verilen sırayla çizer: 3B kare istatistikleri, yayın karesi PNG'si ve sahne durumu
-async function grab(h, T, seq, Q){
+async function grab(h, T, seq, Q, mask){
   await h.fresh();
-  return h.page.evaluate(([P, MK, T, seq]) => {
+  return h.page.evaluate(([P, MK, T, seq, mask]) => {
     const {sim, p} = eval(MK)(P);
     seq.concat(T).forEach(t => sim.frame(t, t));
     const cv = Object.assign(document.createElement("canvas"), {width: 1280, height: 720}), g = cv.getContext("2d");
@@ -326,10 +415,49 @@ async function grab(h, T, seq, Q){
     const f = sim.FIG.claude, st = [C.position, C.quaternion, ...f.hands.map(x => x.position), f.head.getWorldPosition(new sim.THREE.Vector3()), sim.model.pick.position]
       .map(v => v.toArray().map(x => x.toFixed(6)).join(",")).join(";");
     let gl = "?"; try { const c = sim.renderer.getContext(), x = c.getExtension("WEBGL_debug_renderer_info"); gl = x ? c.getParameter(x.UNMASKED_RENDERER_WEBGL) : c.getParameter(c.RENDERER); } catch (e){}
-    const sh = p.shots.find(s => T >= s.t && T < s.end);
-    return {png: cv.toDataURL("image/png"), state: st, cam, shot: sh ? `${sh.cam}/${sh.kind}${sh.glide ? "+kayma" : ""}` : "-", gl,
+    const sh = p.shots.find(s => T >= s.t && T < s.end), png = cv.toDataURL("image/png");
+    // Gövde maskesi (yayın karesi alındıktan sonra; tuvali bozar): gövde beyaz, opak her şey siyah, saydamlar gizli, teller siyah ve ışıksız
+    let govde = null;
+    const BO = mask && sim.model.solids && sim.model.solids.body;
+    if (BO){
+      const THREE = sim.THREE, sc = sim.scene, R = sim.renderer, inB = new Set(), strs = new Map(), keep = [];
+      BO.traverse(o => inB.add(o)); (sim.model.strings || []).forEach(s => strs.set(s.mesh, s.mat));
+      const W = new THREE.MeshBasicMaterial({color: 0xffffff, fog: false}), K = new THREE.MeshBasicMaterial({color: 0x000000, fog: false}), cc = R.getClearColor(new THREE.Color()), ca = R.getClearAlpha();
+      const sm = [...new Set(strs.values())].map(m => [m, m.color.clone(), m.metalness, m.roughness, m.emissive.clone()]);
+      sm.forEach(([m]) => { m.color.setRGB(0, 0, 0); m.metalness = 0; m.roughness = 1; m.emissive.setRGB(0, 0, 0); });
+      sc.traverse(o => { if (!(o.isMesh || o.isLine || o.isPoints || o.isSprite)) return; keep.push([o, o.material, o.visible]); if (strs.has(o)) return;
+        if (inB.has(o)) o.material = W; else if (!o.isMesh || [].concat(o.material).some(m => m.transparent || m.blending !== THREE.NormalBlending)) o.visible = false; else o.material = K; });
+      const bg = sc.background, fog = sc.fog; sc.background = null; sc.fog = null;
+      R.setRenderTarget(null); R.setClearColor(0x000000, 1); R.clear(); R.render(sc, C);
+      const mc = Object.assign(document.createElement("canvas"), {width: 1280, height: 720}), mg = mc.getContext("2d"); mg.drawImage(sim.canvas, 0, 0, 1280, 720);
+      const md = mg.getImageData(0, 0, 1280, 720).data;
+      keep.forEach(([o, m, v]) => { o.material = m; o.visible = v; }); sm.forEach(([m, c, me, ro, em]) => { m.color.copy(c); m.metalness = me; m.roughness = ro; m.emissive.copy(em); });
+      sc.background = bg; sc.fog = fog; R.setClearColor(cc, ca);
+      let n = 0, w = 0, mx = 0; const hy = new Float64Array(256);
+      for (let i = 0; i < md.length; i += 4){ if (md[i] < 250 || md[i + 1] < 250 || md[i + 2] < 250) continue;
+        const r = d[i], gg = d[i + 1], b = d[i + 2], y = 0.299 * r + 0.587 * gg + 0.114 * b; n++; hy[Math.min(255, Math.round(y))]++; if (r >= 250 && gg >= 250 && b >= 250) w++; mx = Math.max(mx, y); }
+      let c = 0, p99 = 0; for (let v = 0; v < 256; v++){ c += hy[v]; if (c >= 0.99 * n){ p99 = v; break; } }
+      govde = {piksel: n, tamBeyaz250_yuzde: n ? 100 * w / n : 0, enParlak: mx, p99, flas: sim.rigs.flash};
+    }
+    return {png, state: st, cam, shot: sh ? `${sh.cam}/${sh.kind}${sh.glide ? "+kayma" : ""}` : "-", gl, govde,
       luma_p5: pct(0.05), luma_med: pct(0.5), luma_ort: sumY / N, tamBeyaz_yuzde: 100 * white / N, doygunluk: sat / N, karanlikSeviye: lv.size};
-  }, [Q, MK, T, seq]);
+  }, [Q, MK, T, seq, mask]);
+}
+// Gitar dokularının piksel özeti (temiz sayfada): gitarın malzemelerindeki kanvas ya da veri dokuları
+const TEX_KEYS = ["map", "roughnessMap", "metalnessMap", "normalMap", "bumpMap", "clearcoatMap", "clearcoatRoughnessMap", "clearcoatNormalMap", "emissiveMap", "alphaMap", "aoMap"];
+async function textures(h){
+  await h.fresh();
+  return h.page.evaluate(([MK, K]) => {
+    const {sim} = eval(MK)({SEED: 1, ENVN: "club", CAM: "director", SONG: window.SONG_IDS[0]}), out = [], seen = new Set();
+    const fnv = u => { let a = 2166136261; for (let i = 0; i < u.length; i++){ a ^= u[i]; a = Math.imul(a, 16777619); } return (a >>> 0).toString(16).padStart(8, "0"); };
+    let k = 0;
+    sim.model.guitar.traverse(o => { k++; for (const m of [].concat(o.material || [])) for (const key of K){ const t = m[key], im = t && t.image; if (!im || seen.has(t)) continue; seen.add(t);
+      let px = null; const w = im.width, hh = im.height;
+      if (im.data) px = new Uint8Array(im.data.buffer, im.data.byteOffset, im.data.byteLength);
+      else { const c = Object.assign(document.createElement("canvas"), {width: w, height: hh}), g = c.getContext("2d"); g.drawImage(im, 0, 0); px = g.getImageData(0, 0, w, hh).data; }
+      out.push({ad: `${o.name || o.type}#${k}.${key}`, w, h: hh, ozet: fnv(px)}); } });
+    return out;
+  }, [MK, TEX_KEYS]);
 }
 
 async function audio(h, P){
@@ -437,9 +565,10 @@ try {
       const Q = {...P, ENVN: env, CAM: cam};
       const seqs = {temiz: [], gecmisli: [Math.max(0, T - 10), Math.max(0, T - 0.65), Math.max(0, T - 0.35), T + 0.35], ileriden: [T + 12]};
       const out = {};
-      for (const [k, s] of Object.entries(seqs)){ if (k !== "temiz" && SKIP.has("determinizm")) continue; out[k] = await grab(h, T, s, Q); }
+      for (const [k, s] of Object.entries(seqs)){ if (k !== "temiz" && SKIP.has("determinizm")) continue; out[k] = await grab(h, T, s, Q, k === "temiz" && !SKIP.has("govde")); }
       const c = out.temiz; res.meta.gl = c.gl;
-      res.goruntu.push({kare, T, env, cam: c.cam, shot: c.shot, ...Object.fromEntries(["luma_p5", "luma_med", "luma_ort", "tamBeyaz_yuzde", "doygunluk", "karanlikSeviye"].map(k => [k, r3(c[k])]))});
+      res.goruntu.push({kare, T, env, cam: c.cam, shot: c.shot, ...Object.fromEntries(["luma_p5", "luma_med", "luma_ort", "tamBeyaz_yuzde", "doygunluk", "karanlikSeviye"].map(k => [k, r3(c[k])])),
+        govde: c.govde || "yok"});
       if (ENVV.KARE) fs.writeFileSync(path.resolve(ROOT, `${ENVV.KARE}-${kare.replace(/[@/]/g, "-")}.png`), Buffer.from(c.png.split(",")[1], "base64"));
       if (!SKIP.has("determinizm")){
         const k = Object.fromEntries(Object.entries(out).map(([n, o]) => [n, {kare: sha(o.png), durum: sha(o.state)}]));
@@ -447,6 +576,8 @@ try {
       }
     }
   }
+  if (!SKIP.has("doku")){ const a = await textures(h), b = await textures(h);
+    res.doku = a.length ? {dokular: a, ayni: JSON.stringify(a) === JSON.stringify(b), ikinci: a.map((x, i) => b[i] && b[i].ozet)} : {durum: "yok (gitarda kanvas/veri dokusu yok)"}; }
   if (ENVV.AUDIO) for (const [i, id] of SONGL.entries()){   // ham tampon: önce L sonra R, float32; ilk şarkı <OUT>.ses.f32, sonrakiler <OUT>-<id>.ses.f32
     const a = await audio(h, {...P, SONG: id}), f = OUT.replace(/\.json$/, "") + (i ? "-" + id : "") + ".ses.f32";
     fs.mkdirSync(path.dirname(f), {recursive: true}); fs.writeFileSync(f, Buffer.from(a.raw, "base64")); delete a.raw;
@@ -468,8 +599,19 @@ function extraLines(e){
   if (d.parmaklar) L.push(`    parmak başına (p90 / max mm, >3 mm %): ` + Object.entries(d.parmaklar).map(([n, x]) => `${n} ${m3(x.p90_mm)} / ${m3(x.max_mm)} / %${x.gt3mm_yuzde}`).join(", "));
   const kg = (n, a) => a ? `${n} kol ${a.kol.kare} kare (%${a.kol.yuzde}, temas ${a.kol.temas_kare}), en derin ${m3(a.kol.max_mm)} mm @${m3(a.kol.maxAt_sn)} sn [ön kol+bilek ${a.onKol.kare}/${m3(a.onKol.max_mm)} mm, üst kol ${a.ustKol.kare}/${m3(a.ustKol.max_mm)} mm, avuç ${a.avuc.kare}/${m3(a.avuc.max_mm)} mm]` : `${n} -`;
   L.push(`  Kol gövdede (>${k.esik_mm} mm): ${kg("perde", k.perde)}; ${kg("pena", k.pena)}`);
+  const bs = (n, a) => a && a.kol.bosluk_mm ? `${n} ön kol ${m3(a.onKol.bosluk_mm.min)}/${m3(a.onKol.bosluk_mm.p10)}, üst kol ${m3(a.ustKol.bosluk_mm.min)}/${m3(a.ustKol.bosluk_mm.p10)}, avuç ${m3(a.avuc.bosluk_mm.min)}/${m3(a.avuc.bosluk_mm.p10)}` : `${n} -`;
+  L.push(`    gövdeye boşluk (en az / p10 mm, eksi: içinde): ${bs("perde", k.perde)}; ${bs("pena", k.pena)}`);
+  const kd = e.kolDonanim; if (kd) L.push(kd.durum ? `  Kol donanımda: ${kd.durum}` : `  Kol donanımda (köprü, eyer, manyetik; >${kd.esik_mm} mm): ${kg("perde", kd.perde)}; ${kg("pena", kd.pena)}`);
   if (h) L.push(`  Pena tutuşu: başparmak ucu med ${m3(h.basparmak_mm.med)} / p90 ${m3(h.basparmak_mm.p90)} mm, işaret ucu med ${m3(h.isaret_mm.med)} / p90 ${m3(h.isaret_mm.p90)} mm, iki uç arası çizgiye ${m3(h.ara_mm.med)} mm; arasında ve ≤15 mm %${h.tutuyor_yuzde}`);
   L.push(pm.kare ? `  Palm mute (${pm.kare} kare, ${pm.nokta}): avuç kenarı ↔ köprü med ${m3(pm.kopru_mm.med)} / p90 ${m3(pm.kopru_mm.p90)} mm (köprüden x med ${m3(pm.kopruX_mm.med)}, tel dışı med ${m3(pm.telDisi_mm.med)}, tel üstü med ${m3(pm.telUstu_mm.med)} mm)` : "  Palm mute: notası yok");
+  const a = e.aski, tr = e.tremolo, sm3 = x => x ? `${m3(x.min)}/${m3(x.med)}/${m3(x.max)}` : "-";
+  if (a) L.push(a.durum && !a.pimler ? `  Askı: ${a.durum}` : `  Askı: pimler ${a.pimler}, bağlantı ${a.baglanti}, beden ${a.beden}; yol (pim → bağlantılar → pim) en az/med/en çok ${sm3(a.yol_m)} m, üst pim ↔ omuz ${sm3(a.ustPimOmuz_m)} m, ` +
+    `alt pim ↔ kalça ${sm3(a.altPimKalca_m)} m` + (a.pimBedenBosluk_mm ? `, pim ↔ beden en az üst ${m3(a.pimBedenBosluk_mm.ust.min)} / alt ${m3(a.pimBedenBosluk_mm.alt.min)} mm` : "") +
+    (a.kare ? `
+    askı (${a.kare} kare): pim boşluğu en çok üst ${m3(a.pimBosluk_mm.ust.max)} / alt ${m3(a.pimBosluk_mm.alt.max)} mm; giriş en derin (>1 mm %): ` +
+      Object.entries(a.giris_mm).map(([k, x]) => `${k} ${m3(x.max_mm)} (%${x.gt1mm_yuzde})`).join(", ") + `; boy oranı ${sm3(a.boyOrani)}` : `; ${a.durum}`));
+  if (tr) L.push(tr.durum ? `  Tremolo kolu: ${tr.durum}` : `  Tremolo kolu (${tr.kare} kare): pena eline en az ${m3(tr.kolPenaEli_mm.min)} / p10 ${m3(tr.kolPenaEli_mm.p10)} mm (temas ${tr.kolPenaEli_mm.temas_kare}), ` +
+    `penaya ${m3(tr.kolPena_mm.min)}, pena ön koluna ${m3(tr.kolPenaOnKol_mm.min)}, perde eline ${m3(tr.kolPerdeEli_mm.min)} mm; tele giriş ${m3(tr.kolTel_mm.max)}, gövdeye ${m3(tr.kolGovde_mm.max)} mm`);
   for (const [n, b] of [["Bükme", e.bukme], ["Vibrato", e.vibrato]]) if (b) L.push(b.kare ? `  ${n} (${b.nota} nota, ${b.kare} kare): beklenen itme med ${m3(b.beklenen_mm.med)} / max ${m3(b.beklenen_mm.max)} mm, çizilen tel med ${m3(b.tel_mm.med)} / max ${m3(b.tel_mm.max)} mm, ` +
     `tel hatası med ${m3(b.telHata_mm.med)} / p90 ${m3(b.telHata_mm.p90)} mm; parmak ↔ çizilen tel med ${m3(b.parmakTel_mm.med)} / p90 ${m3(b.parmakTel_mm.p90)} mm, parmak ↔ beklenen tel med ${m3(b.parmakBeklenen_mm.med)} / p90 ${m3(b.parmakBeklenen_mm.p90)} mm` : `  ${n}: yok`);
 }
@@ -490,7 +632,9 @@ for (const s of (res.ritim && res.ritim.bolumler) || []) L.push(`  Ritim ${s.ad}
 if (res.kadraj){ const k = res.kadraj; L.push(`  Kadraj ${k.bolum} [${r3(k.aralik_sn[0])}-${r3(k.aralik_sn[1])} sn, ${k.kare} kare]: kafa kadrajda %${k.kafa_yuzde}, sap eli kadrajda %${k.sapEliKadrajda_yuzde}, alt bantta %${k.sapEliAltBant_yuzde}`); }
 for (const [id, m] of Object.entries((res.muzik && res.muzik.sarkilar) || {})) L.push(`  Müzik ${id.padEnd(9)} ` + (m.vurgu ? `vurgu ${String(m.vurgu.n).padStart(3)} ${JSON.stringify(m.vurgu.tur)}, yoğunluk ${r3(m.yogunluk.min)}/${r3(m.yogunluk.med)}/${r3(m.yogunluk.max)}, ` : "") +
   `kesme |kare| med ${m.kesme.med} p90 ${m.kesme.p90} max ${m.kesme.max} (≤1 kare %${m.kesme.le1_yuzde}, ${m.kesme.n} kesme), ses programı ${m.ses.ozet}`);
-for (const g of res.goruntu || []) L.push(`  Görüntü ${g.kare} (${g.env}, ${g.cam}, ${g.shot}): luma p5 ${g.luma_p5}, med ${g.luma_med}, tam beyaz %${g.tamBeyaz_yuzde}, doygunluk ${g.doygunluk}, 0-40 seviye ${g.karanlikSeviye}`);
+for (const g of res.goruntu || []) L.push(`  Görüntü ${g.kare} (${g.env}, ${g.cam}, ${g.shot}): luma p5 ${g.luma_p5}, med ${g.luma_med}, tam beyaz %${g.tamBeyaz_yuzde}, doygunluk ${g.doygunluk}, 0-40 seviye ${g.karanlikSeviye}` +
+  (g.govde && g.govde.piksel !== undefined ? `; gövde ${g.govde.piksel} px, ≥250 %${r3(g.govde.tamBeyaz250_yuzde)}, en parlak ${r3(g.govde.enParlak)}, p99 ${g.govde.p99}, flaş ${r3(g.govde.flas)}` : g.govde ? `; gövde ${g.govde}` : ""));
+if (res.doku) L.push(res.doku.durum ? `  Doku: ${res.doku.durum}` : `  Doku determinizmi: ${res.doku.ayni ? "AYNI" : "FARKLI"}  ` + res.doku.dokular.map((d, i) => `${d.ad} ${d.w}×${d.h} ${d.ozet}/${res.doku.ikinci[i]}`).join("  "));
 for (const d of res.determinizm || []) L.push(`  Determinizm ${d.kare}: ${d.ayni ? "AYNI" : "FARKLI"}  ${Object.entries(d).filter(([k]) => typeof d[k] === "object").map(([k, v]) => `${k} ${v.kare}/${v.durum}`).join("  ")}`);
 if (res.ses) L.push(`  Ses: ${res.ses.ornek} örnek, özet ${res.ses.ozet}`);
 if (res.meta.gl) L.push(`  Çizici: ${res.meta.gl}`);
