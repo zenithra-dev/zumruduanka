@@ -7,6 +7,7 @@ import { createRoom } from "./room.js";
 // grade: Finish geçişinin mekana göre derecelendirmesi (pozlama, doygunluk, S eğrisi, vinyet, gren, gölge/ışık tonu)
 // room: yankının oda boyu (sn) ya da durumsuz küçük oda yanıtı (engine.js stillRoomIR; rand() tüketmez, ses programı kulüple aynı kalır).
 // show: false → sahne şovu yok (ışık hüzmeleri, tam ekran flaş, kalabalık, kor ve anka kuşu); banner: false → sahne pankartı gizli
+// rim, spot: sahnenin alttan kenar ışığı ve önden spotunun şiddeti (yoksa scene.js'teki ilk değer); uye: üyenin kendi ışığının katı (yoksa 1)
 export const ENVS = {
   club:    {name: "Kulüp sahnesi", bg: 0x16110e, fog: [4, 10], hemi: [0xffe6c8, 0x1a1010, 0.4], floor: true, sky: false, room: 1.3, key: [0xfff1dd, 0.5],
     grade: {exposure: 1.4, sat: 0.85, contrast: 0.12, vig: 0.32, grain: 0.03, sh: [0.95, 0.98, 1.06], hi: [1.05, 1, 0.94]}},
@@ -14,12 +15,15 @@ export const ENVS = {
     grade: {exposure: 1.4, sat: 0.8, contrast: 0.12, vig: 0.32, grain: 0.03, sh: [0.92, 0.97, 1.1], hi: [1.06, 1, 0.92]}},
   summit:  {name: "Kaf Dağı zirvesi", bg: 0x070b18, fog: [10, 45], hemi: [0x7c96dc, 0x141820, 0.45], floor: false, sky: true, room: 3.4, key: [0x9fb4ec, 0.3],
     grade: {exposure: 1.4, sat: 0.85, contrast: 0.12, vig: 0.32, grain: 0.03, sh: [0.94, 0.98, 1.08], hi: [1.03, 1, 0.96]}},
-  oda:     {name: "Oda", bg: 0x140e0b, fog: [4, 16], hemi: [0xffd2a0, 0x24180f, 0.13], floor: false, sky: false, key: [0xffdcb4, 0.1], show: false, banner: false,
+  // oda: loş ve sıcak (2700 K); ışığın çoğu peri ışıklarından (room/lights.js). Alttan kenar ışığı ve üyenin turuncu ışığı odada sol duvarı
+  // turuncuya boyuyordu: kısık (yüz ve gitarı odanın önden sıcak dolgusu aydınlatır).
+  oda:     {name: "Oda", bg: 0x140e0b, fog: [4, 16], hemi: [0xffd2a0, 0x24180f, 0.07], floor: false, sky: false, key: [0xffdcb4, 0.05], rim: 0.12, spot: 0.3, uye: 0.5, show: false, banner: false,
     room: {sec: 0.4, pre: 0.004, dark: 0.9, level: 1.2, er: [[0.0032, 0.42], [0.0051, 0.3], [0.0074, 0.24], [0.0098, 0.17], [0.0131, 0.12], [0.0176, 0.08]], salt: "oda-yanki"},
-    grade: {exposure: 1.3, sat: 0.88, contrast: 0.1, vig: 0.38, grain: 0.03, sh: [0.97, 0.97, 1.03], hi: [1.06, 1, 0.92]}}
+    grade: {exposure: 1.3, sat: 0.85, contrast: 0.1, vig: 0.38, grain: 0.03, sh: [0.97, 0.97, 1.03], hi: [1.04, 1, 0.94]}}
 };
 
-export function createVenues({scene, renderer, hemi, key, floor, banner, clubItems, onRoom}){
+export function createVenues({scene, renderer, hemi, key, rim, spot, uye = [], floor, banner, clubItems, onRoom}){
+  const base = {rim: rim && rim.intensity, spot: spot && spot.intensity, uye: uye.map(L => L.intensity)};
   const ENV = {club: new THREE.Group(), theater: new THREE.Group(), summit: new THREE.Group()}, fin = scene.userData.finish;
   Object.values(ENV).forEach(g => scene.add(g));
   (clubItems || []).forEach(m => ENV.club.add(m));
@@ -100,6 +104,7 @@ export function createVenues({scene, renderer, hemi, key, floor, banner, clubIte
     fin.grade(e.grade); fin.backdrop(e.bg, scene.background); scene.fog.color.copy(scene.background); scene.fog.near = e.fog[0]; scene.fog.far = e.fog[1];
     hemi.color.setHex(e.hemi[0]); hemi.groundColor.setHex(e.hemi[1]); hemi.intensity = e.hemi[2];
     key.color.setHex(e.key[0]); key.intensity = e.key[1];
+    if (rim) rim.intensity = e.rim ?? base.rim; if (spot) spot.intensity = e.spot ?? base.spot; uye.forEach((L, i) => { L.intensity = base.uye[i] * (e.uye ?? 1); });
     banner.position.set(0, n === "club" ? 1.8 : 2.2, n === "club" ? -3.15 : -3.0); banner.visible = e.banner !== false;
     if (onRoom) onRoom(e.room);
   }

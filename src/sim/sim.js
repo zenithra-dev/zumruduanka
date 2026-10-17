@@ -48,7 +48,7 @@ export function createSim(opts = {}){
   let engine = null, inst = null;
   // Durumsuz oda yanıtı (ENVS.oda.room nesne) prefs.room'u değiştirmez: motor her zaman sayısal yankıyla kurulur (aynı sayıda rand()), sonra ona
   // geçer. Böylece oda, yükleme öncesi ya da sonrası seçilsin, ses programı kulüple aynı kalır; değişen yalnız yankı.
-  const venues = createVenues({scene: S.scene, renderer: S.renderer, hemi: S.hemi, key: S.key, floor: S.floor, banner: bannerKit.banner, clubItems: [S.back, S.ampG, S.truss],
+  const venues = createVenues({scene: S.scene, renderer: S.renderer, hemi: S.hemi, key: S.key, rim: S.rim, spot: S.spot, uye: Object.values(rigs.LIGHTS), floor: S.floor, banner: bannerKit.banner, clubItems: [S.back, S.ampG, S.truss],
     onRoom(r){ if (typeof r === "number") prefs.room = r; prefs.roomSpec = typeof r === "number" ? null : r; if (engine) engine.setRoom(r); }});
   const crowd = createCrowd(S.scene);
   linearize(S.scene, model.strings.map(s => s.base)); // sRGB hex renkler → lineer (finish.js), tellerin dinlenme rengi dahil

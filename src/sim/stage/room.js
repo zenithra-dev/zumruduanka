@@ -1,5 +1,5 @@
-// Oda mekânı: sıcak, loş, samimi bir genç yatak odası köşesi. Kabuk (zemin, tavan, dört duvar, süpürgelik) burada; yatak, ışık, dekor ve
-// eşyalar room/ altında kendi dosyalarında (her kol kendi parçasını ayrıntılandırır). Bütün sayılar room/layout.js'te. rand() yok (ses akışını
+// Oda mekânı: sıcak, loş, samimi bir genç yatak odası köşesi. Kabuk (zemin, tavan, dört duvar, süpürgelik), yatak, ışık, dekor, eşyalar ve amfi
+// room/ altında kendi dosyalarında (her kol kendi parçasını ayrıntılandırır). Bütün sayılar room/layout.js'te. rand() yok (ses akışını
 // kaydırır), çeşitlilik hash01 ile; update zamanın saf fonksiyonu. Mekân seçilmedikçe grup sahnede değil (venues.js): kulübe maliyeti yok.
 //
 //   const room = createRoom({renderer});
@@ -11,59 +11,26 @@
 //   room.update(now, wall, p)        pırıltı, kedi nefesi ...
 //   room.confine(cam, subject?, fov?) kamerayı odanın içine çeker
 import * as THREE from "three";
-import { hash01 } from "../rng.js";
-import { FLOOR as FIG_FLOOR, mat } from "./figures.js";
-import { canvasTexture } from "./canvas-tex.js";
+import { FLOOR as FIG_FLOOR } from "./figures.js";
 import { FLOOR, CEIL, SHELL, BED, SEAT, SLOTS, LIGHTS, WALLS, CAMERA } from "./room/layout.js";
 import { buildBed } from "./room/bed.js";
 import { buildLights } from "./room/lights.js";
 import { buildDecor, onWall } from "./room/decor.js";
 import { buildProps } from "./room/props.js";
+import { buildAmp } from "./room/amp.js";
+import { buildShell } from "./room/shell.js";
 
 export { onWall };
 const box3 = (x, y, z) => new THREE.Box3(new THREE.Vector3(x[0], y[0], z[0]), new THREE.Vector3(x[1], y[1], z[1]));
 
-// Ahşap zemin: sıcak meşe tahtalar (0.15 m), damar ve ek yerleri; döşeme boyu 1.2 m
-const PLANK = 0.15, TILE = 1.2;
-function floorTexture(aniso){
-  return canvasTexture(1024, 1024, (g, w, h) => {
-    const n = Math.round(TILE / PLANK), bw = w / n, per = h / 6;   // damar dalgası döşeme boyunun alt katı: tekrar sınırında kesilmez
-    for (let i = 0; i < n; i++){
-      // Sütun başına iki ek yeri (komşulardan kaydırılmış); ikinci tahta döşeme sınırından taşar, üstte devam eder
-      const x0 = i * bw, c1 = 0.5 * h * hash01(i, "zemin-ek1"), c2 = c1 + h * (0.35 + 0.3 * hash01(i, "zemin-ek2"));
-      [[c1, c2], [c2, c1 + h]].forEach(([a, b], j) => {
-        const k = hash01(i * 2 + j, "zemin-ton");
-        for (const off of [0, -h]){
-          g.fillStyle = `hsl(${27 + 4 * hash01(i * 2 + j, "zemin-hue")}, ${28 + 6 * k}%, ${27 + 6 * k}%)`; g.fillRect(x0, a + off, bw, b - a);
-          g.strokeStyle = "rgba(40,22,10,0.16)"; g.lineWidth = 1.2;
-          for (let s = 0; s < 9; s++){ const u = x0 + bw * (0.08 + 0.84 * hash01(s, i * 31 + j)), ph = 6.28 * hash01(s, "zemin-dalga" + i), amp = 1.5 + 2.5 * hash01(s, "zemin-genlik" + j);
-            g.beginPath(); for (let y = a; y <= b + 0.5; y += 16){ const xx = u + amp * Math.sin(2 * Math.PI * y / per + ph); if (y === a) g.moveTo(xx, y + off); else g.lineTo(xx, y + off); } g.stroke(); }
-          g.fillStyle = "rgba(25,14,6,0.55)"; g.fillRect(x0, b + off - 1.5, bw, 3);
-        }
-      });
-    }
-    g.fillStyle = "rgba(25,14,6,0.6)"; for (let i = 0; i <= n; i++) g.fillRect(i * bw - 1.5, 0, 3, h);
-  }, {ad: "zemin", fonts: false, anisotropy: aniso, repeat: [(SHELL.x1 - SHELL.x0) / TILE, (SHELL.z1 - SHELL.z0) / TILE]});
-}
-
 export function createRoom({renderer} = {}){
   if (FLOOR !== FIG_FLOOR) throw new Error("room/layout.js FLOOR figures.js ile aynı olmalı");
   const aniso = renderer ? Math.min(8, renderer.capabilities.getMaxAnisotropy()) : 1;
-  const group = new THREE.Group(), W = SHELL.x1 - SHELL.x0, D = SHELL.z1 - SHELL.z0, cx = (SHELL.x0 + SHELL.x1) / 2, cz = (SHELL.z0 + SHELL.z1) / 2;
-  const textures = [];
-  // Kabuk: içe bakan düzlemler. Zemin ahşap, duvarlar bej / sıcak gri boya, tavan kırık beyaz, beyaz süpürgelik.
-  const ftex = floorTexture(aniso); textures.push(ftex);
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(W, D), mat(0xffffff, {map: ftex, roughness: 0.72})); floor.rotation.x = -Math.PI / 2; floor.position.set(cx, FLOOR, cz); group.add(floor);
-  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(W, D), mat(0xd9d2c6, {roughness: 0.95})); ceil.rotation.x = Math.PI / 2; ceil.position.set(cx, CEIL, cz); group.add(ceil);
-  const paint = mat(0xb7a690, {roughness: 0.92}), trim = mat(0xe6e1d8, {roughness: 0.6});
-  const walls = WALLS.map(L => {
-    const n = new THREE.Vector3(...L.n), mid = L.w / 2, c = new THREE.Vector3(L.o[0] + L.u[0] * mid, FLOOR + (CEIL - FLOOR) / 2, L.o[1] + L.u[1] * mid);
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(L.w, CEIL - FLOOR), paint); m.position.copy(c); m.rotation.y = Math.atan2(n.x, n.z); group.add(m);
-    const sk = new THREE.Mesh(new THREE.BoxGeometry(L.w, 0.08, 0.014), trim); sk.position.copy(c).setY(FLOOR + 0.04).addScaledVector(n, 0.007); sk.rotation.y = m.rotation.y; group.add(sk);
-    return {ad: L.ad, plane: new THREE.Plane().setFromNormalAndCoplanarPoint(n, c), o: L.o, u: L.u, n: L.n, w: L.w, h: CEIL - FLOOR, decor: L.decor, mesh: m};
-  });
-  const parts = {bed: buildBed(), lights: buildLights(), decor: buildDecor({aniso}), props: buildProps()};
-  Object.values(parts).forEach(p => { group.add(p.group); (p.textures || []).forEach(t => textures.push(t)); });
+  const group = new THREE.Group(), textures = [];
+  const parts = {bed: buildBed(), lights: buildLights(), decor: buildDecor({aniso}), props: buildProps(), amp: buildAmp({aniso})};
+  // Kabuk (room/shell.js): zemin, duvarlar, tavan, süpürgelik; ampullerin ışık haritası için ışık parçasını kullanır
+  const shell = buildShell({aniso, lights: parts.lights}), walls = shell.walls;
+  [shell, ...Object.values(parts)].forEach(p => { group.add(p.group); (p.textures || []).forEach(t => textures.push(t)); });
 
   const bounds = box3(CAMERA.bounds.x, CAMERA.bounds.y, CAMERA.bounds.z);
   const avoid = CAMERA.avoid.map(a => ({ad: a.ad, box: box3(a.x, a.y, a.z)}));
@@ -115,11 +82,13 @@ export function createRoom({renderer} = {}){
   }
   // Eşyaların gerçek kutuları (her ağın dünya kutusu): kamera ölçümünün payından bağımsız denetimi
   function solids(){ group.updateMatrixWorld(true); const out = [];
-    [parts.bed, parts.props].forEach(p => p.group.traverse(o => { if (o.isMesh) out.push(new THREE.Box3().setFromObject(o)); })); return out; }
-  function update(now, wall, p){ parts.lights.update(now, wall, p); parts.props.update(now, wall, p); }
+    [parts.bed, parts.props, parts.amp].forEach(p => p.group.traverse(o => { if (o.isMesh) out.push(new THREE.Box3().setFromObject(o)); })); return out; }
+  // Tembel dokular (kabuk, amfi; room/tex.js): ilk güncellemede ya da dokular ilk okunduğunda bir kez boyanır (kulüp kurulumu ödemez)
+  const paint = () => [shell, ...Object.values(parts)].forEach(p => p.paint && p.paint());
+  function update(now, wall, p){ paint(); parts.lights.update(now, wall, p); parts.props.update(now, wall, p); }
 
   const slots = Object.assign({}, SLOTS, {isik: LIGHTS});
-  const room = {group, parts, textures, walls, bed, slots, bounds, avoid, shell: SHELL, subject: subj, free: false, lastPull: 0, inside, confine, solids, update,
+  const room = {group, parts, get textures(){ paint(); return textures; }, walls, bed, slots, bounds, avoid, shell: SHELL, subject: subj, free: false, lastPull: 0, inside, confine, solids, update,
     level: wall => parts.lights.level(wall)};
   return room;
 }

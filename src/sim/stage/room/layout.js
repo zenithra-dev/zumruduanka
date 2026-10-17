@@ -44,8 +44,12 @@ export const LIGHTS = {
   arka: {y: CEIL - 0.04, z: SHELL.z0 + 0.03, x: hooks(SHELL.x0 + 0.04, SHELL.x1 - 0.04, 7), sag: 0.14},
   sol: {y: CEIL - 0.04, x: SHELL.x0 + 0.03, z: hooks(SHELL.z0 + 0.04, SHELL.z1 - 0.04, 6), sag: 0.13},
   ampulAraligi: 0.025, renk: 0xffd9a0,
-  // Işık saçan dolgu (peri ışıklarının duvara vuran sıcak ışığı); ampullerin kendisi yalnız bloom için ışıldar
-  dolgu: [{x: 0.4, y: CEIL - 0.3, z: SHELL.z0 + 0.35, renk: 0xffcf96, i: 0.55, r: 4.5}, {x: SHELL.x0 + 0.35, y: CEIL - 0.3, z: 0.5, renk: 0xffcf96, i: 0.4, r: 4.0}]
+  // Köşeden aşağı sarkan uç: arka koşunun başından, başlığın topuzlarının üstünde biter
+  kose: [[SHELL.x0 + 0.035, CEIL - 0.04, SHELL.z0 + 0.035], [SHELL.x0 + 0.055, CEIL - 0.55, SHELL.z0 + 0.06], [SHELL.x0 + 0.045, FLOOR + 1.24, SHELL.z0 + 0.05]],
+  // Işık saçan dolgu (ampullerin toplamı, 2700 K): iki duvarın tavan hizasında (tavana sıyırır: tavanda sıcak leke yapmaz) ve yüz ile gitar için
+  // önden sıcak dolgu (duvarlara erişmez). Ampullerin duvara ve tavana düşen yakın ışığı ışık haritasında (room/lights.js irr, room/shell.js).
+  dolgu: [{x: 0.45, y: CEIL - 0.03, z: SHELL.z0 + 0.8, renk: 0xffcc9a, i: 0.32, r: 4.6}, {x: SHELL.x0 + 0.8, y: CEIL - 0.03, z: 0.3, renk: 0xffcc9a, i: 0.26, r: 4.4},
+    {x: 0.95, y: 0.55, z: 0.95, renk: 0xffd2a6, i: 1.1, r: 2.3}]
 };
 
 // Duvarlar: içeriden bakınca u soldan sağa, v zeminden yukarı (m). Dekor bölgeleri u0-u1, v0-v1; yogunluk kaplanacak alan payı.
