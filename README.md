@@ -60,7 +60,7 @@ Render: üç işçi kareleri paylaşır, ses OfflineAudioContext ile üretilir, 
 2. **Manyetik.** Bobin ve kablo rezonansı: 3.6 ila 5 kHz'de rezonanslı alçak geçiren.
 3. **Amfi.** Sıkılaştırma, ön vurgulama (kırpmadan önce bas kısılır), asimetrik yumuşak kırpma (lamba kademesi, çift harmonikler), kuplaj ve cızırtı süzgeçleri, ton katı, presence, güç kademesi, geri vurgulama. Üç ön ayar: temiz, crunch, lead.
 4. **Kabin.** 12" gitar hoparlörünün tipik eğrisinden tasarlanmış darbe yanıtı (80 Hz altı kesik, 130 Hz tınlama, 480 Hz çukur, 2.6 kHz presence, 5 kHz üstü düşüş) ve yakın mikrofonun kısa yansımaları. Gerçek bir kabin IR'ı varsa `createEngine`'e `cabIR` ile verilebilir.
-5. **Mekan.** Haas çiftleme, yankı, mekana göre uzunluğu değişen sentetik oda. Oda mekânında yankı küçük ve kuru bir yatak odası yanıtı (durumsuz, hash01 ile); ses programı mekândan bağımsız.
+5. **Mekan.** Haas çiftleme, yankı, mekana göre uzunluğu değişen sentetik oda. Oda mekânı kulübün yankısını kullanır (kulak kararı); ses programı mekândan bağımsız.
 
 ## Ses tasarımı döngüsü
 

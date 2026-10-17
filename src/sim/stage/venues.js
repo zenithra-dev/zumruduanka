@@ -18,7 +18,7 @@ export const ENVS = {
   // oda: loş ve sıcak (2700 K); ışığın çoğu peri ışıklarından (room/lights.js). Alttan kenar ışığı ve üyenin turuncu ışığı odada sol duvarı
   // turuncuya boyuyordu: kısık (yüz ve gitarı odanın önden sıcak dolgusu aydınlatır).
   oda:     {name: "Oda", bg: 0x140e0b, fog: [4, 16], hemi: [0xffd2a0, 0x24180f, 0.07], floor: false, sky: false, key: [0xffdcb4, 0.05], rim: 0.12, spot: 0.3, uye: 0.5, show: false, banner: false,
-    room: {sec: 0.4, pre: 0.004, dark: 0.9, level: 1.2, er: [[0.0032, 0.42], [0.0051, 0.3], [0.0074, 0.24], [0.0098, 0.17], [0.0131, 0.12], [0.0176, 0.08]], salt: "oda-yanki"},
+    room: 1.3,   // kulübün yankısı: kullanıcı kulakla seçti (küçük kuru oda yanıtı {sec, pre, dark, level, er, salt} de verilebilir, engine.js stillRoomIR)
     grade: {exposure: 1.3, sat: 0.85, contrast: 0.1, vig: 0.38, grain: 0.03, sh: [0.97, 0.97, 1.03], hi: [1.04, 1, 0.94]}}
 };
 
