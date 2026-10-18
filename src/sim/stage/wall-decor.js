@@ -1,7 +1,7 @@
 // Duvar dekoru (oda): posterler, plaklar, polaroidler, yapışkan notlar, bilet koçanları, çıkartmalar, bantlar ve altın çerçeveli küçük resim.
 // Bu dosya yerleşim, atlas ve ağlar; kanvas çizimleri wall-decor-art.js'te (canvas-tex.js: yazı yalnız vendor yazı tipleriyle). Çeşitlilik hash01 ile.
 // Yerleşim temelin duvar bölgelerinde (room/layout.js WALLS), duvarın (u, v) koordinatında; üst bant peri ışıklarına boş.
-// Derinlik tamponu 16 bit (composer): uzakta duvarla parça aynı derinliğe düşebilir. Çakışma olmasın diye her parça altındakinden STEP kadar önde,
+// Derinlik tamponu 24 bit (finish.js stencilBuffer), yine de uzakta duvarla parça aynı derinliğe düşebilir. Çakışma olmasın diye her parça altındakinden STEP kadar önde,
 // altındakinden SONRA çizilir (renderOrder; birleşik ağda katman sırası) ve hepsi aynı polygonOffset'i alır: eşit derinlikte üstteki kazanır.
 // Gölge halkaları da opak sırada (CustomBlending, transparent false): altındakinin üstüne, üstündekinin altına düşer.
 // Dokular ilk paint()'te çizilir (oda sahneye girince, room.js; ya da ilk çizimde): kulüpte kanvas belleği ve çizim süresi yok.
@@ -174,7 +174,7 @@ export function buildWallDecor({walls, aniso = 1, textures = []}){
   const paint = () => { if (painted) return; painted = true; jobs.forEach(f => f()); };
   group.name = "duvar-dekoru";
   // Yığın sırası: her parça, kendinden önce yerleştirilmiş ve kendisiyle kesişen parçaların en üstünden bir katman yukarıda (eşit derinlikte
-  // sonra çizilen kazanır; 16 bit derinlikte de STEP ayrışmasa bile doğru)
+  // sonra çizilen kazanır; derinlik STEP'i ayıramasa bile doğru)
   const place = it => { let z = 0; for (const q of items) if (q.duvar === it.duvar && overlap(it, q)) z = Math.max(z, q.z + 1);
     it.rot = it.rot || 0; it.z = z; it.off = BASE + z * STEP; items.push(it); return it; };
   const mk = (geo, m, ro, ad) => { const o = new THREE.Mesh(geo, m); o.renderOrder = ro; o.name = ad; o.matrixAutoUpdate = false; o.onBeforeRender = paint; group.add(o); meshes.push(o); return o; };
