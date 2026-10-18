@@ -4,7 +4,7 @@
 // boyanmaz, kulüp kurulumu bedelini ödemez. Durumsuz karma (rand() yok); bütün sayılar layout.js'ten.
 //
 //   const s = buildShell({aniso, lights});   // lights: room/lights.js (irr, color)
-//   s.group, s.walls ([{ad, plane, o, u, n, w, h, decor, mesh}]), s.textures, s.paint()
+//   s.group, s.walls ([{ad, plane, o, u, n, w, h, decor, mesh, light: {map, uv(u, v), add(malzeme)}}]), s.textures, s.paint()
 import * as THREE from "three";
 import { hash01 } from "../../rng.js";
 import { mat } from "../figures.js";
@@ -156,11 +156,15 @@ export function buildShell({aniso = 1, lights}){
     textures.push(map, lmap);
     const m = new THREE.Mesh(plane(L.w, H), mat(0xffffff, {map, lightMap: lmap, lightMapIntensity: 0, roughness: 0.93}));
     m.position.copy(c); m.rotation.y = Math.atan2(n.x, n.z); group.add(m);
-    jobs.push(() => { const E = lights.irr(grid(V3(L.o[0], FLOOR, L.o[1]), U, V3(0, 1, 0), n, L.w, H, cw, ch)); WL = {E, max: peak(E)}; m.material.lightMapIntensity = WL.max; map.paint(); lmap.paint(); });
+    // Işık haritası duvara asılanlarla paylaşılır (wall-decor.js): light.add(malzeme) haritayı takar, şiddeti duvarınkiyle birlikte kurulur;
+    // light.uv(u, v) duvarın (u, v) noktasının uv2'si (taşma payı dahil)
+    const lit = [m.material], light = {map: lmap, uv: (u, v) => [(u + EXT) / (L.w + 2 * EXT), (v + EXT) / (H + 2 * EXT)],
+      add(x){ x.lightMap = lmap; x.lightMapIntensity = WL ? WL.max : 0; lit.push(x); return x; }};
+    jobs.push(() => { const E = lights.irr(grid(V3(L.o[0], FLOOR, L.o[1]), U, V3(0, 1, 0), n, L.w, H, cw, ch)); WL = {E, max: peak(E)}; lit.forEach(x => { x.lightMapIntensity = WL.max; }); map.paint(); lmap.paint(); });
     const full = L.ad === "arka" || L.ad === "on";
     [[SK.h, SK.t, SK.h / 2], [SK.cap, SK.capT, SK.h + SK.cap / 2 - 0.004]].forEach(([hh, t, y]) => {
       const sk = new THREE.Mesh(new THREE.BoxGeometry(full ? L.w : L.w - 2 * t, hh, t), trim); sk.position.copy(c).setY(FLOOR + y).addScaledVector(n, t / 2); sk.rotation.y = m.rotation.y; group.add(sk); });
-    return {ad: L.ad, plane: new THREE.Plane().setFromNormalAndCoplanarPoint(n, c), o: L.o, u: L.u, n: L.n, w: L.w, h: H, decor: L.decor, mesh: m};
+    return {ad: L.ad, plane: new THREE.Plane().setFromNormalAndCoplanarPoint(n, c), o: L.o, u: L.u, n: L.n, w: L.w, h: H, decor: L.decor, mesh: m, light};
   });
   let painted = false;
   function paint(){ if (painted) return; painted = true; jobs.forEach(f => f()); }

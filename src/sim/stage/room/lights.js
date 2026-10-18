@@ -9,6 +9,10 @@ import { createFairyLights } from "../fairy-lights.js";
 // Işık haritası: tel duvardan 3 cm'de, ampul sırasının hemen önündeki duvar tepe (beyaz yüzey için) WASH.tepe kat aydınlık; ters kare ile söner
 export const WASH = {tepe: 2.0, mesafe: 0.03, rad: 0.3};
 const V3 = a => new THREE.Vector3(...a);
+// Yüz ve gitar dolgusu (LIGHTS.dolgu[2]'nin konumu, şiddeti, menzili): karaktere yakın, kısa menzilli. layout.js'teki (0.95, 0.55, 0.95; 2.3 m)
+// ön ve sağ duvara erişip kaynaksız sıcak leke bırakıyordu; bu duvarlara erişmez (zeminde yalnız karakterin önü), yüzde ve gitar gövdesinde
+// ışınım ve geliş yönü aynı kalır (fark ≤ %6, ≤ 8°). Beyaz vernikli gövdede yeni parlama yapmaz (yakın plandaki sıcak nokta sahnenin ön spotu).
+const DOLGU = LIGHTS.dolgu.map((d, k) => k === 2 ? {...d, x: 0.65, y: 0.5, z: 0.65, i: 0.775, r: 1.85} : d);
 
 export function buildLights(){
   const g = new THREE.Group(), A = LIGHTS.arka, S = LIGHTS.sol;
@@ -19,10 +23,10 @@ export function buildLights(){
   const hookM = new THREE.MeshStandardMaterial({color: 0xe9e4da, roughness: 0.5}), hookG = new THREE.BoxGeometry(0.012, 0.016, 0.008);
   runs.slice(0, 2).forEach((r, k) => r.hooks.forEach(p => { const h = new THREE.Mesh(hookG, hookM); h.position.copy(p).setY(p.y + 0.004);
     if (k === 0) h.position.z -= 0.025; else { h.position.x -= 0.025; h.rotation.y = Math.PI / 2; } g.add(h); }));
-  const fill = LIGHTS.dolgu.map(d => { const L = new THREE.PointLight(d.renk, d.i, d.r, 2); L.position.set(d.x, d.y, d.z); g.add(L); return L; });
+  const fill = DOLGU.map(d => { const L = new THREE.PointLight(d.renk, d.i, d.r, 2); L.position.set(d.x, d.y, d.z); g.add(L); return L; });
   // Dolgu ışığı → izlediği ampul koşusu (yüz dolgusu bütün ampulleri)
   const follow = [0, 1, undefined];
-  const levelAt = wall => fill.map((L, i) => LIGHTS.dolgu[i].i * fairy.mean(wall, follow[i]));
+  const levelAt = wall => fill.map((L, i) => DOLGU[i].i * fairy.mean(wall, follow[i]));
   function level(wall){ return levelAt(wall).reduce((s, x) => s + x, 0); }
   function update(now, wall){ fairy.update(wall); levelAt(wall).forEach((v, i) => { fill[i].intensity = v; }); }
 
