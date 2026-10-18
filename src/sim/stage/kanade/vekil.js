@@ -5,7 +5,7 @@
 //   head, hip, headY, arms[i] = {up, fo, el} (görünmez kol parçaları: sync-check kalınlık ve uçları okur), hands[i] (makeHand, Kanade'nin el tablosu;
 //   0 sol = perde, aynalı), reach, armLen, l1, l2, legLen, ph, sway, strapSide, strapAnchors/bodySd/bodySdFn (govde.js), nod, stance, restHead.
 // Kanade kancaları: life(L), chainAt(p, now, wall) (beden.js), pole (kol-ik.js), armState, setVisible(v, headCam), commit(now, wall), late(ctx),
-//   attach(asset), ready, whenReady(ms), vrm = {root, holder, bones, meshes, faceMeshes, err(), commit_ms}, expr (ifade.js), ikincil (kayıt
+//   attach(asset), ready, whenReady(ms), vrm = {root, holder, bones, meshes, faceMeshes, err(), err_mm, kalibrasyon_mm, commit_ms}, expr (ifade.js), ikincil (kayıt
 //   defteri), yen [sol, sağ] kıvrık payı, skinPoints(o).
 // Vekiller HER ZAMAN object.visible = false (malzemeyle gizlenen ağ sync-check maskesinde siyah çizilirdi).
 import * as THREE from "three";
@@ -57,7 +57,8 @@ export function kanadeFigure(scene, o = {}){
       aktarim = createAktarim(fig, a, holder, beden.N, {twist: EL.TWIST});
       const cal = aktarim.calibrate();
       asset = a; fig.expr = createIfade(a);
-      fig.vrm = {root: a.root, holder, bones: a.bones, meshes: a.meshes, faceMeshes: a.faceMeshes, asset: a, kalibrasyon_mm: cal * 1000, commit_ms: 0, err: () => aktarim.err()};
+      fig.vrm = {root: a.root, holder, bones: a.bones, meshes: a.meshes, faceMeshes: a.faceMeshes, asset: a, kalibrasyon_mm: cal * 1000, commit_ms: 0,
+        err: () => aktarim.err(), get err_mm(){ return aktarim.err().mm; }};
       fig.setVisible(...vis);
     },
     whenReady(ms = 60000){ return asset ? Promise.resolve() : (wait || (wait = preloadKanade(ms).then(a => fig.attach(a)))); },
