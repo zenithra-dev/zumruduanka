@@ -55,6 +55,8 @@ const frac = x => x - Math.floor(x);
 
 // Composer: HDR (HalfFloat) ara tampon, MSAA 4, HDR bloom (eşik 1.0), Finish. Float tampon yoksa (WebGL1) 8 bit ve MSAA'sız.
 // Yazılım çiziminde (SwiftShader: CI, GPU'suz render) float MSAA kareyi ~3 kat yavaşlatıyor; orada MSAA kapalı. Kurulamazsa composer null.
+// Derinlik 24 bit: r128 stencilsiz hedefe DEPTH_COMPONENT16 verir (3 m'de grup kamerasında ~3 mm, sahne kamerasında ~14 mm adım; SwiftShader'da mm
+// aralıklı katmanlar titriyordu, Intel/D3D11 zaten 24 bit kullanıyordu). stencilBuffer ile iki yolda da DEPTH24_STENCIL8; stencil kullanılmıyor.
 function softwareGL(gl){ const d = gl.getExtension("WEBGL_debug_renderer_info"); return !!d && /swiftshader|llvmpipe|software/i.test(gl.getParameter(d.UNMASKED_RENDERER_WEBGL)); }
 export function createFinish(renderer, scene, camera){
   let composer = null, renderPass = null, bloomPass = null, U = null, hdr = false, samples = 0;
@@ -63,7 +65,7 @@ export function createFinish(renderer, scene, camera){
     hdr = gl2 && renderer.extensions.has("EXT_color_buffer_float");
     samples = gl2 && !softwareGL(renderer.getContext()) ? Math.min(4, renderer.capabilities.maxSamples) : 0;
     const type = hdr ? THREE.HalfFloatType : THREE.UnsignedByteType, sz = renderer.getSize(new THREE.Vector2());
-    const rt = new (samples ? THREE.WebGLMultisampleRenderTarget : THREE.WebGLRenderTarget)(sz.x, sz.y, {type, format: THREE.RGBAFormat, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter});
+    const rt = new (samples ? THREE.WebGLMultisampleRenderTarget : THREE.WebGLRenderTarget)(sz.x, sz.y, {type, format: THREE.RGBAFormat, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, stencilBuffer: true});
     if (samples) rt.samples = samples;
     composer = new EffectComposer(renderer, rt); composer.setPixelRatio(renderer.getPixelRatio());
     renderPass = new RenderPass(scene, camera); composer.addPass(renderPass);
