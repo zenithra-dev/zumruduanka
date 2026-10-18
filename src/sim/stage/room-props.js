@@ -73,21 +73,25 @@ function grid(nu, nv, at){
 // küre kesiti), kabuk hareket etse de (deri, nefes) teller yerinde kalır. Her telin boyu hash, kabuk i'de cut[i]'den uzun teller kalır ve tel
 // uca doğru incelir: uçlar seyrelir, kenar yumuşar. Malzeme tabanınkinin kopyası (like: aynı ışık modeli, benek kalmaz) ya da Lambert; uçlara doğru
 // renk tip'e açılır. scale: köşe başına kabuk boyu katı (0: kabuk yok).
-// Kabuk discard etmez, örtme payıyla karışır (MSAA'sız swiftshader): hücre pikselden büyükken telin kenarı piksel izi kadar yumuşak, hücre piksele
-// sığmayınca (uzak, eğik) hücrelerin ortalama payı (kumlanmaz, kamera kıpırdayınca kare kare oynamaz); kabuk pikselden alçaksa söner; bakışa dik
-// yerde (siluet) incelir: kenarda düzgün hale değil, gövdeye yakın ince yumuşak geçiş kalır. Opak sırada çizilir (CustomBlending, derinlik yazmaz),
-// tabanlardan sonra (renderOrder 10+; üstteki eşya sonra).
+// Kabuk telin dışını atmaz, örtme payıyla karışır (MSAA'sız swiftshader): hücre pikselden büyükken telin kenarı piksel izi kadar yumuşak, hücre
+// piksele sığmayınca (uzak, eğik: mix, piksel başına hücre aralığı) ve siluet bandında hücrelerin ortalama payı (kumlanmaz, kamera kıpırdayınca
+// kare kare oynamaz, kenarda koyu benek halesi yok); mean: hep ortalama pay (tel deseni ve hash yok, ucuz). Kabuk pikselden alçaksa söner; bakışa
+// dik yerde (siluet) incelir: kenarda düzgün hale değil, gövdeye yakın ince yumuşak geçiş kalır. rim: yalnız siluet bandı (bakışa dönük yerde nv
+// rim'i geçince kabuk söner: koyu tüyde içteki ton tabanın ışıltısını örtmez). Opak sırada çizilir (CustomBlending, derinlik yazmaz), tabanlardan
+// sonra (renderOrder 10+; tüysüz parçalar ve üstteki eşya sonra).
 const FUR_V = "attribute vec3 rest;\nvarying vec3 vRest;\nvarying vec3 vFurV;\nvarying vec3 vFurN;\n",
-  FUR_F = "varying vec3 vRest;\nvarying vec3 vFurV;\nvarying vec3 vFurN;\nuniform float uCut;\nuniform float uDen;\nuniform float uRad;\nuniform float uMean;\nuniform float uH;\n" +
+  FUR_F = "varying vec3 vRest;\nvarying vec3 vFurV;\nvarying vec3 vFurN;\nuniform float uCut;\nuniform float uDen;\nuniform float uRad;\nuniform float uMean;\nuniform float uH;\nuniform vec2 uMix;\nuniform vec2 uRim;\n" +
   "float furHash(vec3 p){ p = fract(p * 0.1031); p += dot(p, p.zyx + 31.32); return fract((p.x + p.y) * p.z); }\n" +
-  "float furAlpha(){ vec3 c = vRest * uDen, id = floor(c), j = vec3(furHash(id + 1.7), furHash(id + 3.1), furHash(id + 5.3)) - 0.5;\n" +
-  "  vec3 dx = dFdx(vRest), dy = dFdy(vRest); vec2 q = vFurV.xy / vFurV.z; float fw = sqrt(max(dot(dx, dx), dot(dy, dy))) * uDen;\n" +
+  "float furAlpha(){ vec2 q = vFurV.xy / vFurV.z;\n" +
   "  float px = -vFurV.z * max(length(dFdx(q)), length(dFdy(q))) + 1e-6, nv = abs(dot(vFurN, vFurV)) * inversesqrt(max(dot(vFurN, vFurN) * dot(vFurV, vFurV), 1e-12));\n" +
-  "  float w = 0.5 * min(fw, 1.0) + 0.02, s = step(uCut, furHash(id + 0.5)) * (1.0 - smoothstep(uRad - w, uRad + w, length(fract(c) - 0.5 - 0.35 * j)));\n" +
-  "  return mix(s, uMean, smoothstep(0.3, 0.8, fw)) * smoothstep(0.4, 1.2, uH / px) * smoothstep(0.18, 0.55, nv); }\n";
+  "#ifdef FUR_MEAN\n  float a = uMean;\n#else\n" +
+  "  vec3 c = vRest * uDen, id = floor(c), j = vec3(furHash(id + 1.7), furHash(id + 3.1), furHash(id + 5.3)) - 0.5, dx = dFdx(vRest), dy = dFdy(vRest);\n" +
+  "  float fw = sqrt(max(dot(dx, dx), dot(dy, dy))) * uDen, w = 0.5 * min(fw, 1.0) + 0.02;\n" +
+  "  float a = mix(step(uCut, furHash(id + 0.5)) * (1.0 - smoothstep(uRad - w, uRad + w, length(fract(c) - 0.5 - 0.35 * j))), uMean, max(smoothstep(uMix.x, uMix.y, fw), 1.0 - smoothstep(0.45, 0.8, nv)));\n#endif\n" +
+  "  return a * smoothstep(0.4, 1.2, uH / px) * smoothstep(0.18, 0.55, nv) * (1.0 - smoothstep(uRim.x, uRim.y, nv)); }\n";
 function furCompile(s){
   const u = this.userData; if (u.mean === undefined) u.mean = furMean(u.cut, u.rad);   // ortalama pay derlemede (yalnız odada)
-  ["cut", "den", "rad", "mean", "h"].forEach(k => { s.uniforms["u" + k[0].toUpperCase() + k.slice(1)] = {value: u[k]}; });
+  ["cut", "den", "rad", "mean", "h", "mix", "rim"].forEach(k => { s.uniforms["u" + k[0].toUpperCase() + k.slice(1)] = {value: u[k]}; });
   s.vertexShader = FUR_V + s.vertexShader.replace("#include <begin_vertex>", "#include <begin_vertex>\n\tvRest = rest;")
     .replace("#include <defaultnormal_vertex>", "#include <defaultnormal_vertex>\n\tvFurN = transformedNormal;").replace("#include <project_vertex>", "#include <project_vertex>\n\tvFurV = mvPosition.xyz;");
   s.fragmentShader = FUR_F + s.fragmentShader.replace("void main() {", "void main() {\n\tfloat furA = furAlpha();\n\tif (furA < 0.01) discard;")
@@ -112,14 +116,16 @@ export function furGeos(geo, {n = 3, h = 0.005, scale = null}){
     for (let k = 0; k < p.count; k++){ const e = scale ? d * scale[k] : d; p.setXYZ(k, p.getX(k) + nr.getX(k) * e, p.getY(k) + nr.getY(k) * e, p.getZ(k) + nr.getZ(k) * e); }
     g.computeBoundingSphere(); return g; });
 }
-export function furShells(geo, {n = 3, h = 0.005, color, tip, den = 380, cut = [0.3, 0.55, 0.78], rad = [0.5, 0.42, 0.34], scale = null, like = null, skinning = false, side = THREE.FrontSide, order = 10}){
+// Kabukta doku süzgeci anizotropisiz (aynı tuval, ayrı doku): yarı saydam katta fark görünmez, swiftshader'da eğik bakışta pahalı
+const LOW = new WeakMap(), lowAniso = t => { let c = LOW.get(t); if (!c){ c = t.clone(); c.anisotropy = 1; c.needsUpdate = true; LOW.set(t, c); } return c; };
+export function furShells(geo, {n = 3, h = 0.005, color, tip, den = 380, cut = [0.3, 0.55, 0.78], rad = [0.5, 0.42, 0.34], scale = null, like = null, skinning = false, side = THREE.FrontSide, order = 10, mix = [0.3, 0.8], rim = [2, 3], mean = false}){
   const base = new THREE.Color(color), top = new THREE.Color(tip ?? color), out = [], G = furGeos(geo, {n, h, scale});
   for (let i = 0; i < n; i++){
     const g = G[i], m = like ? like.clone() : new THREE.MeshLambertMaterial({skinning, side, vertexColors: !!geo.attributes.color});
-    m.color = base.clone().lerp(top, (i + 1) / n); m.side = side;
+    m.color = base.clone().lerp(top, (i + 1) / n); m.side = side; if (m.map) m.map = lowAniso(m.map);
     Object.assign(m, {transparent: false, blending: THREE.CustomBlending, blendSrc: THREE.SrcAlphaFactor, blendDst: THREE.OneMinusSrcAlphaFactor, depthWrite: false, extensions: {derivatives: true}});
-    const U = m.userData; U.cut = cut[Math.min(i, cut.length - 1)]; U.rad = rad[Math.min(i, rad.length - 1)]; U.den = den; U.h = h * (i + 1) / n;
-    m.onBeforeCompile = furCompile;
+    const U = m.userData; U.cut = cut[Math.min(i, cut.length - 1)]; U.rad = rad[Math.min(i, rad.length - 1)]; U.den = den; U.h = h * (i + 1) / n; U.mix = mix; U.rim = rim;
+    m.onBeforeCompile = furCompile; if (mean) m.defines = {...m.defines, FUR_MEAN: ""};
     out.push({geo: g, mat: m, order});
   }
   return out;
@@ -355,10 +361,11 @@ function furClear(geo, ells, d0 = 0.0005, d1 = 0.005){
 function plushAO(g, y0 = 0){ const p = g.attributes.position, n = g.attributes.normal, C = new Float32Array(p.count * 3);
   for (let i = 0; i < p.count; i++) C.fill((0.5 + 0.5 * sstep(0, 0.06, p.getY(i) - y0)) * (0.82 + 0.18 * (0.5 + 0.5 * n.getY(i))), 3 * i, 3 * i + 3);
   g.setAttribute("color", new THREE.BufferAttribute(C, 3)); return g; }
-// Parçalar malzemeye göre birleşir; tüy malzemesine kabuk eklenir. spec: {anahtar: [parça geometrileri]}, M: {anahtar: malzeme}, fur: {anahtar: kabuk ayarı}
+// Parçalar malzemeye göre birleşir; tüy malzemesine kabuk eklenir. spec: {anahtar: [parça geometrileri]}, M: {anahtar: malzeme}, fur: {anahtar: kabuk ayarı}.
+// Tüysüz parçalar (göz, burun, kulak içi) kabuklardan sonra çizilir: ortalama paylı kabuk boncuk gözü tülle örtmez
 function plush(spec, M, fur, extra = []){
   const g = new THREE.Group();
-  for (const [k, parts] of Object.entries(spec)){ const geo = plushAO(merge(parts)); g.add(new THREE.Mesh(geo, M[k]));
+  for (const [k, parts] of Object.entries(spec)){ const geo = plushAO(merge(parts)); g.add(Object.assign(new THREE.Mesh(geo, M[k]), {renderOrder: fur[k] ? 0 : 12}));
     if (!fur[k]) continue;
     const ells = Object.entries(spec).filter(([j]) => !fur[j]).flatMap(([, P]) => P.map(x => x.userData.ell)).concat(extra);
     furMeshes(geo, {like: M[k], order: 11, scale: furClear(geo, ells), ...fur[k]}).forEach(m => g.add(m)); }
