@@ -1,10 +1,23 @@
 // Sahnedeki kişileri kurar ve her karede canlandırır: nefes/salınım, göz kırpma, enstrüman pozu, ışık şovu.
-// Kişinin kendi geometrisi ve pozu members/ altında; burası ortak olanı yapar.
+// Kişinin kendi geometrisi ve pozu members/ altında; burası ortak olanı yapar. Figür kancaları (varsa, yoksa mankenin yolu):
+//   fig.life(L)              nefes, salınım ve beden dili sayılarını kendi gövdesine uygular (L: life'ın sayıları)
+//   fig.commit(now, wall)    pozdan (IK) sonra: duruşu kendi gövdesine aktarır (Kanade: vekil → kemikler, ifade); aynı karede ölçüm bayat okumaz
+//   fig.late(ctx)            karenin sonunda (askı ve kamera yerinde, odada confine'dan sonra): ikincil hareket (saç, etek, bakış)
 import * as THREE from "three";
 import { rand } from "../rng.js";
 import { beatAt, accents, intensity } from "../music/clock.js";
 import { FLOOR, worldOf, setFigVisible } from "./figures.js";
 import { MEMBER_RIGS } from "./members/index.js";
+
+// Göz kırpma takvimi (kurulumda tohumlu üreteçle, f.blinks; render işçileri aynı anda kırptırır): wall anında süren kırpmanın başından geçen süre
+// (sn, 0..BLINK), kırpma yoksa -1. Gözünü kendisi çizen figür (Kanade) bunu okur.
+export const BLINK = 0.14;
+export function blinkAt(f, wall){
+  let lo = 0, hi = f.blinks.length;
+  while (lo < hi){ const m = (lo + hi) >> 1; if (f.blinks[m] <= wall) lo = m + 1; else hi = m; }
+  const T = lo > 0 ? f.blinks[lo - 1] : -1;
+  return T >= 0 && wall < T + BLINK ? wall - T : -1;
+}
 
 export function createRigs({scene, model, hemi, drawBanner}){
   const parts = {}, FIG = {}, LIGHTS = {}, beams = {};
@@ -19,10 +32,7 @@ export function createRigs({scene, model, hemi, drawBanner}){
     for (let i = 0; i < 600; i++){ f.blinks.push(t); t += 0.14 + (rand() < 0.2 ? 0.25 : 2.2 + rand() * 3.5); }
   });
   function blink(f, wall){
-    let lo = 0, hi = f.blinks.length;
-    while (lo < hi){ const m = (lo + hi) >> 1; if (f.blinks[m] <= wall) lo = m + 1; else hi = m; }
-    const T = lo > 0 ? f.blinks[lo - 1] : -1;
-    const k = T >= 0 && wall < T + 0.14 ? Math.max(0.08, Math.abs((wall - T) / 0.07 - 1)) : 1;
+    const d = blinkAt(f, wall), k = d >= 0 ? Math.max(0.08, Math.abs(d / 0.07 - 1)) : 1;
     f.eyes.forEach((m, i) => { m.scale.y = f.eyeY[i] * k; });
   }
   // Tepede renkli ışık hüzmeleri: sahneyi boş bırakmamak için kişinin üstüne ve iki yanına
@@ -39,7 +49,7 @@ export function createRigs({scene, model, hemi, drawBanner}){
   function applyRoster(roster, headCamOn){
     MEMBER_RIGS.forEach(M => {
       const on = roster.includes(M.id);
-      setFigVisible(FIG[M.id], on);
+      setFigVisible(FIG[M.id], on, on && headCamOn);
       if (on && headCamOn && M.headCam) M.headCam(parts[M.id]);
       LIGHTS[M.id].visible = on; (parts[M.id].extras || []).forEach(x => { x.visible = on; });
     });
@@ -49,22 +59,26 @@ export function createRigs({scene, model, hemi, drawBanner}){
   // Nefes, salınım ve beden dili. Üyenin groove(p, t) duruşu ({lean, bob, head, drop, spread}, zamanın saf fonksiyonu) üç yerde okunur:
   // kafa şimdiki anın, göğüs LAG sonrasının, pelvis 2·LAG sonrasının duruşunu alır; yani pelvis önden gider, göğüs ve kafa onu gecikmeyle
   // izler (aynı fonksiyon farklı t'de: durum birikmez) ve kafanın vuruşu tam vuruşa düşer.
+  // Sayılar her figürde aynı: L = {br nefes, rx/rz/ry üst gövdenin eğimi, drop pelvisin inişi, nod kafanın eğimi, look kafanın yana dönüşü,
+  // spread ayakların açılması}; fig.life(L) varsa figür uygular, yoksa mankenin grupları (mankenLife).
   // LEAN_Z: öne eğilirken kalçanın geri kayma kolu = gitarın dayandığı yükseklik (göbek, kalçadan ~0.22): o hizada gövde yerinde kalır,
   // gitar sahneye sabit olduğu için içine girmez (kemer hizası 0.06 iken dorukta gövde gitara 11 mm giriyordu)
   const LAG = 0.035, LEAN_Z = 0.22, STILL = {lean: 0, bob: 0, head: 0, drop: 0, spread: 0};
   function life(fig, wall, now, p, groove){
-    const ph = fig.ph, br = Math.sin(wall * 1.55 + ph), sw = fig.sway, u = fig.up;
+    const ph = fig.ph, br = Math.sin(wall * 1.55 + ph), sw = fig.sway;
     const H = groove ? groove(p, now) : STILL, C = groove ? groove(p, now + LAG) : STILL, P = groove ? groove(p, now + 2 * LAG) : STILL;
+    const L = {br, rx: C.lean + C.bob + sw * 0.015 * Math.sin(wall * 0.41 + ph * 2), rz: sw * 0.022 * Math.sin(wall * 0.53 + ph), ry: sw * 0.03 * Math.sin(wall * 0.29 + ph * 3),
+      drop: P.drop, nod: H.head, look: 0.16 * Math.sin(wall * 0.23 + ph) * Math.sin(wall * 0.11 + ph * 1.7), spread: P.spread};
+    if (fig.life) fig.life(L); else mankenLife(fig, L);
+  }
+  function mankenLife(fig, L){
+    const u = fig.up;
     if (u.userData.y0 === undefined) u.userData.y0 = u.position.y;
-    fig.torso.scale.set(1 + 0.018 * br, 1 + 0.01 * br, 1 + 0.03 * br);
-    u.rotation.x = C.lean + C.bob + sw * 0.015 * Math.sin(wall * 0.41 + ph * 2);
-    u.rotation.z = sw * 0.022 * Math.sin(wall * 0.53 + ph);
-    u.rotation.y = sw * 0.03 * Math.sin(wall * 0.29 + ph * 3);
-    u.position.y = u.userData.y0 + 0.004 * br - P.drop;
+    fig.torso.scale.set(1 + 0.018 * L.br, 1 + 0.01 * L.br, 1 + 0.03 * L.br);
+    u.rotation.x = L.rx; u.rotation.z = L.rz; u.rotation.y = L.ry;
+    u.position.y = u.userData.y0 + 0.004 * L.br - L.drop;
     u.position.z = -LEAN_Z * Math.sin(u.rotation.x);   // öne eğilirken kalça geri: gitara yaslanan karın yerinde kalır
-    fig.nod(H.head);
-    fig.head.rotation.y = 0.16 * Math.sin(wall * 0.23 + ph) * Math.sin(wall * 0.11 + ph * 1.7);
-    fig.stance(P.spread);
+    fig.nod(L.nod); fig.head.rotation.y = L.look; fig.stance(L.spread);
   }
   // Vurgu flaşı: vurgulardan (clock.js accents) aralarında en az FLASH_GAP sn olanlar seçilir, her biri ~0.3 sn'de sönen bir darbe.
   // Işığa duyarlı epilepsi sınırı (ITU-R BT.1702, Harding): herhangi bir saniyede 3'ten fazla tam ekran parlama olmamalı; 0.5 sn aralık
@@ -91,6 +105,7 @@ export function createRigs({scene, model, hemi, drawBanner}){
     Object.values(FIG).forEach(f => blink(f, wall));
     const ctx = {now, wall, p, beat};
     MEMBER_RIGS.forEach(M => M.pose(parts[M.id], ctx));
+    MEMBER_RIGS.forEach(M => { const f = FIG[M.id]; if (f.commit) f.commit(now, wall); });
     // Işık şovu: vurguda flaş (hüzmeler kendi renginde parlar; pozlama darbesini sim.js Finish'e verir), hüzmeler ritimle salınır,
     // yoğun yerde biraz daha dolgun. Ortam ışığı (hemi) flaşta değişmez: eklenen beyaz ışık siyahları açıp görüntüyü grileştiriyordu.
     flash = stage ? flashAt(p, now) : 0;
@@ -104,5 +119,7 @@ export function createRigs({scene, model, hemi, drawBanner}){
     hemi.intensity = hemiBase;
   }
   function setStage(on){ stage = !!on; beamList.forEach(b => { b.visible = stage; }); }
-  return { FIG, LIGHTS, beams, parts, applyRoster, updateBand, setStage, invalidateBanner(){ rosterKey = ""; }, get flash(){ return flash; } };
+  // Geç kanca (sim.update'in sonunda): ctx = {now, wall, p, model, strap, cam: o karenin kamerası, headCam}
+  function late(ctx){ MEMBER_RIGS.forEach(M => { const f = FIG[M.id]; if (f.late) f.late(ctx); }); }
+  return { FIG, LIGHTS, beams, parts, applyRoster, updateBand, late, setStage, invalidateBanner(){ rosterKey = ""; }, get flash(){ return flash; } };
 }

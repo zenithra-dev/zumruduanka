@@ -1,6 +1,7 @@
 // Duman testi (npm test): her şarkı yüklenir, ilk saniyeleri sese dökülür, baştan/ortadan/sondan birer kare çizilir.
-// Hata, NaN, sessizlik, kara kare, boş ya da kısa çekim listesi, bozuk ritim saati ve vurgusuz şarkı arar; oda mekânında bir şarkı (dokular, kareler,
-// flaş, kamera sınırı); sonra önizleme sayfasını açıp çal/durdur dener.
+// Hata, NaN, sessizlik, kara kare, boş ya da kısa çekim listesi, sahnede olmayan üyeye çekim, bozuk ritim saati, vurgusuz şarkı ve rastgele akışın
+// kayması (kurulumun rand() sayısı, karelerin rand() çekmesi) arar; oda mekânında bir şarkı (dokular, kareler, flaş, kamera sınırı); sonra önizleme
+// sayfasını açıp çal/durdur dener.
 // Önce tarayıcısız: bükme ve vibrato eğrisinin ses ile görselde aynı olduğu.
 //   SECS=10 SEED=1 node tools/check.js
 import { openHarness } from "./browser.js";
@@ -11,6 +12,9 @@ import { curveOf } from "../src/sim/music/bend.js";
 import { seed } from "../src/sim/rng.js";
 
 const SEED = +(process.env.SEED || 1), SECS = +(process.env.SECS || 10);
+// createSim'in çektiği rand() sayısı (tohum başına; kalabalık, kıvılcımlar, figür, göz kırpma takvimi). Karakter ya da sahne değişse de aynı kalmalı:
+// fazladan bir rand() bütün ses programını kaydırır. Kareler hiç çekmez (sahnede çeşitlilik hash01 ile).
+const KURULUM_RAND = {1: 7468};
 let fail = 0;
 const row = (ok, text) => { console.log((ok ? "  ✓ " : "  ✗ ") + text); if (!ok) fail++; };
 
@@ -46,8 +50,12 @@ for (const id of ids){
   const r = await h.page.evaluate(async ([id, SEED, SECS]) => {
     const SR = 44100, song = window.findSong(id), full = window.songLength(song), dur = Math.min(full, SECS);
     const off = new OfflineAudioContext(2, Math.ceil(SR * dur), SR);
-    const sim = window.createSim({canvas: document.getElementById("gl"), audioContext: off, manual: true, seed: SEED});
-    sim.setCamera("director"); sim.load(song);
+    // rand() sayısı iki durum arası: mulberry32 her çağrıda durumu INC kadar ilerletir, fark INC'in tersiyle (mod 2^32) çarpılır
+    const rng = await import(new URL("sim/rng.js", location.href).href), INC = 0x6D2B79F5, s0 = (SEED >>> 0) || 1;
+    let inv = INC; for (let i = 0; i < 5; i++) inv = Math.imul(inv, 2 - Math.imul(INC, inv));
+    const nRand = (a, b) => Math.imul((b - a) | 0, inv) >>> 0;
+    const sim = window.createSim({canvas: document.getElementById("gl"), audioContext: off, manual: true, seed: SEED}), s1 = rng.getState();
+    sim.setCamera("director"); sim.load(song); const s2 = rng.getState();
     // Ritim saati ve müzik özeti (music/clock.js): vuruş konumu artan, yoğunluk 0..1, en az bir vurgu
     const C = await import(new URL("sim/music/clock.js", location.href).href), p = sim.playing;
     let mono = true, prev = -Infinity; for (let k = 0; k <= 200; k++){ const b = C.beatAt(p, p.t0 + k / 200 * (p.end - p.t0)); if (!(b > prev)) mono = false; prev = b; }
@@ -59,9 +67,10 @@ for (const id of ids){
       for (let i = 0; i < d.length; i += 4 * 101){ s += d[i] + d[i + 1] + d[i + 2]; n++; }
       lum.push(s / n / 3);
     }
+    const rs = [nRand(s0, s1), nRand(s1, s2), nRand(s2, rng.getState())], who = [...new Set(shots.map(s => s.who).filter(w => w !== "wide" && !sim.FIG[w]))];
     const buf = await off.startRendering(), L = buf.getChannelData(0); let pk = 0, nan = 0, sq = 0;
     for (let i = 0; i < L.length; i++){ if (!isFinite(L[i])) nan++; pk = Math.max(pk, Math.abs(L[i])); sq += L[i] * L[i]; }
-    return {name: song.name, full, shots: shots.length, lastEnd: shots.length ? shots[shots.length - 1].end : 0, kinds: [...new Set(shots.map(s => s.cam))].join(","), lum, pk, nan, rms: Math.sqrt(sq / L.length), audioCams: [...cams].join(","), nAcc, clockOk};
+    return {name: song.name, full, shots: shots.length, lastEnd: shots.length ? shots[shots.length - 1].end : 0, kinds: [...new Set(shots.map(s => s.cam))].join(","), lum, pk, nan, rms: Math.sqrt(sq / L.length), audioCams: [...cams].join(","), nAcc, clockOk, rs, who};
   }, [id, SEED, SECS]).catch(e => ({error: e.message}));
   h.page.off("pageerror", onErr);
   const probs = [];
@@ -76,9 +85,12 @@ for (const id of ids){
     if (r.lastEnd < r.full - 0.01) probs.push("çekim listesi şarkıdan kısa");
     if (!r.nAcc) probs.push("vurgu yok");
     if (!r.clockOk) probs.push("ritim saati ya da yoğunluk bozuk");
+    if (r.who.length) probs.push("çekimin üyesi sahnede yok (sessizce geniş plana düşer): " + r.who.join(","));
+    if (r.rs[2]) probs.push("kareler " + r.rs[2] + " rand() çekti");
+    if (KURULUM_RAND[SEED] !== undefined && r.rs[0] !== KURULUM_RAND[SEED]) probs.push(`kurulum ${r.rs[0]} rand() çekti, beklenen ${KURULUM_RAND[SEED]} (ses programı kayar)`);
   }
   row(!probs.length, r.error ? id + ": " + probs.join("; ") :
-    `${r.name.padEnd(22)} ${r.full.toFixed(1).padStart(5)} sn  ${String(r.shots).padStart(3)} çekim [${r.kinds}]  tepe ${r.pk.toFixed(2)} rms ${r.rms.toFixed(3)}  parlaklık ${r.lum.map(x => x.toFixed(0)).join("/")}  vurgu ${r.nAcc}` + (probs.length ? "  ← " + probs.join("; ") : ""));
+    `${r.name.padEnd(22)} ${r.full.toFixed(1).padStart(5)} sn  ${String(r.shots).padStart(3)} çekim [${r.kinds}]  tepe ${r.pk.toFixed(2)} rms ${r.rms.toFixed(3)}  parlaklık ${r.lum.map(x => x.toFixed(0)).join("/")}  vurgu ${r.nAcc}  rand ${r.rs.join("/")}` + (probs.length ? "  ← " + probs.join("; ") : ""));
   await h.fresh();
 }
 

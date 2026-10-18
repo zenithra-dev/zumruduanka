@@ -27,7 +27,7 @@ const med = a => { const s = a.slice().sort((x, y) => x - y); return s.length ? 
 // Sayfada sim kurulumu: mekan, kamera, şarkı; dokular yazı tipi beklerken ölçüm yapılmaz
 const MK = `(P) => { const off = new OfflineAudioContext(2, 88200, 44100);
   const sim = window.sim = window.createSim({canvas: document.getElementById("gl"), audioContext: off, manual: true, seed: P.SEED});
-  if (sim.texReady === false) throw new Error("kanvas dokuları yazı tipi bekliyor");
+  if ((sim.ready ?? sim.texReady) === false) throw new Error("sim hazır değil: kanvas dokuları yazı tipi ya da karakter bekliyor");
   sim.setEnv(P.ENV); sim.setCamera(P.CAM || "director"); const p = P.SONG ? sim.load(window.findSong(P.SONG)) : null; return {sim, p}; }`;
 
 async function kamera(h, id, P){

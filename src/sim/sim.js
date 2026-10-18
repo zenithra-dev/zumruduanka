@@ -6,6 +6,7 @@
 //   sim.composite(ctx2d, 1280, 720); // kareyi grup adı, şarkı ve HUD ile 2B tuvale basar (önizleme/kayıt)
 //   sim.composite(ctx2d, 1280, 720, {broadcast: true, t}); // yayın karesi: HUD yok, alt bant yalnız ilk çekimde, açılış/kapanış kararması
 //   await sim.whenReady();           // kanvas dokuları vendor yazı tipleriyle çizildi (sim.texReady); araçlar kareden önce bekler
+//   sim.ready                        // kare çizmeye hazır mı (bugün sim.texReady; karakter yüklemesi de buraya girecek)
 //
 // Tarayıcıda now = audio.ctx.currentTime, wall = performance.now()/1000; render aracında ikisi de kare zamanı.
 // manual: true → şarkı sonunda kendiliğinden durmaz (araç yönetir).
@@ -105,6 +106,8 @@ export function createSim(opts = {}){
     strap.update(now, headCamOn());   // beden bu karenin duruşunda; sap kamerasında beden gizli, askı da
     // Odada kamera duvardan, tavandan ve eşyadan geçmez: dışarıda kalan kamera bakış yönünde içeri çekilir (room.js confine)
     if (oda){ const c = activeCam(); if (c === S.groupCam) venues.oda.confine(c); else if (c === S.stageCam) venues.oda.confine(c, S.orbit.target, false); }
+    // Geç kanca: askı ve kamera son yerinde (odada confine'dan sonra; bakış bayat kameraya dönmesin): figürün ikincil hareketi (rigs.js)
+    rigs.late({now, wall, p: playing, model, strap, cam: activeCam(), headCam: headCamOn()});
   }
   // Mekan: görüntü, ışık ve yankı venues.js'te; sahne şovu (hüzme, flaş, kalabalık, kor ve anka) yalnız ENVS show'u olan mekanda
   function setEnv(n){
@@ -180,7 +183,7 @@ export function createSim(opts = {}){
     get current(){ return current; }, set current(s){ current = s; },
     get camMode(){ return camMode; }, setCamera(m){ camMode = m; },
     get envName(){ return venues.envName; }, setEnv,
-    get texReady(){ return texPending() === 0; }, whenReady: ms => whenTexReady(ms),
+    get texReady(){ return texPending() === 0; }, get ready(){ return texPending() === 0; }, whenReady: ms => whenTexReady(ms),
     get ampName(){ return prefs.amp; }, setAmp(n){ prefs.amp = n; if (engine) engine.setAmp(n); },
     get volume(){ return prefs.volume; }, setVolume(v){ prefs.volume = v; if (engine) engine.setVolume(v); },
     get audio(){ return engine; },

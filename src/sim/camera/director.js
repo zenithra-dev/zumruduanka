@@ -14,7 +14,7 @@
 // Oda (direct'e room verilince): çekim listesi aynı, her tür odanın içindeki karşılığına yerleşir (ROOM). Öteki mekânlarda kamera birebir aynı.
 import * as THREE from "three";
 import { restHead } from "../stage/figures.js";
-import { beatAt, timeAt, onsets, intensity } from "../music/clock.js";
+import { beatAt, timeAt, onsets, intensity, climax } from "../music/clock.js";
 import { hash01 } from "../rng.js";
 
 const sm = x => x * x * (3 - 2 * x);
@@ -66,15 +66,9 @@ function snapCut(p, O, b){
   return null;
 }
 // Kesme zamanları: açılış iki ölçü, sonra ölçü ızgarası. Çekim boyu yoğunluğa göre 4/2/1 ölçü (sakin ~5 sn, yoğun ~1.2 sn hedefi;
-// tempo hızlanınca kurgu da hızlanır). Final vuruşları (sondaki susuşlu akor vuruşları ve son nota) birer kesmedir.
-// doruk: son notadan en az 16 vuruş önceki cümle başı (16 vuruşluk ızgara).
+// tempo hızlanınca kurgu da hızlanır). Final vuruşları ve doruk clock.js climax'tan (hits birer kesmedir).
 function cutTimes(p, O){
-  const last = O[O.length - 1], bLast = beatAt(p, last.t), H = [last.t];
-  for (let i = O.length - 2; i >= 0; i--){
-    const o = O[i], bo = beatAt(p, o.t);
-    if (bLast - bo > 12 || o.n < 3 || o.v < 0.9 || beatAt(p, O[i + 1].t) - bo < 1.5) break;
-    H.unshift(o.t);
-  }
+  const last = O[O.length - 1], {hits: H, doruk} = climax(p);
   const hb = beatAt(p, H[0]), grid = [];
   for (let b = 8; b < hb - 2.5; ){
     const bar = timeAt(p, b + 4) - timeAt(p, b), In = clamp01((intensity(p, timeAt(p, b + 2)) - 0.2) / 0.55), T = 5.2 - 4 * In;
@@ -88,7 +82,7 @@ function cutTimes(p, O){
     const prev = cuts.length ? cuts[cuts.length - 1] : p.t0;
     if (H.includes(t) || beatAt(p, t) - beatAt(p, prev) >= 1.5) cuts.push(t);
   });
-  return {cuts, hits: H, doruk: Math.max(0, Math.floor((bLast - 16) / 16) * 16)};
+  return {cuts, hits: H, doruk};
 }
 
 export function createDirector({FIG, groupCam, orbit, placeCams}){

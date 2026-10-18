@@ -151,7 +151,7 @@ const P = {SONG, SEED, FPS, ENVN, CAM, HOVER, T0: ENVV.T0 ? +ENVV.T0 : null, T1:
 // len verilirse render.js'teki ses kurulumu birebir: mekan değiştirilmez (mekan reverb'ü, yani sesi değiştirir)
 const MK = `(P, len) => { const off = new OfflineAudioContext(2, Math.ceil(44100 * (len || 2)), 44100);
   const sim = window.sim = window.createSim({canvas: document.getElementById("gl"), audioContext: off, manual: true, seed: P.SEED});
-  if (sim.texReady === false) throw new Error("kanvas dokuları yazı tipi bekliyor");
+  if ((sim.ready ?? sim.texReady) === false) throw new Error("sim hazır değil: kanvas dokuları yazı tipi ya da karakter bekliyor");
   if (!len) sim.setEnv(P.ENVN); sim.setCamera(len ? "director" : P.CAM); const p = sim.load(window.findSong(P.SONG)); return {sim, p, off}; }`;
 
 // Bölüm sınırı: sayı (sn) ya da "bN" (N. vuruşun anı; clock.js yoksa sabit tempo). Sayfada çözülür.
@@ -428,10 +428,13 @@ async function grab(h, T, seq, Q, mask){
       const THREE = sim.THREE, sc = sim.scene, R = sim.renderer, inB = new Set(), strs = new Map(), keep = [];
       BO.traverse(o => inB.add(o)); (sim.model.strings || []).forEach(s => strs.set(s.mesh, s.mat));
       const W = new THREE.MeshBasicMaterial({color: 0xffffff, fog: false}), K = new THREE.MeshBasicMaterial({color: 0x000000, fog: false}), cc = R.getClearColor(new THREE.Color()), ca = R.getClearAlpha();
+      // Deri bağlı ya da morflu ağın siyahı aynı bayraklarla (r128: skinning'siz malzeme ağı bağ pozunda çizer, maske sessizce yanlış olur)
+      const KC = {}, kOf = o => { const s = !!o.isSkinnedMesh, mt = !!(o.morphTargetInfluences && o.morphTargetInfluences.length), k = +s + 2 * mt;
+        return k ? KC[k] || (KC[k] = Object.assign(K.clone(), {skinning: s, morphTargets: mt})) : K; };
       const sm = [...new Set(strs.values())].map(m => [m, m.color.clone(), m.metalness, m.roughness, m.emissive.clone()]);
       sm.forEach(([m]) => { m.color.setRGB(0, 0, 0); m.metalness = 0; m.roughness = 1; m.emissive.setRGB(0, 0, 0); });
       sc.traverse(o => { if (!(o.isMesh || o.isLine || o.isPoints || o.isSprite)) return; keep.push([o, o.material, o.visible]); if (strs.has(o)) return;
-        if (inB.has(o)) o.material = W; else if (!o.isMesh || [].concat(o.material).some(m => m.transparent || m.blending !== THREE.NormalBlending)) o.visible = false; else o.material = K; });
+        if (inB.has(o)) o.material = W; else if (!o.isMesh || [].concat(o.material).some(m => m.transparent || m.blending !== THREE.NormalBlending)) o.visible = false; else o.material = kOf(o); });
       const bg = sc.background, fog = sc.fog; sc.background = null; sc.fog = null;
       R.setRenderTarget(null); R.setClearColor(0x000000, 1); R.clear(); R.render(sc, C);
       const mc = Object.assign(document.createElement("canvas"), {width: 1280, height: 720}), mg = mc.getContext("2d"); mg.drawImage(sim.canvas, 0, 0, 1280, 720);

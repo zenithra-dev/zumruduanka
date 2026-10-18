@@ -12,16 +12,18 @@ const TOP = 0.045, FB_TOP = 0.0565, HS_TOP = 0.05, TAU = Math.PI * 2;
 const BEV = 0.007, DEPTH = TOP - 2 * BEV, RQ = Math.PI / 2 * BEV, VMAX = 2 * RQ + DEPTH;
 const halfFb = x => 0.0215 + 0.007 * x / 0.47;   // klavyenin yarı genişliği (claude.js halfFb ile aynı)
 
-export function createGuitarModel(scene){
-  // Sağ elle çalış: gitar, Claude'un orta düzlemine (x = 0.2) göre aynalanmış bir taşıyıcıda durur. İçteki duruş solak
-  // çerçevede kuruldu (sap ~34° yukarı, sırt karında, köprü kemerin biraz altında); taşıyıcı onu çevirir: sap oyuncunun soluna
-  // gider, kalın E üstte kalır. Bu duruşta iki dirsek de 60-120° arasında 1-22. perdeye ve penaya yetişir; pena kolunun üst kolu
-  // düşeyden 40°'nin altında kalır (gitar daha yüksek ya da yatıkken pena dirseği omuz hizasına kalkıyordu).
+// Gitarın yerleşimi (veri, duruş ya da beden başına bir kayıt): rig aynalı taşıyıcının x'i (figürün orta düzleminin iki katı), p gitarın
+// taşıyıcı içindeki yeri, r dönüşü (Euler XYZ, rad). Sağ elle çalış: gitar, Claude'un orta düzlemine (x = 0.2) göre aynalanmış bir taşıyıcıda
+// durur. İçteki duruş solak çerçevede kuruldu; taşıyıcı onu çevirir: sap oyuncunun soluna gider, kalın E üstte kalır.
+//   manken: sap ~34° yukarı, sırt karında, köprü kemerin biraz altında. Bu duruşta iki dirsek de 60-120° arasında 1-22. perdeye ve penaya
+//   yetişir; pena kolunun üst kolu düşeyden 40°'nin altında kalır (gitar daha yüksek ya da yatıkken pena dirseği omuz hizasına kalkıyordu).
+export const YERLESIM = {manken: {rig: 0.4, p: [-0.2, 0.32, -0.07], r: [0, 0, -0.6]}};
+export function createGuitarModel(scene, yer = YERLESIM.manken){
   // r128 negatif determinantlı nesnelerde yüz yönünü kendisi çevirir; dünya yönü gereken yerde matrixWorld kullanılmalı.
-  const rig = new THREE.Group(); rig.scale.x = -1; rig.position.x = 0.4; scene.add(rig);
+  const rig = new THREE.Group(); rig.scale.x = -1; rig.position.x = yer.rig; scene.add(rig);
   const guitar = new THREE.Group();
-  guitar.rotation.z = -0.6;
-  guitar.position.set(-0.2, 0.32, -0.07);
+  guitar.rotation.set(...yer.r);
+  guitar.position.set(...yer.p);
   rig.add(guitar);
 
   const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);

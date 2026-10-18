@@ -24,8 +24,9 @@ const SH_X = 0.2, SH_Y = 0.52, SH_R = 0.07, SH_S = new THREE.Vector3(1, 0.85, 0.
 // Sağ el olarak kurulur (sol el figure'da x aynasıdır). Kök grup bilek eklemi: +y parmaklara, +z avucun baktığı yana, +x başparmak yanına.
 // Boğumlar kapsül Mesh'ler, her biri bir sonrakinin ebeveyni: konumu eklem, +y boğum yönü, +z yastık (avuç) yanı, x bükülme ekseni.
 // Sıra ölçüm sözleşmesiyle aynı: başparmak (tarak kemiği, kök, uç), işaret, orta, yüzük, serçe (kök, orta, uç). b kök eklemi, l boğum
-// boyları, r kalınlıklar, d dinlenme yönü, ab yana açılma sınırı, pa yastığın uç ekseninden avuç yanına açısı. Geometri bir kez kurulur,
-// bütün eller paylaşır; açıları her karede reachFinger/bendFinger verir (zamanın saf fonksiyonu, durum yok).
+// boyları, r kalınlıklar, d dinlenme yönü, ab yana açılma sınırı, pa yastığın uç ekseninden avuç yanına açısı. Geometri tablo başına bir kez
+// kurulur, o tabloyla kurulan eller paylaşır; açıları her karede reachFinger/bendFinger verir (zamanın saf fonksiyonu, durum yok). makeHand başka
+// bir tablo alabilir (aynı biçimde; Kanade'nin ölçüleri): el kendi tablosunu userData.spec'te taşır.
 export const HAND = [
   {b: [0.021, 0.017, 0.009], l: [0.036, 0.03, 0.025], r: [0.0105, 0.0082, 0.0072], d: [0.62, 0.62, 0.48], ab: 1.2, pa: 1.35},
   {b: [0.025, 0.081, 0], l: [0.039, 0.024, 0.019], r: [0.0068, 0.0062, 0.0057], d: [0.08, 1, 0], ab: 0.6, pa: 0.52},
@@ -40,7 +41,9 @@ function capsule(l, r0, r1){
   for (let i = 0; i <= 3; i++){ const a = i / 3 * Math.PI / 2; p.push(new THREE.Vector2(r1 * Math.cos(a), l + r1 * Math.sin(a))); }
   return new THREE.LatheGeometry(p, 9);
 }
-const BONE_GEO = HAND.map(S => S.l.map((l, j) => capsule(l, S.r[j], j < 2 ? S.r[j + 1] : S.r[2] * TAPER)));
+const GEOS = new WeakMap();
+const boneGeo = spec => { let G = GEOS.get(spec); if (!G) GEOS.set(spec, G = spec.map(S => S.l.map((l, j) => capsule(l, S.r[j], j < 2 ? S.r[j + 1] : S.r[2] * TAPER)))); return G; };
+boneGeo(HAND);
 // Avuç: yuvarlatılmış prizma, bilekte dar, parmak köklerinde geniş; serçe yanı hafif kavisli
 const PALM = (() => { const s = new THREE.Shape();
   s.moveTo(-0.021, 0.006); s.lineTo(0.017, 0.006); s.quadraticCurveTo(0.027, 0.03, 0.026, 0.078); s.lineTo(-0.027, 0.07); s.quadraticCurveTo(-0.031, 0.03, -0.021, 0.006);
@@ -51,15 +54,15 @@ const PAD = (() => { const g = new THREE.SphereGeometry(1, 10, 8); g.scale(0.012
 // Ölçüm sözleşmesi (tools/sync-check.mjs; el yeniden kurulsa da korunmalı): h.userData.fingers = [başparmak, işaret, orta, yüzük, serçe] uç
 // boğumları; her birinin userData.tip'i kendi çerçevesinde ucun noktası (parmaklarda tele değen yastık, başparmakta uç kapsülün merkezi),
 // userData.r kalınlığı (yarıçap, m); zincir ele kadar parent'larla yürünür. h.userData.palm avuç, h.userData.heel el çerçevesinde avucun
-// serçe kenarındaki topuk (palm mute'ta köprüye değer). bones: parmak başına [kök, orta, uç] boğumları.
-export function makeHand(scene, skin){
+// serçe kenarındaki topuk (palm mute'ta köprüye değer). bones: parmak başına [kök, orta, uç] boğumları; spec elin tablosu (HAND biçiminde).
+export function makeHand(scene, skin, spec = HAND){
   const h = new THREE.Group(); scene.add(h);
   const palm = new THREE.Mesh(PALM, skin); h.add(palm); h.add(new THREE.Mesh(PAD, skin));
-  const bones = HAND.map((S, k) => { let p = h; return BONE_GEO[k].map((g, j) => { const m = new THREE.Mesh(g, skin);
+  const G = boneGeo(spec), bones = spec.map((S, k) => { let p = h; return G[k].map((g, j) => { const m = new THREE.Mesh(g, skin);
     if (j) m.position.y = S.l[j - 1]; else m.position.fromArray(S.b); p.add(m); p = m; return m; }); });
-  bones.forEach((B, k) => { const S = HAND[k], re = S.r[2] * TAPER, t = B[2];
+  bones.forEach((B, k) => { const S = spec[k], re = S.r[2] * TAPER, t = B[2];
     t.userData.tip = k ? new THREE.Vector3(0, S.l[2] + re * Math.cos(S.pa), re * Math.sin(S.pa)) : new THREE.Vector3(0, S.l[2], 0); t.userData.r = S.r[2]; });
-  h.userData = {fingers: bones.map(B => B[2]), bones, palm, heel: new THREE.Vector3(-0.025, 0.026, 0.017)};
+  h.userData = {fingers: bones.map(B => B[2]), bones, palm, heel: new THREE.Vector3(-0.025, 0.026, 0.017), spec};
   for (let k = 0; k < 5; k++) bendFinger(h, k, 0, k ? [0.25, 0.45, 0.3] : [0.2, 0.15, 0.15]);
   return h;
 }
@@ -75,7 +78,7 @@ const _r0 = new THREE.Vector3(), _bu = new THREE.Vector3(), _bw = new THREE.Vect
 // Dinlenme yönünün v'ye dik izdüşümünü v çevresinde ph kadar döndürür → düz parmak yönü u
 function plane(S, v, ph, u){ _r0.fromArray(S.d); _r0.addScaledVector(v, -_r0.dot(v)).normalize(); return u.copy(_r0).multiplyScalar(Math.cos(ph)).addScaledVector(_bw.crossVectors(v, _r0), Math.sin(ph)); }
 // Açıyla: ph yana açılma (v çevresinde), t = [kök, orta, uç] bükülme
-export function bendFinger(H, k, ph, t, v = ZA){ setChain(H.userData.bones[k], plane(HAND[k], v, ph, _bu), v, t); }
+export function bendFinger(H, k, ph, t, v = ZA){ setChain(H.userData.bones[k], plane(H.userData.spec[k], v, ph, _bu), v, t); }
 // Hedefle (el çerçevesinde): ucun noktası (userData.tip) T'ye gelir, yastığın normali A'ya bakar (uç boğumun yatıklığı bundan). Düzlem kökten ve
 // v'den geçer (parmaklarda avuç yanı, başparmakta verilmezse A; yana açılma ab ile sınırlı). Önce uç boğumun açısı seçilir, kök ve orta boğum
 // iki kemikli IK ile onun eklemine uzanır. Eklem yetişmiyorsa uç boğum hedefe doğru yatırılır (uzak
@@ -83,7 +86,7 @@ export function bendFinger(H, k, ph, t, v = ZA){ setChain(H.userData.bones[k], p
 let _px = 0, _py = 0;
 export function reachFinger(H, k, T, A, v){
   v = v || (k ? ZA : A);
-  const S = HAND[k], B = H.userData.bones[k], [l1, l2, l3] = S.l, L = k ? LIM_F : LIM_T, tp = B[2].userData.tip, K = tp.y, p1 = tp.z;
+  const S = H.userData.spec[k], B = H.userData.bones[k], [l1, l2, l3] = S.l, L = k ? LIM_F : LIM_T, tp = B[2].userData.tip, K = tp.y, p1 = tp.z;
   _bd.copy(T).sub(B[0].position); _r0.fromArray(S.d); _r0.addScaledVector(v, -_r0.dot(v)).normalize();
   _bu.copy(_bd).addScaledVector(v, -_bd.dot(v));
   const ph = _bu.lengthSq() > 1e-10 ? cl(Math.atan2(_bw.crossVectors(_r0, _bu).dot(v), _r0.dot(_bu)), -S.ab, S.ab) : 0;
@@ -218,11 +221,12 @@ export function bodySd(fig, p){ return bodySdFn(fig)(p); }
 const NECK = 0.11;
 export function nodHead(fig, a){ fig.head.rotation.x = a; fig.head.position.set(0, fig.headY - NECK + NECK * Math.cos(a), NECK * Math.sin(a)); }
 // Bacaklar iki kemikli IK: kalça üst gövdeyle (fig.up) iner ve kayar, ayak bileği yerde kalır ve spread kadar dışa açılır; diz öne, açık duruşta
-// biraz dışa kırılır, ayak ucu dışa döner. Dinlenmede (inmemiş, açılmamış) kurulumdaki bacağın aynısı.
-const THIGH = Math.hypot(0.42, 0.025), SHIN = Math.hypot(0.43, 0.025), _hp = new THREE.Vector3(), _an = new THREE.Vector3(), _kn = new THREE.Vector3(), _ld = new THREE.Vector3(), _pl = new THREE.Vector3();
+// biraz dışa kırılır, ayak ucu dışa döner. Dinlenmede (inmemiş, açılmamış) kurulumdaki bacağın aynısı. Boylar figürden (fig.legLen [uyluk, baldır];
+// yoksa figure'daki bacak).
+const LEG = [Math.hypot(0.42, 0.025), Math.hypot(0.43, 0.025)], _hp = new THREE.Vector3(), _an = new THREE.Vector3(), _kn = new THREE.Vector3(), _ld = new THREE.Vector3(), _pl = new THREE.Vector3();
 export function poseLegs(fig, spread = 0){
   if (!fig.legs) return;
-  const u = fig.up.position;
+  const u = fig.up.position, [THIGH, SHIN] = fig.legLen || LEG;
   for (const L of fig.legs){
     const sd = Math.sign(L.x), H = _hp.set(L.x, u.y, u.z), d = _ld.subVectors(_an.set(L.x + sd * spread, 0.07, 0), H);
     const len = Math.min(d.length(), THIGH + SHIN - 1e-4); d.normalize();
@@ -234,19 +238,21 @@ export function poseLegs(fig, spread = 0){
   }
 }
 export function worldOf(fig, v){ fig.g.updateMatrixWorld(true); return fig.g.localToWorld(v.clone()); }
-// Kafanın hareketsiz (salınımsız) dünya konumu: zamana bağlı olmayan hesaplar için.
-export function restHead(fig){ return worldOf(fig, new THREE.Vector3(0, fig.hip + fig.headY, 0)); }
+// Kafanın hareketsiz (salınımsız) dünya konumu: zamana bağlı olmayan hesaplar için. fig.restHead (figür yereli) verilirse o nokta (Kanade).
+export function restHead(fig){ return worldOf(fig, fig.restHead || new THREE.Vector3(0, fig.hip + fig.headY, 0)); }
 // İki kemikli kol IK'sı. hand verilmezse el ön kolun devamıdır ve hedef bileğin 4.5 cm ötesidir.
 // hand = {q, off}: el q dünya yönünde durur; elin kendi çerçevesindeki off noktası (ör. parmak kökü) hedefe gelir, kol bileğe uzanır.
+// Üst kol fig.l1, ön kol fig.l2 (yoksa ikisi de fig.reach). fig.pole(i, S, T, pole) verilirse dirseğin yönü (dünya; kol eksenine dik bileşeni
+// alınır) ondan: figür kendi dirsek seçimini yapar (Kanade), yoksa pole figür çerçevesinde.
 const _off = new THREE.Vector3();
 export function poseArm(fig, i, target, pole, hand){
-  fig.g.updateMatrixWorld(true); const S = fig.up.localToWorld(fig.sh[i].clone()), a = fig.reach, b = fig.reach;
+  fig.g.updateMatrixWorld(true); const S = fig.up.localToWorld(fig.sh[i].clone()), a = fig.l1 ?? fig.reach, b = fig.l2 ?? fig.reach;
   if (hand) target = target.clone().sub(_off.copy(hand.off).multiply(fig.hands[i].scale).applyQuaternion(hand.q));
   const d = new THREE.Vector3().subVectors(target, S);
   let len = d.length(); const dir = d.divideScalar(len || 1);
   len = Math.min(Math.max(len, 0.05), a + b - 0.002);
   const T = S.clone().addScaledVector(dir, len);
-  const pl = (pole ? pole.clone() : new THREE.Vector3(i === 0 ? 0.8 : -0.8, -1, -0.35)).applyQuaternion(fig.g.quaternion);
+  const pl = fig.pole ? fig.pole(i, S, T, pole) : (pole ? pole.clone() : new THREE.Vector3(i === 0 ? 0.8 : -0.8, -1, -0.35)).applyQuaternion(fig.g.quaternion);
   const perp = pl.sub(dir.clone().multiplyScalar(pl.dot(dir))).normalize();
   const x = (a * a - b * b + len * len) / (2 * len), h = Math.sqrt(Math.max(a * a - x * x, 0));
   const E = S.clone().addScaledVector(dir, x).addScaledVector(perp, h);
@@ -256,7 +262,8 @@ export function poseArm(fig, i, target, pole, hand){
   if (hand){ H.quaternion.copy(hand.q); H.position.copy(T); return; }
   H.quaternion.setFromUnitVectors(UP, fd); H.position.copy(T).addScaledVector(fd, -0.045);
 }
-export function setFigVisible(fig, v){ fig.g.visible = v; fig.arms.forEach(a => { a.up.visible = a.fo.visible = a.el.visible = v; }); fig.hands.forEach(h => { h.visible = v; }); }
+// fig.setVisible(v, headCam) verilirse figür kendisi seçer (Kanade: vekiller hep gizli, gövdenin sap kamerası bölgesi)
+export function setFigVisible(fig, v, headCam){ if (fig.setVisible) return fig.setVisible(v, headCam); fig.g.visible = v; fig.arms.forEach(a => { a.up.visible = a.fo.visible = a.el.visible = v; }); fig.hands.forEach(h => { h.visible = v; }); }
 // Gözler ve kaşlar: insan yüzlü üyeler için
 export function addEyes(fig, color, y){
   [-1, 1].forEach(sd => {

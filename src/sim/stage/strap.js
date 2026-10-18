@@ -26,8 +26,9 @@ const G = new THREE.Vector3(0, -1, 0);
 const V = () => new THREE.Vector3();
 
 /* ---------- Engeller ---------- */
-// Gitar gövdesi: dış hat + bevel prizması (sync-check'in katısıyla aynı tanım), gitar yerel; beden figürün işlevinden
-function guitarSd(model){
+// Gitar gövdesi: dış hat + bevel prizması (sync-check'in katısıyla aynı tanım), gitar yerel; beden figürün işlevinden.
+// Dışa açık: gitarın gövdesinden itilen öbür parçalar (saç, etek) aynı tanımı kullanır. → (q: gitar yerel nokta) → işaretli uzaklık (m)
+export function guitarSd(model){
   const o = model.solids.body, g = o.geometry, sh = [].concat(g.parameters.shapes)[0], op = g.parameters.options || {};
   const bev = op.bevelEnabled === false ? 0 : (op.bevelSize ?? 0); g.computeBoundingBox();
   const Q = sh.getPoints(24).map(q => [q.x + o.position.x, q.y + o.position.y]), n = Q.length;

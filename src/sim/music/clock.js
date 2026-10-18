@@ -79,6 +79,21 @@ export function accentAt(p, now){
   return 1 - Math.exp(-2 * s);
 }
 
+/* ---------- Doruk ve final ---------- */
+// Şarkının sonu (yönetmenin kurgusu, yüzün ifadesi aynı tanımı okur): hits final vuruşları (son nota ve ondan geriye, son notadan en çok 12 vuruş
+// içinde, 3+ notalı, güçlü (v ≥ 0.9) ve birbirinden en az 1.5 vuruş ayrı vuruşlar; sn, sıralı), doruk son notadan en az 16 vuruş önceki cümle başı
+// (vuruş, 16 vuruşluk ızgara). Notasız şarkıda null.
+export const climax = cached(p => {
+  const O = onsets(p); if (!O.length) return null;
+  const last = O[O.length - 1], bLast = beatAt(p, last.t), H = [last.t];
+  for (let i = O.length - 2; i >= 0; i--){
+    const o = O[i], bo = beatAt(p, o.t);
+    if (bLast - bo > 12 || o.n < 3 || o.v < 0.9 || beatAt(p, O[i + 1].t) - bo < 1.5) break;
+    H.unshift(o.t);
+  }
+  return {hits: H, doruk: Math.max(0, Math.floor((bLast - 16) / 16) * 16)};
+});
+
 /* ---------- Yoğunluk ---------- */
 // Her vuruş Gauss penceresiyle (σ = 1 sn, simetrik: yükseliş biraz önceden sezilir) dağıtılır; 0.05 sn'lik ızgarada:
 // dens vuruş/sn, chord akor (2+ nota) oranı, vel ortalama etkin güç, mute palm mute oranı. Yoğunluk bunlardan:
