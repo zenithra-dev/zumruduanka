@@ -1,7 +1,7 @@
 // Duman testi (npm test): her şarkı yüklenir, ilk saniyeleri sese dökülür, baştan/ortadan/sondan birer kare çizilir.
 // Hata, NaN, sessizlik, kara kare, boş ya da kısa çekim listesi, sahnede olmayan üyeye çekim, bozuk ritim saati, vurgusuz şarkı ve rastgele akışın
-// kayması (kurulumun rand() sayısı, karelerin rand() çekmesi) arar; oda mekânında bir şarkı (dokular, kareler, flaş, kamera sınırı); sonra önizleme
-// sayfasını açıp çal/durdur dener.
+// kayması (kurulumun rand() sayısı, karelerin rand() çekmesi) ve takılmamış karakter (Kanade, VRM; KARAKTER=manken yedek gövdede aranmaz) arar; oda
+// mekânında bir şarkı (dokular, kareler, flaş, kamera sınırı); sonra önizleme sayfasını açıp çal/durdur dener.
 // Önce tarayıcısız: bükme ve vibrato eğrisinin ses ile görselde aynı olduğu.
 //   SECS=10 SEED=1 node tools/check.js
 import { openHarness } from "./browser.js";
@@ -11,7 +11,7 @@ import { schedule } from "../src/sim/audio/playback.js";
 import { curveOf } from "../src/sim/music/bend.js";
 import { seed } from "../src/sim/rng.js";
 
-const SEED = +(process.env.SEED || 1), SECS = +(process.env.SECS || 10);
+const SEED = +(process.env.SEED || 1), SECS = +(process.env.SECS || 10), KANADE = process.env.KARAKTER !== "manken";
 // createSim'in çektiği rand() sayısı (tohum başına; kalabalık, kıvılcımlar, figür, göz kırpma takvimi). Karakter ya da sahne değişse de aynı kalmalı:
 // fazladan bir rand() bütün ses programını kaydırır. Kareler hiç çekmez (sahnede çeşitlilik hash01 ile).
 const KURULUM_RAND = {1: 7468};
@@ -70,7 +70,8 @@ for (const id of ids){
     const rs = [nRand(s0, s1), nRand(s1, s2), nRand(s2, rng.getState())], who = [...new Set(shots.map(s => s.who).filter(w => w !== "wide" && !sim.FIG[w]))];
     const buf = await off.startRendering(), L = buf.getChannelData(0); let pk = 0, nan = 0, sq = 0;
     for (let i = 0; i < L.length; i++){ if (!isFinite(L[i])) nan++; pk = Math.max(pk, Math.abs(L[i])); sq += L[i] * L[i]; }
-    return {name: song.name, full, shots: shots.length, lastEnd: shots.length ? shots[shots.length - 1].end : 0, kinds: [...new Set(shots.map(s => s.cam))].join(","), lum, pk, nan, rms: Math.sqrt(sq / L.length), audioCams: [...cams].join(","), nAcc, clockOk, rs, who};
+    const f = sim.FIG.claude, kanade = !!(f.vrm && f.vrm.root.parent && sim.ready);
+    return {name: song.name, full, shots: shots.length, lastEnd: shots.length ? shots[shots.length - 1].end : 0, kinds: [...new Set(shots.map(s => s.cam))].join(","), lum, pk, nan, rms: Math.sqrt(sq / L.length), audioCams: [...cams].join(","), nAcc, clockOk, rs, who, kanade};
   }, [id, SEED, SECS]).catch(e => ({error: e.message}));
   h.page.off("pageerror", onErr);
   const probs = [];
@@ -88,6 +89,7 @@ for (const id of ids){
     if (r.who.length) probs.push("çekimin üyesi sahnede yok (sessizce geniş plana düşer): " + r.who.join(","));
     if (r.rs[2]) probs.push("kareler " + r.rs[2] + " rand() çekti");
     if (KURULUM_RAND[SEED] !== undefined && r.rs[0] !== KURULUM_RAND[SEED]) probs.push(`kurulum ${r.rs[0]} rand() çekti, beklenen ${KURULUM_RAND[SEED]} (ses programı kayar)`);
+    if (KANADE && !r.kanade) probs.push("Kanade takılı değil");
   }
   row(!probs.length, r.error ? id + ": " + probs.join("; ") :
     `${r.name.padEnd(22)} ${r.full.toFixed(1).padStart(5)} sn  ${String(r.shots).padStart(3)} çekim [${r.kinds}]  tepe ${r.pk.toFixed(2)} rms ${r.rms.toFixed(3)}  parlaklık ${r.lum.map(x => x.toFixed(0)).join("/")}  vurgu ${r.nAcc}  rand ${r.rs.join("/")}` + (probs.length ? "  ← " + probs.join("; ") : ""));
@@ -160,8 +162,8 @@ console.log("Önizleme sayfası:");
     row(s1.playing && s1.now > 0.5, "çal: " + s1.hud + " (ses saati " + s1.now.toFixed(2) + " sn)");
     row(!s2.playing && s2.cam === "head" && s2.env === "summit", "kamera/mekan değiştir ve durdur: " + JSON.stringify(s2));
     await page.click("#env-oda"); await page.waitForTimeout(400);
-    const s3 = await page.evaluate(() => ({env: window.sim.envName, doku: window.sim.texReady}));
-    row(s3.env === "oda" && s3.doku, "oda mekânı: " + JSON.stringify(s3));
+    const s3 = await page.evaluate(() => ({env: window.sim.envName, doku: window.sim.texReady, karakter: window.sim.karakter, takili: !!window.sim.FIG.claude.vrm}));
+    row(s3.env === "oda" && s3.doku && s3.karakter === "kanade" && s3.takili, "oda mekânı: " + JSON.stringify(s3));
   } catch (e){ row(false, "önizleme: " + e.message); }
   row(!errs.length, errs.length ? "sayfa hataları: " + errs.join(" | ") : "sayfa hatası yok");
   await page.close();

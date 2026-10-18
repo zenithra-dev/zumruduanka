@@ -14,3 +14,15 @@ export function groove(p, t){
   const lean = LEAN0 + 0.07 * x.mute + 0.02 * g;
   return {lean, bob: (0.01 + 0.045 * g) * w, head: (0.04 + 0.43 * g) * w - GAZE * (lean - LEAN0), drop: 0.03 * x.mute + 0.025 * g + (0.004 + 0.016 * g) * w, spread: 0.1 * g};
 }
+
+// rigs.life'ın sayıları (zamanın saf fonksiyonu; mankende ve Kanade'de aynı, Kanade'nin chainAt'ı da bunu çağırır): üyenin gr(p, t) duruşu üç
+// yerde okunur: kafa şimdiki anın, göğüs LAG sonrasının, pelvis 2·LAG sonrasının duruşunu alır. L = {br nefes, rx/rz/ry üst gövdenin eğimi,
+// drop pelvisin inişi, nod kafanın eğimi, look kafanın yana dönüşü, spread ayakların açılması}.
+export const LAG = 0.035;
+const STILL = {lean: 0, bob: 0, head: 0, drop: 0, spread: 0};
+export function lifeL(fig, wall, now, p, gr){
+  const ph = fig.ph, br = Math.sin(wall * 1.55 + ph), sw = fig.sway;
+  const H = gr ? gr(p, now) : STILL, C = gr ? gr(p, now + LAG) : STILL, P = gr ? gr(p, now + 2 * LAG) : STILL;
+  return {br, rx: C.lean + C.bob + sw * 0.015 * Math.sin(wall * 0.41 + ph * 2), rz: sw * 0.022 * Math.sin(wall * 0.53 + ph), ry: sw * 0.03 * Math.sin(wall * 0.29 + ph * 3),
+    drop: P.drop, nod: H.head, look: 0.16 * Math.sin(wall * 0.23 + ph) * Math.sin(wall * 0.11 + ph * 1.7), spread: P.spread};
+}

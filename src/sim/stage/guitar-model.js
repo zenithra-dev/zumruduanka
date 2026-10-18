@@ -17,7 +17,12 @@ const halfFb = x => 0.0215 + 0.007 * x / 0.47;   // klavyenin yarı genişliği 
 // durur. İçteki duruş solak çerçevede kuruldu; taşıyıcı onu çevirir: sap oyuncunun soluna gider, kalın E üstte kalır.
 //   manken: sap ~34° yukarı, sırt karında, köprü kemerin biraz altında. Bu duruşta iki dirsek de 60-120° arasında 1-22. perdeye ve penaya
 //   yetişir; pena kolunun üst kolu düşeyden 40°'nin altında kalır (gitar daha yüksek ya da yatıkken pena dirseği omuz hizasına kalkıyordu).
-export const YERLESIM = {manken: {rig: 0.4, p: [-0.2, 0.32, -0.07], r: [0, 0, -0.6]}};
+//   kanade (ayakta): kollar incelemesinin duruş araması (figür çerçevesinde gitar yerel (0.62, 0, 0) noktası o = (−0.0267, 1.132, 0.1875), sap ön
+//   düzlemde a = 0.7905 rad (43.2°) yükselir, ψ = 0.275, φ = 0.27: kapak ~15° yukarı ve oyuncunun sağına dönük): göğüste yüksek, eşik göz hizasında.
+//   Kanade'nin kısa kolu ve gövde derinliği bugünkü yere yetişmiyordu. Başlangıç değeri: el-gitar kolunun aramasında serbest, kullanıcı onaylar.
+//   oturan: sonraki tur (yatakta oturma) için boş.
+export const YERLESIM = {manken: {rig: 0.4, p: [-0.2, 0.32, -0.07], r: [0, 0, -0.6]},
+  kanade: {rig: 0.4, p: [-0.22499, 0.606673, 0.002823], r: [-0.280008, 0.264793, -0.715384]}, oturan: null};
 export function createGuitarModel(scene, yer = YERLESIM.manken){
   // r128 negatif determinantlı nesnelerde yüz yönünü kendisi çevirir; dünya yönü gereken yerde matrixWorld kullanılmalı.
   const rig = new THREE.Group(); rig.scale.x = -1; rig.position.x = yer.rig; scene.add(rig);

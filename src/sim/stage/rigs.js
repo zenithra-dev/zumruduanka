@@ -8,6 +8,7 @@ import { rand } from "../rng.js";
 import { beatAt, accents, intensity } from "../music/clock.js";
 import { FLOOR, worldOf, setFigVisible } from "./figures.js";
 import { MEMBER_RIGS } from "./members/index.js";
+import { lifeL } from "./members/groove.js";
 
 // Göz kırpma takvimi (kurulumda tohumlu üreteçle, f.blinks; render işçileri aynı anda kırptırır): wall anında süren kırpmanın başından geçen süre
 // (sn, 0..BLINK), kırpma yoksa -1. Gözünü kendisi çizen figür (Kanade) bunu okur.
@@ -19,9 +20,11 @@ export function blinkAt(f, wall){
   return T >= 0 && wall < T + BLINK ? wall - T : -1;
 }
 
-export function createRigs({scene, model, hemi, drawBanner}){
+// karakter: üyenin gövdesi ("kanade" varsayılan, "manken" tur 4'ün gövdesi: yedek ve ölçüm tabanı). ready / whenReady: üyelerin gövdesi (Kanade'nin
+// VRM'i) takılı mı.
+export function createRigs({scene, model, hemi, drawBanner, karakter}){
   const parts = {}, FIG = {}, LIGHTS = {}, beams = {};
-  MEMBER_RIGS.forEach(M => { const m = M.build({scene, model}); parts[M.id] = m; FIG[M.id] = m.fig; LIGHTS[M.id] = m.light; });
+  MEMBER_RIGS.forEach(M => { const m = M.build({scene, model, karakter}); parts[M.id] = m; FIG[M.id] = m.fig; LIGHTS[M.id] = m.light; });
 
   // Göz kırpma: kafadaki küçük göz kürelerini bul. Kırpma anları baştan, tohumlu üreteçle hesaplanır;
   // böylece kareleri paylaşan render işçileri aynı anda kırptırır.
@@ -59,16 +62,13 @@ export function createRigs({scene, model, hemi, drawBanner}){
   // Nefes, salınım ve beden dili. Üyenin groove(p, t) duruşu ({lean, bob, head, drop, spread}, zamanın saf fonksiyonu) üç yerde okunur:
   // kafa şimdiki anın, göğüs LAG sonrasının, pelvis 2·LAG sonrasının duruşunu alır; yani pelvis önden gider, göğüs ve kafa onu gecikmeyle
   // izler (aynı fonksiyon farklı t'de: durum birikmez) ve kafanın vuruşu tam vuruşa düşer.
-  // Sayılar her figürde aynı: L = {br nefes, rx/rz/ry üst gövdenin eğimi, drop pelvisin inişi, nod kafanın eğimi, look kafanın yana dönüşü,
-  // spread ayakların açılması}; fig.life(L) varsa figür uygular, yoksa mankenin grupları (mankenLife).
+  // Sayılar her figürde aynı (members/groove.js lifeL): L = {br nefes, rx/rz/ry üst gövdenin eğimi, drop pelvisin inişi, nod kafanın eğimi, look
+  // kafanın yana dönüşü, spread ayakların açılması}; fig.life(L) varsa figür uygular, yoksa mankenin grupları (mankenLife).
   // LEAN_Z: öne eğilirken kalçanın geri kayma kolu = gitarın dayandığı yükseklik (göbek, kalçadan ~0.22): o hizada gövde yerinde kalır,
   // gitar sahneye sabit olduğu için içine girmez (kemer hizası 0.06 iken dorukta gövde gitara 11 mm giriyordu)
-  const LAG = 0.035, LEAN_Z = 0.22, STILL = {lean: 0, bob: 0, head: 0, drop: 0, spread: 0};
+  const LEAN_Z = 0.22;
   function life(fig, wall, now, p, groove){
-    const ph = fig.ph, br = Math.sin(wall * 1.55 + ph), sw = fig.sway;
-    const H = groove ? groove(p, now) : STILL, C = groove ? groove(p, now + LAG) : STILL, P = groove ? groove(p, now + 2 * LAG) : STILL;
-    const L = {br, rx: C.lean + C.bob + sw * 0.015 * Math.sin(wall * 0.41 + ph * 2), rz: sw * 0.022 * Math.sin(wall * 0.53 + ph), ry: sw * 0.03 * Math.sin(wall * 0.29 + ph * 3),
-      drop: P.drop, nod: H.head, look: 0.16 * Math.sin(wall * 0.23 + ph) * Math.sin(wall * 0.11 + ph * 1.7), spread: P.spread};
+    const L = lifeL(fig, wall, now, p, groove);
     if (fig.life) fig.life(L); else mankenLife(fig, L);
   }
   function mankenLife(fig, L){
@@ -121,5 +121,7 @@ export function createRigs({scene, model, hemi, drawBanner}){
   function setStage(on){ stage = !!on; beamList.forEach(b => { b.visible = stage; }); }
   // Geç kanca (sim.update'in sonunda): ctx = {now, wall, p, model, strap, cam: o karenin kamerası, headCam}
   function late(ctx){ MEMBER_RIGS.forEach(M => { const f = FIG[M.id]; if (f.late) f.late(ctx); }); }
-  return { FIG, LIGHTS, beams, parts, applyRoster, updateBand, late, setStage, invalidateBanner(){ rosterKey = ""; }, get flash(){ return flash; } };
+  const figs = Object.values(FIG);
+  return { FIG, LIGHTS, beams, parts, applyRoster, updateBand, late, setStage, invalidateBanner(){ rosterKey = ""; }, get flash(){ return flash; },
+    get ready(){ return figs.every(f => f.ready !== false); }, whenReady: ms => Promise.all(figs.map(f => f.whenReady ? f.whenReady(ms) : null)) };
 }

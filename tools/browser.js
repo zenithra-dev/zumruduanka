@@ -15,7 +15,15 @@ async function ready(page){
     Promise.all(["800 20px 'Big Shoulders Display'", "600 20px Figtree", "500 20px 'JetBrains Mono'"].map(f => document.fonts.load(f, "ZÜMRÜDÜANKA şğıç"))).then(r => r.every(x => x.length > 0)),
     new Promise(r => setTimeout(() => r(false), 15000))]));
   if (!fonts) console.error("UYARI: yazı tipleri yüklenemedi (src/vendor/fonts), yedek yazı tipleriyle devam");
+  // Kanade (VRM) sim kurulmadan önce yüklenir; createSim onu eşzamanlı takar. Yüklenemezse araç durur (karaktersiz kare üretilmez).
+  // KARAKTER=manken: yedek gövde (tur 4'ün mankeni), yükleme yok. Eski kaynakta (SRC) preloadKanade yoksa atlanır.
+  if (KARAKTER !== "manken"){
+    const e = await page.evaluate(ms => window.preloadKanade ? window.preloadKanade(ms).then(() => null, e => String(e && e.message || e)) : null, 60000);
+    if (e) throw new Error("Kanade yüklenemedi: " + e);
+  }
 }
+// KARAKTER=manken|kanade: gitaristin gövdesi (sayfa adresinde ?karakter=; sim.js okur)
+const KARAKTER = process.env.KARAKTER || "";
 
 export async function openHarness({width = 1280, height = 720} = {}){
   // SRC=yol/src: başka bir kaynak ağacını servis et (ör. eski sürümle ölçüm karşılaştırması); varsayılan bu reponun src'si
@@ -29,7 +37,7 @@ export async function openHarness({width = 1280, height = 720} = {}){
   const page = await browser.newPage({viewport: {width, height}});
   page.on("pageerror", e => console.error("SAYFA HATASI", e.message));
   page.on("console", m => { if (m.type() === "error") console.error("KONSOL", m.text()); });
-  const url = server.url + "/harness.html";
+  const url = server.url + "/harness.html" + (KARAKTER ? "?karakter=" + encodeURIComponent(KARAKTER) : "");
   await page.goto(url, {waitUntil: "domcontentloaded"}); await ready(page);
   return {
     browser, page, server, url: server.url,

@@ -2,20 +2,24 @@
 import { createSim } from "../sim/sim.js";
 import { NAMES } from "../sim/music/theory.js";
 import { loadFonts } from "../sim/stage/canvas-tex.js";
+import { preloadKanade } from "../sim/stage/kanade/vrm.js";
 
 const $ = id => document.getElementById(id);
 const gl = $("gl");
 // Tohum: ?seed=5 ile sabitlenebilir; verilmezse her açılışta farklı (doğaçlama her seferinde yeni).
 const seed = +(new URLSearchParams(location.search).get("seed") || (Date.now() >>> 0));
 await loadFonts(4000);   // oda dokularının yazıları vendor yazı tipleriyle çizilsin (yetişmezse yüklenince çizilir)
-const sim = createSim({canvas: gl, seed});
+// Gitaristin gövdesi: Kanade (VRM, sim kurulmadan önce yüklenir) ya da ?karakter=manken. VRM yüklenemezse yedek görünüm: manken ve uyarı.
+let karakter = new URLSearchParams(location.search).get("karakter") || "kanade", yedek = null;
+if (karakter !== "manken") try { await preloadKanade(60000); } catch (e){ console.error("Kanade yüklenemedi:", e.message); yedek = e.message; karakter = "manken"; }
+const sim = createSim({canvas: gl, seed, karakter});
 window.sim = sim;
 const { songs: SONGS, members: MEMBER } = sim;
 
 /* ---------- HUD ---------- */
 const hudText = $("hudText"), hudDot = $("hudDot");
 let hudCache = null, recording = false;
-function refreshHud(){ const t = sim.hudLabel(); if (t !== hudCache){ hudCache = t; hudText.textContent = t; } hudDot.hidden = !recording; }
+function refreshHud(){ const t = sim.hudLabel() + (yedek ? " · KANADE YÜKLENEMEDİ (yedek manken)" : ""); if (t !== hudCache){ hudCache = t; hudText.textContent = t; } hudDot.hidden = !recording; }
 
 /* ---------- Tab şeridi ---------- */
 const tabCv = $("tab"), tg = tabCv.getContext("2d");

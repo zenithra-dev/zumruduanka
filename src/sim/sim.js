@@ -5,17 +5,20 @@
 //   sim.frame(now, wall);            // o ana göre sahneyi günceller ve çizer
 //   sim.composite(ctx2d, 1280, 720); // kareyi grup adı, şarkı ve HUD ile 2B tuvale basar (önizleme/kayıt)
 //   sim.composite(ctx2d, 1280, 720, {broadcast: true, t}); // yayın karesi: HUD yok, alt bant yalnız ilk çekimde, açılış/kapanış kararması
-//   await sim.whenReady();           // kanvas dokuları vendor yazı tipleriyle çizildi (sim.texReady); araçlar kareden önce bekler
-//   sim.ready                        // kare çizmeye hazır mı (bugün sim.texReady; karakter yüklemesi de buraya girecek)
+//   await sim.whenReady();           // kanvas dokuları vendor yazı tipleriyle çizildi (sim.texReady) ve Kanade (VRM) takıldı; araçlar kareden önce bekler
+//   sim.ready                        // kare çizmeye hazır mı: dokular ve Kanade
+//   createSim({..., karakter})       // gitaristin gövdesi: "kanade" (varsayılan; VRM, sayfa sim kurmadan önce preloadKanade ile yükler) ya da
+//                                    // "manken" (tur 4'ün gövdesi: yedek ve ölçüm tabanı). Verilmezse sayfa adresindeki ?karakter=
+// manual sim'de Kanade takılı değilken render() hata atar (karaktersiz kare yazılmaz).
 //
 // Tarayıcıda now = audio.ctx.currentTime, wall = performance.now()/1000; render aracında ikisi de kare zamanı.
 // manual: true → şarkı sonunda kendiliğinden durmaz (araç yönetir).
 import * as THREE from "three";
 import { seed as seedRng } from "./rng.js";
 import { SONGS, findSong } from "./band/songs/index.js";
-import { MEMBER, BAND_NAME } from "./band/members.js";
+import { MEMBER, BAND_NAME, membersFor } from "./band/members.js";
 import { createScene } from "./stage/scene.js";
-import { createGuitarModel } from "./stage/guitar-model.js";
+import { createGuitarModel, YERLESIM } from "./stage/guitar-model.js";
 import { createBanner } from "./stage/banner.js";
 import { createRigs } from "./stage/rigs.js";
 import { createStrap } from "./stage/strap.js";
@@ -39,12 +42,14 @@ const ease = x => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x);
 export function createSim(opts = {}){
   const { canvas, audioContext = null, seed = 1, manual = false } = opts;
   if (!canvas) throw new Error("createSim: canvas gerekli");
+  const karakter = opts.karakter || (typeof location !== "undefined" && new URLSearchParams(location.search).get("karakter")) || "kanade";
   seedRng(seed);
 
   const S = createScene(canvas);
-  const model = createGuitarModel(S.scene);
-  const bannerKit = createBanner(S.scene);
-  const rigs = createRigs({scene: S.scene, model, hemi: S.hemi, drawBanner: bannerKit.drawBanner});
+  const MEM = membersFor(karakter);
+  const model = createGuitarModel(S.scene, YERLESIM[karakter === "manken" ? "manken" : "kanade"]);   // Kanade gitarı göğüste yüksek taşır
+  const bannerKit = createBanner(S.scene, MEM);
+  const rigs = createRigs({scene: S.scene, model, hemi: S.hemi, drawBanner: bannerKit.drawBanner, karakter});
   const strap = createStrap({scene: S.scene, model, member: rigs.parts.claude});   // askı: her karede pimlerden ve bedenden (rigs.parts.claude.strap)
   const fx = createFx(S.scene);
   const prefs = {amp: "crunch", room: 1.4, volume: 0.75};
@@ -119,6 +124,7 @@ export function createSim(opts = {}){
     return m === "head" ? S.headCam : m === "stage" ? S.stageCam : S.groupCam;
   }
   function render(){
+    if (manual && !rigs.ready) throw new Error("Kanade takılı değil: sayfa sim kurmadan önce preloadKanade() beklemeli (KARAKTER=manken yedek gövde)");
     const cam = activeCam();
     // Vurgu flaşı (rigs.flash, zamanın saf fonksiyonu): Finish pozlamasına ve bloom'a kısa darbe
     if (S.composer){ S.renderPass.camera = cam; S.finish.flash(rigs.flash); S.bloomPass.strength = 0.42 + 0.25 * rigs.flash; S.composer.render(); }
@@ -128,7 +134,7 @@ export function createSim(opts = {}){
     const cam = CAM_LABEL[camMode] || "SAHNE";
     return `${sim.recording ? "REC · " : ""}${cam} · ${playing ? BAND_NAME + " çalıyor: " + playing.song.name : "hazır"}`;
   }
-  function subtitle(){ return (playing ? playing.song.name : current.name) + "  ·  " + roster().map(k => MEMBER[k].label).join(" · "); }
+  function subtitle(){ return (playing ? playing.song.name : current.name) + "  ·  " + roster().map(k => MEM[k].label).join(" · "); }
   function videoEnd(){ return playing ? playing.end + VIDEO.tail : 0; }
   // Yayın örtüleri, t'nin saf fonksiyonu: alt bant ilk çekimin içinde girip çıkar (band 0..1), dark siyaha kararma oranı
   function overlayAt(t){
@@ -176,14 +182,15 @@ export function createSim(opts = {}){
   const sim = {
     THREE, canvas, scene: S.scene, renderer: S.renderer,
     cams: {head: S.headCam, stage: S.stageCam, group: S.groupCam}, orbit: S.orbit,
-    songs: SONGS, findSong, members: MEMBER, bandName: BAND_NAME, envs: ENVS, amps: AMPS,
+    songs: SONGS, findSong, members: MEM, bandName: BAND_NAME, envs: ENVS, amps: AMPS, karakter,
     model, rigs, strap, fx, venues, crowd, director, FIG: rigs.FIG, oda: venues.oda,
     manual, seed, recording: false, onEnd: null,
     get playing(){ return playing; },
     get current(){ return current; }, set current(s){ current = s; },
     get camMode(){ return camMode; }, setCamera(m){ camMode = m; },
     get envName(){ return venues.envName; }, setEnv,
-    get texReady(){ return texPending() === 0; }, get ready(){ return texPending() === 0; }, whenReady: ms => whenTexReady(ms),
+    get texReady(){ return texPending() === 0; }, get ready(){ return texPending() === 0 && rigs.ready; },
+    whenReady: ms => Promise.all([whenTexReady(ms), rigs.whenReady(ms)]).then(() => {}),
     get ampName(){ return prefs.amp; }, setAmp(n){ prefs.amp = n; if (engine) engine.setAmp(n); },
     get volume(){ return prefs.volume; }, setVolume(v){ prefs.volume = v; if (engine) engine.setVolume(v); },
     get audio(){ return engine; },

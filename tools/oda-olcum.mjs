@@ -6,7 +6,7 @@
 //   kamera (şarkı başına, FPS'te bütün video): yönetmenin o karede kullandığı kameranın konumu room.bounds içinde ve room.avoid kutularının dışında mı
 //     (kare %); cekilen: içeri çekilmiş kare payı ve en büyük çekme (m), fovMax: grup kamerasının en geniş objektifi (içeri çekince açılır). Bağımsız denetim (paydan bağımsız): duvara en yakın
 //     (iç yüzlere, m), yakinDuzlem: yakın düzlemin dört köşesinden biri odanın dışında kalan kare (duvarın arkası görünür), esya: kameranın bir eşya
-//     ağının gerçek kutusunda olduğu kare; karakterYatak: karakterin (gövde, kollar, eller) ağ köşelerinin yatak ve eşya ağlarının kutularına en derin
+//     ağının gerçek kutusunda olduğu kare; karakterYatak: karakterin (gövde, kollar, eller; Kanade'de deri noktaları) ağ köşelerinin yatak ve eşya ağlarının kutularına en derin
 //     girişi (m, her 2. kare) ve girdiği kare; kafa / sapEli: kafa merkezi ve perde eli kadrajda (%), kadrajClub: ilk şarkıda aynısı kulüpte (karşılaştırma).
 //   flas: rigs.flash > 0.001 olan kare ve tepe sayısı (odada 0 olmalı). isik: room.level(wall) toplam ışık seviyesi; 1 sn pencerede (en büyük - en küçük)
 //     / ortalama, en büyüğü (pırıltı; 0 = sabit).
@@ -57,8 +57,10 @@ async function kamera(h, id, P){
       if (C4.some(([x, y]) => { q.set(x * ww, y * hh, -C.near).applyMatrix4(C.matrixWorld); return q.x < S.x0 || q.x > S.x1 || q.y < S.y0 || q.y > S.y1 || q.z < S.z0 || q.z > S.z1; })) o.near++;
       if (solids.some(s => s.containsPoint(c))) o.esya++;
       if (k % 2 === 0){ sim.scene.updateMatrixWorld(true); let d = 0;
-        for (const m of FM){ const A = m.geometry.attributes.position; for (let i = 0; i < A.count; i++){ vv.fromBufferAttribute(A, i).applyMatrix4(m.matrixWorld); if (!all.containsPoint(vv)) continue;
-          for (const b of solids) if (b.containsPoint(vv)) d = Math.max(d, Math.min(vv.x - b.min.x, b.max.x - vv.x, vv.y - b.min.y, b.max.y - vv.y, vv.z - b.min.z, b.max.z - vv.z)); } }
+        const yat = v => { if (!all.containsPoint(v)) return; for (const b of solids) if (b.containsPoint(v)) d = Math.max(d, Math.min(v.x - b.min.x, b.max.x - v.x, v.y - b.min.y, b.max.y - v.y, v.z - b.min.z, b.max.z - v.z)); };
+        // Deri bağlı karakter (Kanade): o anki kemiklerle deri noktaları (fig.skinPoints, boneTransform; köşe özniteliği bağ pozudur), 3 köşede bir
+        if (f.skinPoints) f.skinPoints({adim: 3}).forEach(yat);
+        else for (const m of FM){ const A = m.geometry.attributes.position; for (let i = 0; i < A.count; i++) yat(vv.fromBufferAttribute(A, i).applyMatrix4(m.matrixWorld)); }
         yd = Math.max(yd, d); if (d > 0) yk++; }
       F.push(sim.rigs.flash); L.push(R.level(t));
     }

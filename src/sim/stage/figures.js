@@ -243,7 +243,7 @@ export function restHead(fig){ return worldOf(fig, fig.restHead || new THREE.Vec
 // İki kemikli kol IK'sı. hand verilmezse el ön kolun devamıdır ve hedef bileğin 4.5 cm ötesidir.
 // hand = {q, off}: el q dünya yönünde durur; elin kendi çerçevesindeki off noktası (ör. parmak kökü) hedefe gelir, kol bileğe uzanır.
 // Üst kol fig.l1, ön kol fig.l2 (yoksa ikisi de fig.reach). fig.pole(i, S, T, pole) verilirse dirseğin yönü (dünya; kol eksenine dik bileşeni
-// alınır) ondan: figür kendi dirsek seçimini yapar (Kanade), yoksa pole figür çerçevesinde.
+// alınır) ondan: figür kendi dirsek seçimini yapar (Kanade, kanade/kol-ik.js), yoksa pole figür çerçevesinde.
 const _off = new THREE.Vector3();
 export function poseArm(fig, i, target, pole, hand){
   fig.g.updateMatrixWorld(true); const S = fig.up.localToWorld(fig.sh[i].clone()), a = fig.l1 ?? fig.reach, b = fig.l2 ?? fig.reach;
@@ -256,6 +256,8 @@ export function poseArm(fig, i, target, pole, hand){
   const perp = pl.sub(dir.clone().multiplyScalar(pl.dot(dir))).normalize();
   const x = (a * a - b * b + len * len) / (2 * len), h = Math.sqrt(Math.max(a * a - x * x, 0));
   const E = S.clone().addScaledVector(dir, x).addScaledVector(perp, h);
+  // fig.armState verilirse (Kanade) çözüm oraya: omuz, dirsek, bilek ve bükülme düzleminin normali (E−S)×(T−E) yönünde (dünya; aktarım okur)
+  if (fig.armState) fig.armState[i] = {S, E, T, n: new THREE.Vector3().crossVectors(perp, dir)};
   const A = fig.arms[i];
   setLimb(A.up, S, E); setLimb(A.fo, E, T); A.el.position.copy(E);
   const fd = new THREE.Vector3().subVectors(T, E).normalize(), H = fig.hands[i];
