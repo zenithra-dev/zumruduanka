@@ -1,0 +1,100 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Kanade görünüm ölçümü</title>
+<style>html,body{margin:0;background:#000;overflow:hidden}#gl{display:block;width:1280px;height:720px}</style>
+<script type="importmap">{"imports": {"three": "/zumruduanka/src/vendor/three/build/three.module.js"}}</script>
+</head><body><canvas id="gl" width="1280" height="720"></canvas>
+<script type="module">
+import * as THREE from "/zumruduanka/src/vendor/three/build/three.module.js";
+import { loadKanade, bakeGroups } from "./kanade.js";
+const canvas = document.getElementById("gl");
+const renderer = new THREE.WebGLRenderer({canvas, antialias: false}); renderer.setPixelRatio(1); renderer.setSize(1280, 720, false);
+const gl = renderer.getContext(), dbg = gl.getExtension("WEBGL_debug_renderer_info");
+const L = h => new THREE.Color(h).convertSRGBToLinear();
+const scene = new THREE.Scene(); scene.background = L(0x16110e).multiplyScalar(0.6); scene.fog = new THREE.Fog(scene.background.getHex(), 4, 10);
+const FLOOR = -0.95;
+// Kulüp ışıkları (scene.js + venues.js club + claude.js üye ışığı), renkler lineer
+const hemi = new THREE.HemisphereLight(0, 0, 0.4); hemi.color.copy(L(0xffe6c8)); hemi.groundColor.copy(L(0x1a1010)); scene.add(hemi);
+const key = new THREE.DirectionalLight(0, 0.5); key.color.copy(L(0xfff1dd)); key.position.set(0.6, 0.8, 1.2); scene.add(key);
+const rim = new THREE.PointLight(0, 0.7, 3); rim.color.copy(L(0xff9a3c)); rim.position.set(-0.6, -0.5, 0.6); scene.add(rim);
+const spot = new THREE.SpotLight(0, 0.45, 4, 0.45, 0.7); spot.color.copy(L(0xffd9a8)); spot.position.set(0, 0.1, 1.6); scene.add(spot);
+const uye = new THREE.PointLight(0, 0.8, 2.2); uye.color.copy(L(0xffa04a)); uye.position.set(0.2, 0.9, 0.4); scene.add(uye);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(14, 9), new THREE.MeshStandardMaterial({color: L(0x2b1f18), roughness: 0.85})); floor.rotation.x = -Math.PI / 2; floor.position.set(0, FLOOR, -1); scene.add(floor);
+const back = new THREE.Mesh(new THREE.PlaneGeometry(13, 5.2), new THREE.MeshStandardMaterial({color: L(0x1f1611), roughness: 1})); back.position.set(0, 0.8, -3.2); scene.add(back);
+const cam = new THREE.PerspectiveCamera(40, 16 / 9, 0.05, 30);
+// HDR ara tampon + basit Finish (pozlama 1.4, ACES, sRGB) — bloom yok
+const rt = new THREE.WebGLRenderTarget(1280, 720, {type: THREE.HalfFloatType, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter});
+const fin = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.ShaderMaterial({uniforms: {t: {value: rt.texture}, ex: {value: 1.4}}, depthTest: false,
+  vertexShader: "varying vec2 v; void main(){ v = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }",
+  fragmentShader: `uniform sampler2D t; uniform float ex; varying vec2 v; vec3 aces(vec3 x){ return clamp(x*(2.51*x+0.03)/(x*(2.43*x+0.59)+0.14),0.,1.); }
+  void main(){ vec3 c = aces(texture2D(t, v).rgb * ex); gl_FragColor = vec4(mix(c*12.92, 1.055*pow(c, vec3(1./2.4))-0.055, step(0.0031308, c)), 1.0); }`}));
+const finScene = new THREE.Scene(), finCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1); finScene.add(fin);
+const px = new Uint8Array(4);
+function frame(){ renderer.setRenderTarget(rt); renderer.render(scene, cam); renderer.setRenderTarget(null); renderer.render(finScene, finCam); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); }
+
+let K = null, B = null, sets = {};
+window.setup = async (opts = {}) => {
+  const t0 = performance.now();
+  K = await loadKanade("/karakter/cikti/karakter.vrm", opts);
+  K.root.rotation.y = Math.PI; K.root.position.set(0.2, FLOOR, -0.19); scene.add(K.root);
+  B = bakeGroups(K, true);
+  // A duruşu: kollar aşağı (dinlenme dönüşleri birim)
+  K.bones.J_Bip_L_UpperArm.rotation.z = 1.2; K.bones.J_Bip_R_UpperArm.rotation.z = -1.2;
+  K.bones.J_Bip_L_LowerArm.rotation.y = -0.3; K.bones.J_Bip_R_LowerArm.rotation.y = 0.3;
+  // malzeme takımları
+  const vis = K.meshes.filter(m => !m.userData.dropped && m.userData.mk);
+  sets.mt = new Map(vis.map(m => [m, m.material]));
+  sets.nonm = new Map(vis.map(m => [m, m.userData.mk({normalMap: false})]));
+  sets.hairAT = new Map(vis.map(m => [m, m.userData.cls === "sac" && /Hair_00_HAIR/.test(m.userData.vrmName) ? m.userData.mk({alphaTest: true}) : m.material]));
+  sets.basic = new Map(vis.map(m => [m, m.userData.basic]));
+  sets.vlit = new Map(vis.map(m => [m, m.userData.mkV({normalMap: false})]));
+  sets.vlitNm = new Map(vis.map(m => [m, m.userData.mkV({normalMap: m.userData.cls === "sac"})]));
+  const t1 = performance.now(); frame(); const t2 = performance.now();
+  return {renderer: dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : "?", load: K.time, setup: t1 - t0, firstFrame: t2 - t1, skeletons: K.skeletons,
+    morph: B && B.names, tris: K.meshes.filter(m => m.visible !== false).reduce((s, m) => s + (m.geometry.index ? m.geometry.index.count / 3 : 0), 0),
+    outlineTris: K.outlines.reduce((s, m) => s + m.geometry.index.count / 3, 0)};
+};
+// Kadrajlar (yönetmen FRAME formülü; ref = göz ortası − 0.02, dünya)
+const REF = () => new THREE.Vector3(0.2, FLOOR + 1.549, -0.19 + 0.022);
+function framing(k){
+  const H = REF();
+  const F = {close: {d: 1.55, lat: 0.42, look: -0.12, rise: 0.05, lx: 0, fov: 20}, medium: {d: 1.95, lat: 0.5, look: -0.38, rise: 0.08, lx: 0.08, fov: 32},
+    hero: {d: 2.6, lat: 0.34, look: -0.4, rise: -0.22, lx: 0.16, fov: 28}}[k];
+  if (k === "wide"){ cam.fov = 46; cam.position.set(0.15, 0.85, 4.3); cam.updateProjectionMatrix(); cam.lookAt(0, -0.05, -0.8); return; }
+  const u = 0.5, d = F.d * (1.07 - 0.12 * u), hy = F.look + F.rise * F.d;
+  cam.fov = F.fov; cam.updateProjectionMatrix();
+  cam.position.set(H.x + (F.lat + 0.12 * u) * d, H.y + hy, H.z + d); cam.lookAt(H.x + F.lx, H.y + F.look, H.z);
+}
+function apply(cfg){
+  K.root.visible = cfg !== "base";
+  const S = sets[cfg === "noOutline" || cfg === "base" ? "mt" : cfg] || sets.mt;
+  for (const [m, mat] of S) m.material = mat;
+  K.outlines.forEach(o => { o.visible = cfg === "mt" || cfg === "hairAT" || cfg === "nonm" || cfg === "vlit" || cfg === "vlitNm"; o.material = /^vlit/.test(cfg) ? o.userData.v : o.userData.mt; });
+}
+window.expr = (w) => { if (!B) return; B.infl.fill(0); for (const [k, v] of Object.entries(w)) if (B.dict[k] !== undefined) B.infl[B.dict[k]] = v; };
+window.shot = (fr, cfg = "mt") => { framing(fr); apply(cfg); frame(); return canvas.toDataURL("image/png"); };
+window.timing = (frs, cfgs, rounds = 7) => {
+  const R = {}; frs.forEach(f => cfgs.forEach(c => { R[f + "/" + c] = []; }));
+  // ısınma: her biri bir kez (derleme, doku yükleme)
+  frs.forEach(f => cfgs.forEach(c => { framing(f); apply(c); frame(); }));
+  for (let r = 0; r < rounds; r++) frs.forEach(f => { const order = r % 2 ? cfgs.slice().reverse() : cfgs; order.forEach(c => { framing(f); apply(c); const t = performance.now(); frame(); R[f + "/" + c].push(performance.now() - t); }); });
+  const med = a => { const s = a.slice().sort((x, y) => x - y); return +s[s.length >> 1].toFixed(1); };
+  return Object.fromEntries(Object.entries(R).map(([k, a]) => [k, med(a)]));
+};
+window.cpu = (n = 200) => {
+  // iskelet güncelleme: paylaşılan (1) ↔ GLTFLoader varsayılanı (21 ayrı) karşılaştırması için tek iskeleti n kez günceller
+  const sk = K.skinned[0].skeleton; K.root.updateMatrixWorld(true);
+  let t = performance.now(); for (let i = 0; i < n; i++){ K.root.updateMatrixWorld(true); sk.update(); } const one = (performance.now() - t) / n;
+  t = performance.now(); for (let i = 0; i < n; i++){ for (let k = 0; k < 21; k++) sk.update(); } const many = (performance.now() - t) / n;
+  return {updateMatrixWorldPlusOneSkeleton: +one.toFixed(3), skeletonUpdateX21: +many.toFixed(3)};
+};
+window.tune = (o) => { for (const S of [sets.vlitNm]) for (const [m, mat] of S){ const u = mat.uniforms; if (!u) continue;
+  if (o.gain !== undefined) u.uGain.value = o.gain * (m.userData.cls === "goz" ? 1.15 : 1);
+  if (o.rim) { u.uRimColor.value.copy(L(o.rim[0])).multiplyScalar(o.rim[1]); u.uRimPow.value = o.rim[2]; u.uRimLift.value = 0; }
+  if (o.toony !== undefined && m.userData.cls !== "ten") u.uShadeToony.value = o.toony; } };
+window.oda = () => { // oda ışıkları (venues ENVS.oda + room/layout.js LIGHTS.dolgu), kulüp ışıklarının yerine
+  hemi.color.copy(L(0xffd2a0)); hemi.groundColor.copy(L(0x24180f)); hemi.intensity = 0.07; key.color.copy(L(0xffdcb4)); key.intensity = 0.05; rim.intensity = 0.12; spot.intensity = 0.3; uye.intensity = 0.4;
+  const C = -0.95 + 2.5; [[0.45, C - 0.03, -1.45 + 0.8, 0xffcc9a, 0.32, 4.6], [-1.35 + 0.8, C - 0.03, 0.3, 0xffcc9a, 0.26, 4.4], [0.95, 0.55, 0.95, 0xffd2a6, 1.1, 2.3]]
+    .forEach(([x, y, z, c, i, r]) => { const P = new THREE.PointLight(0, i, r); P.color.copy(L(c)); P.position.set(x, y, z); scene.add(P); }); };
+window.tuneAll = (o) => { for (const S of [sets.vlitNm]) for (const [m, mat] of S){ const u = mat.uniforms; if (!u) continue; if (o.gain !== undefined) u.uGain.value = o.gain; if (o.desat !== undefined) u.uDesat.value = o.desat; } };
+window.ready = true;
+</script></body></html>

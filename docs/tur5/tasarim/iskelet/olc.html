@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>iskelet ölçüm</title>
+<!-- Salt okur ölçüm sayfası (C:/work kökünden servis): repo src'si yalnız import edilir. -->
+<link rel="stylesheet" href="/zumruduanka/src/vendor/fonts/fonts.css">
+<style>html,body{margin:0;background:#000;overflow:hidden}#gl{display:block;width:1280px;height:720px}</style>
+<script type="importmap">{"imports": {"three": "/zumruduanka/src/vendor/three/build/three.module.js"}}</script>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "/zumruduanka/src/vendor/three/examples/jsm/loaders/GLTFLoader.js";
+import { createSim, findSong } from "/zumruduanka/src/sim/sim.js";
+import { loadFonts } from "/zumruduanka/src/sim/stage/canvas-tex.js";
+window.THREE = THREE; window.GLTFLoader = GLTFLoader; window.createSim = createSim; window.findSong = findSong; window.loadFonts = loadFonts;
+window.ok = true;
+</script>
+</body>
+</html>

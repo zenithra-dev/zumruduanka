@@ -1,0 +1,768 @@
+[
+ {
+  "summary": "Kanade'yi sahneye bağlayan omurganın tasarımı. VRM, src/assets/kanade/ altında doğrudan git'e girer (19 762 020 bayt). GLTFLoader r128 ile yüklenir; VRM eklentisini kendimiz yazarız: glTF malzemesi kurulmaz, tek paylaşılan iskelet kullanılır, her sim için bir klon alınır. Hazır sözü yazı tipiyle aynı desende: harness karakteri ön-yükler, createSim eşzamanlı takar, sim.whenReady ve sim.ready bunu kapsar. Yükleme başarısız olursa araçlar sert hata verir.\n\n\"Görünmez vekil + aktarım\" önerisini değerlendirdim; doğru omurga bu ama dört değişiklikle:\n(1) Vekil, VRM'den üretilen iskelet tablosundan eşzamanlı kurulur. Böylece rand() sırası korunur (ses programı değişmez) ve tarayıcısız duruş ölçümü sürer.\n(2) Omurga, boyun, kafa, köprücük ve bacaklar kimlik-dinlenmeli, VRM'i aynalayan bir zincir olur; bunlarda aktarım yalnız dörtlük eşleniğidir.\n(3) Kollar iki-vektör tabanıyla aktarılır.\n(4) El ve parmaklar, kurulumda bir kez kalibre edilen çerçeve farkıyla aktarılır.\n\nNode'da ölçtüm. Hatalar: zincir 0.0000 mm, eşit olmayan kol 0.0000 mm (40 poz), aynalı el ve işaret parmağı 0.096 mm. Maliyet kemik başına 1-3 µs, yani 60 kemik için 0.06-0.18 ms/kare.\n\nKısa bir tarayıcı ölçümü de yaptım: ayrıştırma 1.1 s, ilk kare 4.9 s. Sürekli karede, yalnız loader'ın kendi düz malzemeleriyle fark gürültü içinde; MToon ve dış hat ayrıca ölçülmeli.\n\nKimlik: id \"claude\" kalmalı. Yeniden adlandırılırsa yönetmen sessizce geniş plana düşer. Görünen ad MEMBER.claude üzerinden KANADE olur.\n\nEn büyük bulgu: gitar bugünkü yerinde kalırsa Kanade'nin pena kolu dümdüz kalıyor (oran 0.998) ve etek gitar gövdesine yaklaşık 14 cm giriyor. Gitarın yaklaşık 15-20 cm yukarı, 8-10 cm öne alınması gerekiyor; bu kaba tahmin, el-gitar kolunun aramasıyla kesinleşmeli.\n\nRepo dosyalarına dokunmadım. Tek istisna kullanıcı mandasıyla deneyim defterine eklenen bir madde. Betikler yalnız out/tur5/tasarim/iskelet altında.",
+  "findings": [
+   "ÖLÇÜLDÜ (vrm-olc.mjs): karakter.vrm 19 762 020 B. JSON 143 590 B, BIN 19.6 MB. 29 PNG doku 14.19 MB, bunların içinde 3 adet 2048² var: Tops 4.86 MB, Body 2.28 MB, Body_nml 2.22 MB; 768² küçük resim 0.64 MB. Exporter saturday06 4.10.2, specVersion 0.0, lisans CC0.",
+   "ÖLÇÜLDÜ: 229 düğümün hiçbirinde dinlenme dönüşü ya da ölçek yok (rotDonuk 0, olcekli []). Bağ pozu = dinlenme pozu (IBM·dünya kimlikten sapma 7.5e-9). 7 skin'in hepsi aynı 222 eklem listesini ve aynı IBM accessor'ını kullanıyor; tek paylaşılan Skeleton mümkün.",
+   "ÖLÇÜLDÜ: tekil köşe sayıları Face 2055 (58 morph, yalnız POSITION, morphTargetsRelative), Body 6641 (Body/Tops/Shoes/HairBack 4 primitive), Hair 18106, Gözlük 2590, Cam 432, Choker 2081, Tırnak 2520; toplam 51 682 üçgen. Morph normali olmadığı için r128'de aynı anda 8 morph yuvası var (three.module.js ~15300-15370: en büyük 8 etki seçilir, gerisi sessizce düşer).",
+   "ÖLÇÜLDÜ (yukle.mjs, node): vendor GLTFLoader r128, doku/malzeme yer tutucu eklentisiyle VRM'i 171 ms'de ayrıştırıyor. 21 SkinnedMesh ve 21 ayrı Skeleton oluşuyor (GLTFLoader.js:3697 her ağa ayrı `new Skeleton`), hepsi aynı 222 Bone'u paylaşıyor. Düğüm adları temizleniyor ('Body.baked' → 'Bodybaked'); kemik adları bozulmuyor. Morph sözlüğü adı 'Face.M_F00_000_00_Fcl_*'; blendShapeMaster bağları indeksle çözülmeli. Yüz 9 alt ağ: her birinin morphTargetInfluences dizisi ayrı yazılmalı.",
+   "ÖLÇÜLDÜ: VRM firstPerson.meshAnnotations boş (bone J_Bip_C_Head, offset y 0.06). Sap kamerası gizlemesi VRM'den gelmiyor, kendimiz kurmalıyız. secondaryAnimation'da 3 grup ve 12 çarpıştırıcı var; yok sayılacak.",
+   "ÖLÇÜLDÜ (dugum.mjs): saç dışı 36 J_Sec kemiği var. Etek zincirleri: Front/Back UpperLeg'den, Side Hips'ten, her biri 3 kemik + uç. Yenler: LowerSleeve (LowerArm altında), TipSleeve (Hand altında). Göğüs: Bust1/2 (UpperChest altında). 119 saç kemiği, 49 Govde ikizi. Eteğin üst kısmı (y 0.94-1.06) Hips'e ağırlıklı, bu yüzden etek kemikleriyle itilemez.",
+   "ÖLÇÜLDÜ (olcu.mjs, figür çerçevesi: +z ön, +x figürün solu):\n- Omurga: hips y 1.0207, spine 1.0736, chest 1.1876, upperChest 1.3185, neck 1.4331, head 1.5103, gözler 1.5692.\n- Kollar: köprücük x ±0.022 y 1.4057; upperArm ±0.108 y 1.3909; lowerArm ±0.327; hand ±0.541.\n- Bacaklar: upperLeg ±0.0766 y 0.9815, lowerLeg 0.5865, foot 0.138 (z −0.032), toe 0.0747 (z +0.072).\n- Segmentler: hips→spine 0.054, spine→chest 0.115, chest→upperChest 0.132, upperChest→neck 0.119, neck→head 0.078; köprücük→upperArm 0.0877; uyluk 0.3958; baldır 0.4492; ayak→parmak 0.122.",
+   "ÖLÇÜLDÜ (Kanade sağ el, el çerçevesi: +y parmak, +z avuç, +x başparmak yanı):\n- Parmak kökleri b: başparmak (0.0173, 0.0034, 0.0059), işaret (0.0167, 0.0653, −0.0053), orta (0, 0.0663, −0.0075), yüzük (−0.0157, 0.0657, −0.0072), serçe (−0.0313, 0.0611, −0.0022).\n- Boğum boyları l: başparmak 0.046/0.0284/0.0214, işaret 0.0332/0.0204/0.0242, orta 0.037/0.0228/0.025, yüzük 0.0343/0.0198/0.0214, serçe 0.0314/0.0181/0.0194.\n- Kök boğum yarıçapı 0.0077-0.0082 (serçe 0.0062, başparmak 0.0107). Avuç kutusu x ±0.035, y 0.003..0.071, z −0.013..0.019.\n- Mankenle fark: işaret kökü 0.081'de (Kanade 0.065), KNUCKLE 0.079 (Kanade ~0.066).",
+   "ÖLÇÜLDÜ (beden yüzeyi):\n- Göğüs dilimi (y 1.18-1.30) yarı genişliği 0.10-0.13; önü z 0.125-0.139 (göğüs), arkası −0.05..−0.065.\n- Ön yüz x≈0'da: y 0.95'te z 0.229, 1.00'da 0.210, 1.05'te 0.189, 1.10'da 0.163, 1.15'te 0.139. Etek ve fırfır öne taşıyor.\n- Etek yarı genişliği: y 0.94'te 0.31, y 0.64'te 0.45.\n- Yen yarıçapı: üst kol Tops p50 0.053; ön kol Tops p50 0.064, p95 0.093; TipSleeve p50 0.077, p95 0.10.\n- Platform ayakkabı y 0..0.183. Arka saç y 1.125'e kadar iniyor (z −0.07..−0.195, x ±0.22); göğüs önünde 1.39'un altında saç yok.",
+   "ÖLÇÜLDÜ (gitar-erisim.mjs, bugünkü gitar):\n- Figür çerçevesinde noktalar: eşik (0.4, 1.27, 0.179), 24. perde (0.002, 0.997, 0.179), köprü (−0.135, 0.904, 0.179), pena (−0.075, 0.945, 0.179), alt pim (−0.325, 0.785, 0.142).\n- Erişim oranı (omuz-hedef / kol+el): mankende pena 0.778, 24. perde 0.714. Aynı kökte Kanade'de pena 0.998 (kol dümdüz), 24. perde 0.894, 1. perde 0.675.",
+   "TAHMİN (gitar-yeri.mjs; kaba ön-yüz yükseklik haritası, kollar ve saç hariç): bugünkü yerde gövde arkası etek ve fırfıra ~142 mm giriyor. Uygun bölge: gitar dy +0.15..+0.20 yukarı, dz +0.08..+0.10 öne. Orada pena oranı 0.75-0.85, 1. perde 0.74-0.78, 24. perde 0.69-0.78, giriş ≤ 2 mm. Kesin sayılar el-gitar kolunun bodySd ve deri örnekleriyle yapacağı aramadan gelmeli.",
+   "ÖLÇÜLDÜ (aktarim-deneme.mjs, node):\n- Omurga zincirinde dörtlük eşleniği (−x, y, −z, w) ile kopya: 20 rastgele pozda 0.0000 mm.\n- Sol kol, l1 0.2193 ≠ l2 0.2143, iki-vektör tabanı: 40 pozda dirsek/bilek 0.0000 mm.\n- Aynalı vekil sol el (scale.x = −1) ve işaret zinciri, kalibrasyonlu çerçeve farkıyla: eklem ve uç farkı en çok 0.096 mm (L/R asimetrisi); uç boğum ve avuç deri köşelerinin vekil çerçevesine göre kayması ≤ 0.75 mm.\n- Maliyet kemik başına 1-3 µs.",
+   "ÖLÇÜLDÜ (aynı deneme): el çerçevesi tanımı üretici araçla kalibrasyon arasında farklı olunca (orta parmak yönü 4.2° sapık) kalibrasyon 5.0/7.45/8.25 mm, uç 8.85 mm şaştı. Düz parmak dinlenmesi varsayımı da uçta 2.55 mm şaşırttı. Çözüm: HAND tablosu ve kalibrasyon aynı koddan gelmeli; kalibrasyonda her boğum VRM'in sonraki eklemine çevrilmeli.",
+   "ÖLÇÜLDÜ: aynalı ebeveyn altında getWorldQuaternion yanlış değil. r128 Matrix4.decompose det < 0 iken sx'i çeviriyor (three.module.js:5960), yani x sütunu çevrilmiş uygun dönüşü veriyor; det düzeltmesiz sonuç da 0.1 mm. İlk varsayımım ('aynalıdan dörtlük almak yanlış') testle çürüdü; deneyim defterine yazıldı.",
+   "ÖLÇÜLDÜ (tarayici-olc.mjs: headless swiftshader, BelowNormal öncelik, tek koşu):\n- Yükleme: fetch 614 ms, GLTFLoader ayrıştırma ve doku çözme 1121 ms, JS heap 125 MB.\n- İlk kare 4870 ms (doku yükleme, mipmap, derleme), ikinci kare 669 ms.\n- Sürekli kare A (manken) / B (VRM T-pozu, loader'ın unlit malzemeleri, manken gizli): yakın 428/634 ve 476/575 ms; geniş 711/552 ve 656/475 ms. Fark −1% ve −10%, gürültü içinde.\n- Mutlak kare süresi arka plan yükü yüzünden deneyimdeki 230-250 ms'nin üstünde. MToon + dış hat maliyeti ölçülmedi (görünüm kolu).",
+   "ÖLÇÜLDÜ (tarayici-yakin.png): yönetmenin mankene göre kurulmuş yakın planında Kanade'nin yüzü kadrajın üst-ortasında kalıyor. Askı hâlâ mankenin bağlantı noktalarından çiziliyor ve ışık hüzmeleri üstüne katmanlanıyor.",
+   "KOD: rand() sırası (ses programı) iki yerde tüketiliyor: figures.js:142 (ph, figür başına 1 kez) ve rigs.js:18-19 (göz kırpma takvimi, FIG başına). Bunlar createRigs içinde, sim.load'dan önce. Kanade kurulumu tam 1 rand() çekmeli (aynı anda); yükleme ve aktarım hiç çekmemeli.",
+   "KOD: yazı tipi hazırlığı deseni şöyle. canvas-tex.js:37-58 (pending + loadFonts + whenTexReady); harness.html:233-236 (window.loadFonts); browser.js:88-97 (ready: araçlar createSim'den ÖNCE bekler); sim.js:183 (texReady/whenReady). render.js:186 ve shot.js:144 whenReady bekliyor. sync-check.mjs:153-155 ve oda-olcum.mjs:30 MK, `sim.texReady === false` olursa hata atıyor ve kareleri eşzamanlı çiziyor. check.js her şarkıda h.fresh ile yeni sayfa açıyor (tek sim/sayfa).",
+   "KOD (fig sözleşmesi tüketicileri, satır):\n- rigs.js: 15-27 (head.children göz küreleri, eyeY, blinks), 55-68 (ph, sway, up.rotation/position, torso.scale, nod, head.rotation.y, stance), 31 (worldOf), 42-43 (setFigVisible, M.headCam), 90-93 (sıra).\n- figures.js: 172-183 strapAnchors (g, torso, strapSide); 186-215 bodySdFn (up.matrixWorld, torso.scale, legs); 219 nodHead; 223-235 poseLegs (sabit THIGH/SHIN); 238 restHead (hip+headY); 242-258 poseArm (a=b=fig.reach, sh, up, hands[i].scale); 259 setFigVisible.\n- claude.js: 143-148 handPole (reach, up.localToWorld(sh)); 262, 333 poseArm; 431 gripOf(hands[1]); 434 headCam; 438 g.updateMatrixWorld.\n- director.js: 142, 182-184 restHead ve g.quaternion; 148, 173 FIG[sh.who] yoksa sessizce geniş plan.\n- sim.js:47 parts.claude (askı üyesi).\n- strap.js:294-299 bodySdFn({legs:true}) / bodySd / strapAnchors(now).\n- sync-check.mjs: 162-163 FIG.claude / parts.claude; 189-287 hands (getWorldPosition/Quaternion, userData.fingers/tip/r/palm/heel, parent zinciri), arms[i].up/fo (geometry.parameters, scale.x, localToWorld), el; 205-206 strapAnchors/bodySd; 345 armLen/reach; 357 head; 362 ve 377 up.localToWorld(sh) (omuz); 420 durum özeti; 433-434 maske; 538 kadraj.\n- oda-olcum.mjs: 36-39 f.g/arms/hands ağlarının köşeleri × matrixWorld; 48-49 head/hands.\n- check.js:117 head.",
+   "KOD (tuzaklar):\n- Askı ölçüm maskesi (sync-check.mjs:433-434) her opak ağa skinning'siz MeshBasicMaterial K veriyor. r128'de material.skinning false ise SkinnedMesh bağ (T) pozunda çizilir (three.module.js:11122); maske sessizce yanlış olur.\n- oda-olcum.mjs:39 köşeleri position × matrixWorld ile topluyor; skinli ağda bu T-pozudur.\n- setFigVisible (figures.js:259) kolları ve elleri görünür yapıyor; görünmez vekil için kanca gerekir.",
+   "KOD: Görünen ad yolu. banner.js:19 `MEMBER[k].name + ' · ' + ROLE` ('CLAUDE · GİTAR' buradan), sim.js:128 alt bant label, app.js:150-157 kadro kartı. Metin geçen diğer yerler: index.html:89/98/103/152, app.js:121 CAM_NOTE, README.\n'claude' id'si: members.js:4, members/index.js, rigs.js FIG/parts anahtarı, sim.js:47 ve 62, director.js:111, kaf.js:6-10, ninni.js:6-7, tepegoz.js:6-8 (13 who:'claude'), sync-check (4 yer), oda-olcum (2), check.js (1).",
+   "KOD: gitar sahneye sabit (guitar-model.js:21-24: rig x 0.4, scale.x −1; gitar (−0.2, 0.32, −0.07), rz −0.6). placeCams kurulumda bir kez çağrılıyor ve sap kamerasını gitardan türetiyor (scene.js:46-59, sim.js:192). Sahne yörüngesi hedefi sabit kodlu (scene.js:43). Yönetmenin FRAME bakışları restHead'e göre sabit (director.js:24-34); room/layout.js:84 CAMERA.subject y FLOOR+1.37."
+  ],
+  "proposal": "1) YÜKLEME\n\nDosyanın yeri ve git:\n- src/assets/kanade/kanade.vrm: karakter.vrm'in birebir kopyası, 19 762 020 B.\n- src/assets/kanade/kaynak.json: {bayt, sha1, kaynak: \"C:/work/karakter/cikti/karakter.vrm\", tarih, lisans: \"CC0, VRoid AvatarSample_D + Zümrüdüanka\"}.\n- src/assets/kanade/sac.json: karakter_sac.json'ın kopyası.\n- Neden src altı: serve.js src'yi servis eder; harness, index ve SRC= ağaçları aynı göreli URL'yi kullanır. README'nin \"her şey repoda, hiçbir şey indirilmez\" ilkesine uyar. CI'da checkout ek ayar istemez.\n- Git'e doğrudan girsin, LFS değil (soru olarak da sordum). Pack 74.2 MB → ~94 MB olur; her yeni sürüm +19.8 MB, bu yüzden yalnız kabul edilen sürümler commitlenir.\n\nModüller:\n- src/sim/stage/kanade/glb.js (three'siz, ~60 satır). `parseGlb(ab) → {json, bin}`, `accessor(json, bin, i) → {array, itemSize, count}`, `restWorld(json) → düğüm başına 16'lık matris`. Üretici araç ile yükleyici bunu paylaşır.\n- src/sim/stage/kanade/vrm.js:\n  - `VRM_URL = new URL('../../../assets/kanade/kanade.vrm', import.meta.url)`.\n  - `readVrm(json) → {humanoid: Map(bone → düğüm adı), groups: Map(ad → [{mesh, morph, w}]), materials, firstPerson, lookAt}`.\n  - `parseKanade(ab, {doku = true}) → Asset`. GLTFLoader r128'e bir 'vrm' eklentisi register edilir. `loadMaterial(i)` yer tutucu döner: glTF malzemesi kurulmaz, doku çözülmez. MToon fabrikası istediği dokuları `parser.getDependency('texture', i)` ile alır. node'da `doku: false` ile dokular da yer tutucudur. Ağlar node adıyla bulunur (`PropertyBinding.sanitizeNodeName`). Bütün ağlar tek Skeleton'a bağlanır: `m.bind(sk, m.bindMatrix)`; dikkat, matrixWorld değil bindMatrix verilir. Hepsinde `frustumCulled = false` (r128 bağ pozu küresiyle kırpar). Bölge bölmesi bolge.js ile yapılır. Asset alanları: `{root, meshes, faceMeshes, bones: Map, skeleton, vrm, json}`.\n  - `preloadKanade(url = VRM_URL, ms = 60000)`: sayfa başına tek fetch ve tek ayrıştırma, modül önbelleği.\n  - `kanadeAsset()`: önbellekteki varlık, eşzamanlı; yoksa null.\n  - `cloneAsset(a)`: `root.clone()` sonrası Skeleton kemik adlarıyla yeniden kurulur. Geometri ve doku paylaşılır. Her createSim kendi klonunu alır, poz durumu sızmaz; maliyet ~ms.\n  - `setMaterialFactory(fn)`: görünüm kolunun MToon kancası.\n\nHazır sözü, yazı tipiyle aynı desen:\n- harness.html: `window.preloadKanade`.\n- browser.js ready(): loadFonts'tan sonra `if (window.preloadKanade) await window.preloadKanade(60000)`. Reddedilirse throw. SRC ile verilen eski ağaçta fonksiyon yoksa atlanır.\n- createSim → createRigs → kanadeFigure: önbellek doluysa varlığı EŞZAMANLI takar (`fig.attach(cloneAsset(a))`). Doluysa sync-check ve check.js'in eşzamanlı MK'leri olduğu gibi çalışır. Değilse bekleme listesine alır, yüklenince takar; bu yol yalnız önizleme sayfasında olur.\n- sim.js:\n  - `get ready(){ return texPending() === 0 && rigs.ready; }`\n  - `whenReady: ms => Promise.all([whenTexReady(ms), rigs.whenReady(ms)])`. render.js ve shot.js değişmez.\n  - Bekçi: manual sim'de `!ready` iken `render()` hata atar. Böylece hiçbir işçi karaktersiz kare yazamaz.\n- sync-check ve oda-olcum MK'sindeki `texReady === false` denetimi `(sim.ready ?? sim.texReady) === false` olur.\n\nDeterminizm:\n- Yükleme ve aktarım rand() çekmez; GLTFLoader yalnız uuid için Math.random kullanır.\n- kanadeFigure, figures.js:142'deki yerde tam 1 rand() (ph) çeker. rigs.js:18-19 göz kırpma takvimi aynen çekilir, dolayısıyla ses programı birebir aynı kalır.\n- Bütün karakter durumu zamanın saf fonksiyonudur:\n  - aktarım her karede kemiklere dinlenmeden yazar,\n  - ifade karıştırıcı her karede sıfırdan başlar,\n  - saç, etek ve yen kemikleri her karede tamamen yazılır.\n- Her işçi aynı dosyayı aynı kodla ayrıştırır. İlk kare yavaştır (~4.9 s) ama sonucu aynıdır.\n\nBaşarısızlık:\n- Araçlar: browser.js ready() `Kanade yüklenemedi: <url>: <neden>` ile throw eder ve çıkış kodu sıfırdan farklı olur. Karaktersiz video hiç üretilmez.\n- iskelet.js ile VRM uyuşmazsa da aynı hata: bayt/sha1 farkı ya da dinlenme konumu farkı > 0.1 mm. Mesaj `node tools/kanade-iskelet.mjs` çalıştırmayı söyler.\n- Önizleme (app.js): sim yine kurulur, vekil hata ayıklama görünümü açılır (gri kapsüller), HUD'a 'KANADE YÜKLENEMEDİ' yazılır, console.error basılır.\n\n2) VEKİL + AKTARIM\n\nDeğerlendirme: öneri doğru. Alternatifleri eledim:\n- Kemikleri doğrudan fig yapmak: sözleşme VRM gelmeden yok; node ölçümü biter; sync-check yeniden yazılır.\n- Ayrı IK: mantık çiftlenir.\nÖnerinin güçlendirilmesi aşağıda.\n\n(a) Üretilmiş tablo:\n- tools/kanade-iskelet.mjs (node, three'siz, glb.js) VRM'den src/sim/stage/kanade/iskelet.js'i üretir. Elle düzenlenmez; `--denetle` kipi var.\n- İçerik: `KANADE = {vrm: {bayt, sha1}, bones: {ad: {p: [x,y,z] F çerçevesi, parent}}, l1: 0.2193, l2: 0.2143, legs: {thigh: 0.3958, shin: 0.4492}, hand: {L, R} (b, l, d, r; her el kendi ölçüsünden, L/R asimetrisi ~0.5 mm), restHead: [0, 1.575, 0], torso: dilim tablosu, skirt: dilim tablosu, regions}`.\n- Vekil bu tablodan EŞZAMANLI kurulur.\n\n(b) Çerçeveler:\n- F = fig.g yereli: +z ön, +x figürün solu, y yerden.\n- VRM'de bütün dinlenme dönüşleri kimlik (ölçüldü). F = R_y(π)·V.\n- holder = Group(rotation.y = π). Sahne çocuğudur, fig.g'nin altına konmaz (oda-olcum f.g'yi gezip bağ pozu köşelerini sayardı). Dünyası fig.g.matrixWorld·R_y(π); her kemiğin dinlenme dünya dönüşü Q_holder.\n\n(c) Zincir kemikleri: hips, spine, chest, upperChest, neck, head, köprücük L/R, upperLeg/lowerLeg/foot.\n- Vekilde aynı ağaç: F çerçevesinde VRM ötelemeleri, kimlik dinlenme.\n- Aktarım: `bone.quaternion = (−x, y, −z, w)` of vekil; `hips.position = (−x, y, −z)` of pelvis. Ölçüldü 0.0000 mm.\n\n(d) Kollar (dünya uzayındaki sözleşme parçaları üzerinden):\n- poseArm genelleşir: `a = fig.l1 ?? fig.reach`, `b = fig.l2 ?? fig.reach`; S = `fig.shoulder ? fig.shoulder(i, T) : up.localToWorld(sh[i])`. Sonuç `fig.armState[i] = {S, E, T, n}`; n = unit((E−S)×(T−E)), düz kolda kutup/perp'ten.\n- B(u, w) = makeBasis(x̂ = û, ŷ = ẑ×x̂, ẑ = w'nin û'ya dik bileşeni).\n- Üst kol: R_up = B(E−S, n)·B(u0, w0)⁻¹, w0 = unit(u0 × ẑ_F). Sol için −y, sağ için +y; dirseğin öne bükülmesi pozitif.\n- Ön kol: R_lo = B(T−E, rot(n, û, α·γ))·B(u0', w0)⁻¹. α = 0.5 (TWIST payı). γ = elin dünya dönüşüyle taşınan w0'ın û'ya dik izdüşümünün n'e işaretli açısı. El dünya dönüşü değişmez; pay yalnız yen ve bileğin deri deformasyonunu belirler.\n- Dünya: W = Q_fig·R·Q_fig⁻¹·Q_holder. Yerel: W_ebeveyn⁻¹·W, yukarıdan aşağı elle hesaplanır, bayat matrixWorld okunmaz. Ölçüldü 0.0000 mm.\n\n(e) El ve parmaklar:\n- Kurulumda bir kez `calibrate()`: vekil kol ve eller VRM T-pozuna konur. El çerçevesi üreticiyle AYNI tanımla kurulur: y = orta parmak kökünün yataya izdüşümü, z = aşağı, x = y×z. Her boğumun +y'si VRM'in sonraki eklemine çevrilir. P_rest(b) = vekil düğümünün getWorldQuaternion'ı.\n- Kare: W(b) = P_now(b)·P_rest(b)⁻¹·Q_holder.\n- Aynalı sol vekil el (scale.x = −1) olduğu gibi kalır. decompose det düzeltmesini kendisi yapıyor (ölçüldü 0.096 mm).\n\n(f) Öz denetim: aktarım sonrası şu eklemlerde VRM ↔ vekil en büyük farkı `fig.vrm.err_mm` olarak tutulur: omuz, dirsek, bilek, 30 parmak eklemi + 10 uç, diz, ayak bileği, boyun, kafa. sync-check'te `kanade.aktarim_mm` (hedef ≤ 0.5).\n\n(g) Sıra:\n- rigs.updateBand: life → blink → M.pose (IK) → `fig.commit(now, wall)`. commit = aktarım + ifade karıştırıcı + `holder.updateMatrixWorld(true)`. Aynı karede ölçüm bayat okumasın diye.\n- sim.update içinde, strap.update'ten SONRA `rigs.secondary(now, wall, playing)` → `fig.secondary({now, wall, p, model, strap})`. Saç ve ikizleri, etek itmesi ve yen itmesi askının ve gitarın son halini görür; ardından holder.updateMatrixWorld.\n- Render: Skeleton.update kare başına bir kez (paylaşılan iskelet, tek kemik dokusu).\n\n(h) Gövde, nefes, kafa, köprücük, bacaklar:\n- rigs.life sayıları hesaplar: L = {rx, rz, ry, drop, br, nod, look, spread}. `fig.life ? fig.life(L) : mankenLife(fig, L)` (manken yolu birebir aynı kalır).\n- Kanade, TAHMİN değerler (beden kolu ayarlar):\n  - rx dağılımı: pelvis 0.20, spine 0.25, chest 0.30, upperChest 0.25.\n  - rz: pelvis 0.4, kalanı omurgaya.\n  - ry: spine 0.2, chest 0.35, upperChest 0.45.\n  - drop pelvise.\n  - Yaslanma telafisi: gitar arka yüzünün temas noktası (chest çerçevesinde) dinlenmeye göre ne kadar z kaydıysa pelvis o kadar geri. Tek adım, saf; mankenin LEAN_Z kolu bunun yerini alır.\n- Nefes: torso.scale kullanılamaz (kemiği ölçeklemek çocukları, yani kolu ve kafayı büyütür). Yerine: Bust1 ölçeği 1 + 0.015·br, upperChest rx −0.006·br, köprücük yükselişi 0.008·br rad.\n- nod(a): neck 0.35·a + head 0.65·a (rotation.x); life'ın head.rotation.y'si head'e gider.\n- Köprücük: k = sm((|T−S0|/(l1+l2) − 0.70)/0.25). Öne alma ≤ 0.20 rad (hedefin yatay yönüne), yükselme ≤ 0.14 rad. Sırası: önce bilek hedefi, sonra köprücük, sonra S, sonra IK; durum yok.\n- Bacaklar: poseLegs boyları figürden alır (0.3958 / 0.4492). Kalça eklemi pelvisten (±0.077, −0.039, −0.008). Ayak bileği hedefi dinlenmedeki (±0.043, 0.138, −0.032) + spread. Ayak yalnız yaw döner, ToeBase kimlik. Platform tabanı yerde kalır.\n\n(i) Göz kırpma: f.eyes Kanade'de boş. rigs.js blink'e `if (f.setBlink) f.setBlink(clamp((1 − k)/0.92))` eklenir; bu ifade karıştırıcının 'Blink' grubu. rand() takvimi aynen kalır.\n\n(j) Sap kamerası (kanade/bolge.js):\n- Yüklemede Body ve Tırnak alt ağlarının indeks tamponu baskın kemiğe göre iki gruba sıralanır:\n  - grup 0: üç köşesi de şu kemiklere baskın olan üçgenler: J_Bip_L_LowerArm, L_Hand, L parmaklar, J_Sec_L_LowerSleeve, J_Sec_L_TipSleeve. VRM L = figürün solu = perde kolu (arms[0]).\n  - grup 1: geri kalan.\n- Normalde `material = [m, m]`; sap kamerasında `[m, GIZLI]`, GIZLI = MeshBasicMaterial({visible: false}). r128 visible false olan grup malzemesini çizmez.\n- Face, Hair, Gözlük, Cam ve Choker ağları komple gizlenir.\n- Shader'a ve discard'a gerek yok. MToon dış hattı aynı grupları kullanır.\n\n(k) Görünürlük:\n- setFigVisible'a kanca: `if (fig.setVisible) return fig.setVisible(v, headCam)`. M.headCam de bunu çağırır.\n- Vekil ağları HER ZAMAN object.visible = false. material.visible=false kullanılmaz, çünkü sync-check maskesi malzemeyi değiştirir ve vekili siyah çizerdi. holder.visible = v.\n\n(l) Ölçüm yüzeyi:\n- `fig.skinPoints(sel)` → boneTransform ile CPU deri örnekleri (morph hariç). oda-olcum ve deri-giriş ölçümleri bununla yapılır.\n- sync-check maskesi skinli ağlara `skinning = true` (yüzde `morphTargets = true`) olan bir K kopyası verir.\n\n(m) Askı yüzeyi (kanade/yuzey.js):\n- Omurga kemiklerine bağlı eliptik dilimler (ölçülen tablo), göğüs ve omuz elipsoitleri, boyun kapsülü.\n- Pelvise bağlı eliptik etek konisi: yarı genişlik y 1.12'de 0.15, 0.94'te 0.31, 0.64'te 0.45; ön 0.14 / 0.23 / 0.31.\n- strapAnchors aynı id'leri bu yüzeyden üretir: gogus, omuz, kurek, sirt, bel, kalca, karin. n ve r SDF'nin sonlu farklarından.\n- bodySdFn({legs}) bacak yerine eteği kullanır.\n\n(n) r128 tuzakları, uygulamada denetlenecek:\n- Değiştirilen her malzemede skinning ve morphTargets bayrağı.\n- bind() ile yeniden bağlarken bindMatrix verilir.\n- frustumCulled = false.\n- Aynı karede bayat matrixWorld okunmaz; commit sonunda updateMatrixWorld.\n- Morph etkisi 8'i aşarsa sessizce düşer: karıştırıcı öncelikle (göz > ağız > dil > duygu > squint) 8'e kırpar ve `active()` sayar.\n- holder hiçbir zaman aynalı gitar taşıyıcısının altına konmaz (negatif determinant yüz yönünü çevirir).\n- Dil iki evreli: s ≤ 0.5'te tongue_ac = 2s; sonra u = 2s − 1 ile tongue_ac = 1 − u, tongue = u. İkisinin ortak bağları (37 %55, 31 %30) toplamda sabit kalır.\n\n3) ÜYE KİMLİĞİ\n\n- id 'claude' kalır. Gerekçe: 13 şarkı çekim kaydı, araçlar ve rigs anahtarı ona bağlı. Yeniden adlandırmada eksik kalan her yer yönetmende sessizce geniş plana düşer (director.js:148, 173).\n- members.js: `MEMBER.claude = {name: 'KANADE', role: 'gitar', label: 'Kanade (gitar)', color: (görünüm kolu), bio: 'Sivri kulaklı, gözlüklü gitarist; grubun kurucusu, gitarını sap kamerasıyla çalar.'}`. Böylece pankart 'KANADE · GİTAR' olur, alt bant ve kadro kartı da değişir.\n- Metin güncellenecek yerler: index.html:89/98/103/152, app.js:121, README.\n- Bekçi: check.js her şarkının çekim listesindeki who'nun FIG'de olduğunu denetler, yoksa FAIL.\n- members/claude.js gövdeyi seçer: `KARAKTER = 'kanade'` varsayılan. `'manken'` geçiş boyunca donmuş taban ve yedek olarak kalır (soru). Duruş tabloları gövde başına bir nesneye taşınır (POZ.kanade / POZ.manken). HAND kullanımları `fig.hands[i].userData.spec` olur. Kanade'de vizör, hale ve kapüşon yok; üye ışığı kalır (venues uye katsayısı onu okur).",
+  "files": [
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\iskelet\\vrm-olc.mjs",
+    "role": "ölçüm: glb/VRM özeti (düğüm, kemik dinlenme konumları, skin, morph, blendshape grupları, MToon malzemeleri, dokular, firstPerson); çıktı vrm-olc.json"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\iskelet\\dugum.mjs",
+    "role": "ölçüm: saç dışı J_Sec kemikleri, skin eklem listeleri aynı mı, kemik başına ağırlıklı köşe sayısı"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\iskelet\\three-hook.mjs",
+    "role": "node --import kancası: 'three' → repo vendor (salt okur ölçüm)"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\iskelet\\yukle.mjs",
+    "role": "deneme: vendor GLTFLoader r128 ile node'da dokusuz ayrıştırma (171 ms), yapı ve isimler"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\iskelet\\olcu.mjs",
+    "role": "ölçüm: figür çerçevesinde iskelet, gövde ve etek dilimleri, kol/yen/bacak kalınlığı, HAND tablosu; çıktı olcu.json"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\iskelet\\gitar-erisim.mjs",
+    "role": "ölçüm: gitarın kilit noktaları (repo modülleri import), manken ve Kanade omuz erişim oranları"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\iskelet\\gitar-yeri.mjs",
+    "role": "tahmin: gitar dy/dz ızgarası, erişim oranları ve gövdenin ön yüze girişi"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\iskelet\\aktarim-deneme.mjs",
+    "role": "doğrulama: zincir eşleniği, iki-vektör kol tabanı, aynalı el + parmak kalibrasyonlu aktarım (mm) ve süre"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\iskelet\\sac-on.mjs",
+    "role": "ölçüm: göğüs önüne ve sırta sarkan saçın sınırları"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\iskelet\\tarayici-olc.mjs",
+    "role": "tek kısa tarayıcı ölçümü (swiftshader): fetch/ayrıştırma, ilk kare, A/B kare süresi; olc.html sayfasını C:/work kökünden servis eder"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\iskelet\\tarayici-yakin.png",
+    "role": "göz kontrolü: yönetmen yakın planında T-pozlu Kanade (unlit)"
+   },
+   {
+    "path": "src/assets/kanade/kanade.vrm",
+    "role": "YENİ (temel kol): VRM varlığı, karakter.vrm'in kopyası, 19 762 020 B; yanında kaynak.json (sha1/bayt/lisans) ve sac.json"
+   },
+   {
+    "path": "tools/kanade-iskelet.mjs",
+    "role": "YENİ (temel): node, three'siz üretici; VRM → src/sim/stage/kanade/iskelet.js; --denetle kipi"
+   },
+   {
+    "path": "src/sim/stage/kanade/glb.js",
+    "role": "YENİ (temel): glb ve accessor okuyucu, three'siz"
+   },
+   {
+    "path": "src/sim/stage/kanade/vrm.js",
+    "role": "YENİ (temel): readVrm, parseKanade (GLTFLoader + vrm eklentisi), preloadKanade, kanadeAsset, cloneAsset, setMaterialFactory"
+   },
+   {
+    "path": "src/sim/stage/kanade/iskelet.js",
+    "role": "YENİ, ÜRETİLMİŞ (temel): KANADE ölçü tablosu; elle düzenlenmez"
+   },
+   {
+    "path": "src/sim/stage/kanade/vekil.js",
+    "role": "YENİ (temel kurar, sonra beden kolu ayarlar): kanadeFigure: fig sözleşmesi, life/nod/stance/breathe/shoulder/setBlink/setVisible/attach/commit/secondary/skinPoints"
+   },
+   {
+    "path": "src/sim/stage/kanade/aktarim.js",
+    "role": "YENİ (temel): createTransfer(fig, asset) {calibrate, apply, err}; B(u,w), eşlenik, yukarıdan aşağı yerel dönüş"
+   },
+   {
+    "path": "src/sim/stage/kanade/yuzey.js",
+    "role": "YENİ (temel): Kanade gövde ve etek SDF'i, strapAnchors"
+   },
+   {
+    "path": "src/sim/stage/kanade/bolge.js",
+    "role": "YENİ (temel): baskın kemiğe göre indeks grupları, sap kamerası malzeme dizisi"
+   },
+   {
+    "path": "src/sim/stage/kanade/ifade.js",
+    "role": "YENİ (temel iskelet, sonra yüz kolu): blendShape karıştırıcı (≤ 8 morph), tongue(s), Blink"
+   },
+   {
+    "path": "src/sim/stage/kanade/ikincil.js",
+    "role": "YENİ (temel kayıt defteri, sonra saç-ikincil kolu): saç salınımı, ikiz zincirler, etek/yen/saç itmeleri"
+   },
+   {
+    "path": "src/sim/stage/kanade/el.js",
+    "role": "YENİ (el-gitar kolu): Kanade el sözleşmesi ince ayarları (avuç şekli, heel, pa, ab, uç yastığı)"
+   },
+   {
+    "path": "src/sim/stage/kanade/mtoon.js",
+    "role": "YENİ (görünüm kolu): MToon benzeri gölgelendirici ve malzeme fabrikası"
+   },
+   {
+    "path": "src/sim/stage/figures.js",
+    "role": "DEĞİŞİR (temel): makeHand spec, poseArm l1/l2 + fig.shoulder + armState, poseLegs boyları figürden, setFigVisible kancası; manken çıktısı birebir aynı kalır"
+   },
+   {
+    "path": "src/sim/stage/rigs.js",
+    "role": "DEĞİŞİR (temel): life → fig.life kancası, blink → fig.setBlink, pose sonrası fig.commit, secondary/ready/whenReady"
+   },
+   {
+    "path": "src/sim/sim.js",
+    "role": "DEĞİŞİR (temel): ready, whenReady (yazı tipi + Kanade), strap'tan sonra rigs.secondary, manual render bekçisi"
+   },
+   {
+    "path": "src/sim/stage/members/claude.js",
+    "role": "DEĞİŞİR (temel: gövde seçimi; el-gitar: duruş tabloları)"
+   },
+   {
+    "path": "src/sim/band/members.js",
+    "role": "DEĞİŞİR (temel): görünen ad KANADE, label, bio"
+   },
+   {
+    "path": "src/harness.html",
+    "role": "DEĞİŞİR (temel): window.preloadKanade"
+   },
+   {
+    "path": "tools/browser.js",
+    "role": "DEĞİŞİR (temel): ready() içinde preloadKanade bekler, hata olursa throw"
+   },
+   {
+    "path": "src/app/app.js",
+    "role": "DEĞİŞİR (temel): ön-yükleme, yedek vekil görünümü, metinler"
+   },
+   {
+    "path": "tools/sync-check.mjs",
+    "role": "DEĞİŞİR (temel): ready denetimi, fig.shoulder, skinli maske malzemesi, kanade bölümü (aktarim_mm, morph, deri girişi)"
+   },
+   {
+    "path": "tools/oda-olcum.mjs",
+    "role": "DEĞİŞİR (temel): bağ pozu köşeleri yerine fig.skinPoints"
+   },
+   {
+    "path": "tools/check.js",
+    "role": "DEĞİŞİR (temel): Kanade takıldı mı, who∈FIG bekçisi, rng durum bekçisi"
+   }
+  ],
+  "contracts": [
+   "fig (Kanade) - sözleşme alanları (tüketici dosya:satır → Kanade'nin sağladığı):\n- g (rigs.js:31; director.js:142, 184; sync-check.mjs:377; oda-olcum.mjs:39) → kök Group, CHAR'da, ry 0, yerde.\n- up (rigs.js:56-64; sync-check.mjs:362, 377) → pelvis grubu (hips eklemi). up.position/rotation'ı fig.life yazar. fig.sh = dinlenme omzu pelvis çerçevesinde (±0.108, 0.370, −0.012).\n- torso (rigs.js:59; figures.js:174, 188) → chest grubu (Object3D, ölçek kullanılmaz). Nefes fig.life(L).br ile uygulanır.\n- head, headY, hip (rigs.js:16, 66; figures.js:238 restHead; sync-check.mjs:357, 538; check.js:117) → head eklemi grubu; hip = 1.0207, headY = 0.554, restHead = kafa merkezi y 1.575.\n- arms[i] = {up, fo, el} (figures.js:254; sync-check.mjs:215, 275-279; oda-olcum.mjs:39) → görünmez kesik koni ağları (sync-check radiusTop/Bottom ve scale okur). Yarıçap yen ölçüsünden: üst kol 0.055, ön kol 0.06 → bilek 0.09. el = dirsek küresi.\n- hands[i] (claude.js; sync-check.mjs:189-287) → makeHand(scene, skin, KANADE.hand.L/R + el.js). userData: fingers / tip / r / palm / heel / bones / spec. hands[0].scale.x = −1 (aynalı).\n- reach, armLen, l1, l2 (figures.js:243; claude.js:145; sync-check.mjs:345) → l1 0.2193, l2 0.2143, armLen 0.4336, reach = l2.\n- legs (figures.js:191, 226) → uyluk/baldır/diz/ayak vekilleri; fig.legLen = [0.3958, 0.4492].\n- nod(a), stance(s) (rigs.js:65, 67) → Kanade uygulaması (boyun 0.35, kafa 0.65; iki kemikli bacak IK).\n- strapAnchors(now), bodySd(p), bodySdFn(o), strapSide (strap.js:294-299; sync-check.mjs:205-206) → yuzey.js; aynı id'ler, etekli SDF; strapSide = 1.\n- ph, sway (rigs.js:56) → ph = rand()·6.28; kurulumdaki TEK rand() çağrısı.\n- eyes, eyeY, blinks (rigs.js:15-27) → eyes boş kalır; blinks rand ile aynen kurulur.",
+   "fig (Kanade) - YENİ alanlar:\n- life(L): L = {rx, rz, ry, drop, br, nod, look, spread}.\n- breathe(br).\n- shoulder(i, T?, out) → köprücük sonrası dünya omzu.\n- armState[i] = {S, E, T, n}.\n- setBlink(w).\n- setVisible(v, headCam).\n- attach(asset), ready, whenReady(ms).\n- commit(now, wall): aktarım + ifade + matris güncellemesi.\n- secondary(ctx): strap'tan sonra; ctx = {now, wall, p, model, strap}.\n- skinPoints(sel).\n- expr (karıştırıcı).\n- vrm = {root, holder, bones: Map, meshes, faceMeshes, err_mm}.",
+   "Varlık sözleşmesi (vrm.js): Asset = {root, holder, meshes (21 SkinnedMesh), faceMeshes (9, parent 'Face'), bones: Map(ad → Bone, 222), skeleton (paylaşılan), vrm: readVrm(json), json}.\nGarantiler:\n- her ağda material.skinning === true;\n- yüz ağlarında morphTargets === true;\n- frustumCulled === false;\n- bindMatrix kimlik;\n- bolge.js grupları kurulmuş.\nMalzemeyi yalnız setMaterialFactory(fn) değiştirir: fn(mesh, vrmMaterial, getTex) → Material, ya da Material[] (grup dizisi korunur).",
+   "Hazır sözleşmesi:\n- window.preloadKanade(ms) → Promise<Asset>, sayfa başına tek yükleme.\n- browser.js ready() bunu loadFonts'tan sonra bekler; hata olursa throw.\n- sim.ready (bool) ve sim.whenReady(ms) yazı tipi ve Kanade'yi birlikte kapsar.\n- manual sim'de ready değilken render() hata atar.\n- Eski SRC ağaçlarında fonksiyon yoksa atlanır.",
+   "Aktarım sözleşmesi (aktarim.js):\n- Zincir kemikleri: yerel q_V = (−x, y, −z, w) of q_F; hips.position_V = (−x, y, −z) of pelvis_F.\n- Kol: R = B(u, w)·B(u0, w0)⁻¹; ön kol burulma payı α = 0.5.\n- El ve parmak: W = P_now·P_rest⁻¹·Q_holder; P_rest kurulumda kalibrasyonla alınır. El çerçevesi tanımı üreticiyle aynı: y = orta parmak kökünün yataya izdüşümü, z = aşağı, x = y×z.\n- Yerel dönüş yukarıdan aşağı elle hesaplanır. err_mm ≤ 0.5.",
+   "İfade sözleşmesi (ifade.js):\n- set(grup, w) için grup adları blendShapeMaster'dan: Neutral A I U E O Blink Blink_L Blink_R Angry Fun Joy Sorrow Surprised Extra smug tongue tongue_ac squint.\n- tongue(s): s ≤ 0.5 → tongue_ac = 2s; sonra u = 2s − 1 → tongue_ac = 1 − u, tongue = u.\n- apply(): her karede sıfırdan toplar; hedef başına [0, 1] kırpar; en çok 8 hedef, öncelik göz > ağız > dil > duygu > squint; 9 yüz alt ağına aynı dizi yazılır.\n- active() → etkin hedef sayısı (ölçüm için).",
+   "İkincil sözleşme (ikincil.js): kayıt defterine sırayla saf işlevler eklenir: saç, etek, yen. Her biri her karede kemiğe dinlenmeden yazar.\nİkiz kuralı (karakter_sac.json): J_Sec_Hair_<ad>_Govde_<k>.quaternion = J_Sec_Hair_<ad>_<k>.quaternion. Dinlenme kimlik olduğu için 'dinlenmeye göre aynı dönüş' aynı yerel dörtlük demek.\nSınırlar sac.json'dan: perçem gözlüğe doğru 2-9°, arka saç sırta doğru 2-7°.",
+   "Sap kamerası sözleşmesi (bolge.js):\n- Body ve Tırnak alt ağlarında groups[0] = perde ön kolu, eli ve alt yeni; groups[1] = geri kalan.\n- setHeadCam(true): material = [m, GIZLI]; Face, Hair, Gözlük, Cam ve Choker ağlarında visible = false.\n- setHeadCam(false): material = [m, m].",
+   "Kimlik sözleşmesi:\n- Üye id'si 'claude' (yuva anahtarı): FIG.claude, parts.claude, şarkılardaki who:'claude', MEMBER.claude.\n- Görünen ad yalnız MEMBER.claude.name/label/bio'dan gelir ('KANADE', 'Kanade (gitar)').\n- check.js her çekimin who'sunun FIG'de olduğunu denetler."
+  ],
+  "numbers": [
+   "VRM: 19 762 020 B. JSON 143 590 B, BIN 19.6 MB; dokular 14.19 MB (29 PNG; 2048² Tops 4.86 MB, Body 2.28 MB, Body_nml 2.22 MB; küçük resim 0.64 MB).",
+   "Tekil köşe: Face 2055, Body 6641, Hair 18106, Gözlük 2590, Cam 432, Choker 2081, Tırnak 2520. Üçgen 51 682. Morph: 58 hedef, yalnız POSITION, 1.43 MB.",
+   "İskelet: 54 insansı kemik, 222 skin eklemi (7 skin aynı), 119 saç, 49 Govde ikizi, 36 diğer J_Sec (etek, yen, göğüs). 229 düğümde dinlenme dönüşü 0, ölçek 0. IBM ↔ dinlenme sapması 7.5e-9.",
+   "GLTFLoader r128: node'da dokusuz ayrıştırma 171 ms. Oluşan: 21 SkinnedMesh, 21 Skeleton (paylaşılan 222 Bone). Bölüm başına malzeme çağrısı 19.",
+   "Tarayıcı (swiftshader, BelowNormal): fetch 614 ms, ayrıştırma 1121 ms, ilk kare 4870 ms, ikinci kare 669 ms. Sürekli kare A/B: yakın 428/634 ve 476/575 ms (−1%), geniş 711/552 ve 656/475 ms (−10%), gürültü içinde. Heap 125 MB.",
+   "Aktarım hatası: zincir 0.0000 mm (20 poz); kol 0.0000 mm (40 poz); aynalı el + işaret 0.096 mm (30 poz). Deri köşesi kayması ≤ 0.75 mm. Kalibrasyon çerçevesi farklıyken 5.0-8.85 mm. Maliyet kemik başına 1-3 µs, 60 kemikte 0.06-0.18 ms/kare.",
+   "Ölçüler (F çerçevesi, m): hips 1.0207, spine 1.0736, chest 1.1876, upperChest 1.3185, neck 1.4331, head 1.5103, göz 1.5692; upperArm (±0.108, 1.3909); el ±0.541; kol 0.2193 + 0.2143; uyluk 0.3958; baldır 0.4492; platform taban 0..0.183. Manken karşılıkları: omuz ±0.21, y 1.44; kol 0.32 + 0.32; kafa merkezi 1.67.",
+   "El: işaret kökü y 0.0653 (manken 0.081); orta 0.0663; KNUCKLE ~0.066 (manken 0.079). Avuç x ±0.035, y 0.003..0.071.",
+   "Beden: göğüs yarı genişliği 0.10-0.13, önü z 0.125-0.139. Ön yüz x≈0: y 1.00'da 0.210, 0.95'te 0.229. Etek yarı genişliği y 0.94'te 0.31, 0.64'te 0.45. Ön kol yeni p50 0.064, p95 0.093; TipSleeve p95 0.10. Arka saç y 1.125'e iniyor.",
+   "Erişim (bugünkü gitar, oran = uzaklık / (kol + el ofseti)): Kanade pena 0.998, 1. perde 0.675, 24. perde 0.894; manken pena 0.778, 24. perde 0.714.",
+   "TAHMİN (gitar yeri): dy +0.15..+0.20, dz +0.08..+0.10. Bu bölgede pena 0.75-0.85, 1. perde 0.74-0.78, 24. perde 0.69-0.78, giriş ≤ 2 mm (bugün ~142 mm). Kamera bakışı için tahmin: FRAME.guitar.look ≈ −0.39 (bugün −0.68).",
+   "Git: pack 74.2 MB; VRM ile ~94 MB; her VRM sürümü +19.8 MB.",
+   "Ölçüm hedefleri:\n- aktarim_mm ≤ 0.5 (dagkrali tüm şarkı);\n- rng durumu 11/11 şarkıda AYNI;\n- ses özeti aynı;\n- determinizm hepsi aynı;\n- render W=0..2 ile N=1 PNG bayt-eşit (10 kare);\n- morph etkin ≤ 8;\n- ön-yükleme ≤ 3 s, ilk kare ≤ 6 s;\n- commit ≤ 1 ms/kare;\n- MToon ile kare ≤ manken + %25 (A,B,A,B);\n- deri girişi (yen/etek ↔ gitar) ≤ 3 mm."
+  ],
+  "risks": [
+   "Rastgele akış (ses programı): Kanade kurulumu figures.js:142'deki tek rand()'dan farklı sayıda çekerse ya da yükleme/aktarım rand() kullanırsa ses sessizce değişir. Önlem: check.js'te seed 1 için createRigs ve load sonrası rng.getState sabitle karşılaştırılır; tur4 rng-ab yöntemiyle 11 şarkı sınanır.",
+   "Eşzamansız yarış: ön-yükleme bitmeden çizilen kare işçiler arasında farklı olur. Önlem: browser.js ready() ön-yükler; manual sim'de ready değilken render() hata atar.",
+   "r128 skinli ağlar sessizce T-pozunda çizilebilir: material.skinning (yüzde morphTargets) false ise (three.module.js:11122), ya da ölçüm maskesi malzemesinde (sync-check.mjs:433-434). Bind yeniden yapılırken matrixWorld verilirse ve bağ pozu küresiyle kırpma olursa da bozulur. Önlem: varlık garantileri ve yükleme sonrası assert; frustumCulled = false.",
+   "Ölçüm araçları skinli ağın köşe özniteliğini okursa T-pozunu ölçer (oda-olcum.mjs:39, Box3.setFromObject). Önlem: holder fig.g dışında; fig.skinPoints (boneTransform) kullanılır.",
+   "Kısa kol ve dar omuz: bugünkü gitar yerinde pena kolu dümdüz (0.998). Gitar taşınınca sap kamerası kendiliğinden izler, ama yörünge hedefi (scene.js:43), yönetmen FRAME/ROOM bakışları (director.js:24-34) ve oda CAMERA.subject (layout.js:84) yeniden ayarlanmalı. Duruş tabloları (FRET_LO/HI, KNUCKLE, FIST, THUMB, ZETA, POLE_P, PM_K...) baştan aranmalı.",
+   "Etek ve yen çakışması: etek üstü Hips'e ağırlıklı (y 0.94-1.06), etek kemikleriyle itilemez. Pena kolunun çan yeni bilekte ~9 cm yarıçaplı ve gitar gövdesine girer. Durumsuz itme gerekir: etek ve yen kemikleri, gerekirse gölgelendiricide gitar arka düzlemi itmesi. Sap kenarında görünür kesişme riski.",
+   "Askı ve saç: arka saç y 1.125'e kadar sırtı kaplıyor; askı bunun altından geçer. Saç itmesi askının son halini görmeli; bu yüzden secondary strap'tan sonra çağrılır. Sıra yanlış olursa saç askıyı keser.",
+   "Morph bütçesi: squint (6 hedef), dil geçişi (4) ve Joy/Blink birlikte 11 hedefe çıkar; r128 en küçükleri sessizce düşürür, ifade titrer. Önlem: karıştırıcı önceliği ve active() ölçümü.",
+   "Kalibrasyon çerçevesi: üretici ile çalışma zamanının el çerçevesi tanımı farklı olursa 5-9 mm kayma çıkar (ölçüldü). Önlem: aynı kod, tablo + kalibrasyon testi; L/R asimetrisi ~0.5 mm olduğu için el başına ayrı spec.",
+   "Test süresi: her taze sayfada ~1.7 s ön-yükleme ve ~4.9 s ilk kare var. check.js (~23 sayfa) ve sync-check (çok sayıda fresh) dakikalarca uzar. GPU bellek: 3 adet 2048² doku ve mipmap.",
+   "Kimlik: id yeniden adlandırılırsa unutulan her who:'claude' sessizce geniş plana düşer (director.js:148, 173). Önlem: id kalır ve check.js bekçisi eklenir.",
+   "Repo boyutu: her VRM sürümü +19.8 MB. LFS seçilirse CI'da lfs: true ve GitHub kotası gerekir.",
+   "Oturuş (sonraki tur): gitar duruşa göre yerleşmeli ve placeCams yeniden çağrılmalı (bugün yalnız kurulumda, sim.js:192). Pelvis yatağa taşınır, bacak IK ayaklar yerden kalkacak şekilde genelleşir. Tasarım bunları engellemiyor (frustumCulled false, kök sabit, aktarım duruştan bağımsız) ama gitar yerleşimi sabit sabit kalırsa engeller.",
+   "Görünüm: vizör ve hale kalkınca bloom ve flaş yanıtı değişir. Yeni gölgelendirici GPU=1'de NaN üretebilir (deneyim defterindeki tuzak). Görünüm kolu A,B,A,B ve GPU=1 karesiyle ölçmeli."
+  ],
+  "order": [
+   "0. Temel kol (seri, tek sahip; diğer kollar bunu bekler):\n- src/assets/kanade/ (vrm, kaynak.json, sac.json).\n- glb.js, tools/kanade-iskelet.mjs → iskelet.js.\n- vrm.js: eklenti, paylaşılan iskelet, klon, ön-yükleme.\n- figures.js genelleştirmeleri (manken çıktısı birebir aynı: KARAKTER=manken ile sync-check BASE farkı boş).\n- rigs.js kancaları; sim.js ready/whenReady/secondary/bekçi.\n- vekil.js (yapı ve varsayılan sayılar), aktarim.js (kalibrasyon ve öz denetim), yuzey.js, bolge.js.\n- ifade.js iskeleti (Blink), ikincil.js kayıt defteri.\n- claude.js gövde seçimi; members.js ad değişikliği.\n- harness.html, browser.js, app.js.\n- Araçlar: sync-check ready/shoulder/skinli maske/kanade bölümü, oda-olcum skinPoints, check.js bekçileri.\nKabul: rng 11/11 AYNI, ses özeti aynı, determinizm, aktarim_mm ≤ 0.5, render çok işçi = tek işçi. Eller manken tablolarıyla hâlâ yanlış yerde; bu beklenen durum.",
+   "1a. El-gitar kolu: gitar yerleşimini GUITAR_STAND sabitine taşır (guitar-model.js:21-24; aramayla, başlangıç dy +0.15..+0.20, dz +0.08..+0.10). scene.js orbit hedefini gitardan türetir. claude.js duruş tablolarını (POZ.kanade) ve kanade/el.js'i sahiplenir. Arama betikleri out/ altında: bodySd, skinPoints, erişim. Ölçüm: sync-check el.*, kolGovde (deri).",
+   "1b. Görünüm kolu: kanade/mtoon.js (MToon benzeri + dış hat, gruplu malzeme dizisi uyumu), setMaterialFactory bağlantısı, beam/ışık renkleri, bloom bütçesi. Ölçüm: A,B,A,B kare süresi, GPU=1 NaN, luma istatistikleri.",
+   "1c. Saç-ikincil kolu: kanade/ikincil.js. İçerik: durumsuz saç salınımı (sac.json sınırları), Govde ikizleri, gözlük/sırt/askı itmesi, gitar ↔ etek itmesi, yen itmesi. Ölçüm: deri girişi ≤ 3 mm, açı sınırları.",
+   "1d. Yüz-ifade kolu: kanade/ifade.js ve members/kanade-yuz.js (p, t'nin saf işlevi). Kapsam: göz kırpma, ağız, iki evreli dil, smug, bakış (göz kemikleri, firstPerson xRange 90 → yRange 12/10), nötr göz squint düzeltmesi. Ölçüm: active() ≤ 8, süreklilik.",
+   "1e. Beden kolu: kanade/vekil.js'teki life dağılımı, nefes, köprücük kazançları, nod payı, bacaklar. Dosya temelden devralınır. Ölçüm: sync-check ritim, kafa eğimi, erişim dışı %.",
+   "2. Kamera kolu (1a'dan sonra, gitar yeri kesinleşince): director.js FRAME/ROOM/FOV Kanade'ye; FRAME.guitar bakışı gitardan türetilir. layout.js CAMERA.subject. Ölçüm: sync-check kadraj, oda-olcum kamera.",
+   "3. Cila ve birleştirme: README ve metinler. Manken yolunun kaldırılması (kullanıcı onayıyla). Tam render ve kulak/göz kontrolü.",
+   "Sahiplik kuralı: sync-check'e her kol kendi ölçüm işlevini ayrı dosyadan ekler (tools/olcum/<kol>.mjs) ve sync-check yalnız içe aktarır. Böylece birleştirme çatışması olmaz. claude.js'e önce temel, sonra yalnız el-gitar kolu dokunur."
+  ],
+  "openQuestionsForUser": [
+   "VRM repoya doğrudan girsin mi? Pack 74 → ~94 MB, her sürüm +19.8 MB, yalnız kabul edilen sürümler commitlenir. Yoksa Git LFS mi? LFS'de CI'da lfs: true ve GitHub kotası gerekir.",
+   "İç id 'claude' kalsın, yalnız görünen ad KANADE mı olsun (önerim)? Yoksa id de 'kanade' mi olsun? O durumda 3 şarkının çekim listesi ve araçlar değişir; eksik kalan yer sessizce geniş plana düşer.",
+   "'Claude'un doğaçlaması' şarkı adı 'Kanade'nin doğaçlaması' olsun mu? Ses değişmez; video dosya adı ve odadaki plak etiketi değişir.",
+   "Gitar sahnede ~15-20 cm yukarı ve ~8-10 cm öne taşınabilir mi? Kanade'nin kolu bugünkü yere yetişmiyor; bu bütün kamera kadrajlarını yeniden ayarlatır.",
+   "Manken, geçiş boyunca donmuş yedek ve ölçüm tabanı olarak (KARAKTER=manken) kalsın mı, yoksa hemen kaldırılsın mı?",
+   "VRM yüklenemezse: araçlar hata verip dursun (önerim); önizleme sayfası gri vekil ve uyarıyla açılsın. Uygun mu?"
+  ],
+  "artifacts": [
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\iskelet\\vrm-olc.json",
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\iskelet\\olcu.json",
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\iskelet\\tarayici-yakin.png",
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\iskelet\\aktarim-deneme.mjs",
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\iskelet\\gitar-yeri.mjs",
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\iskelet\\tarayici-olc.mjs",
+   "C:\\Users\\kullanici\\.claude\\experience\\experience.md (6. bölüm, three r128 matrixWorld maddesine ek: SkinnedMesh bağ pozu, skinning bayrağı, decompose det davranışı)"
+  ]
+ },
+ {
+  "summary": "Salt okur tasarım bitti, repo dosyalarına dokunulmadı (git status: yalnız benden önce de değişmiş olan README.md). Kanade'nin VRM'i node'da ayrıştırıldı. Ölçülenler: malzemeler, dokular, morph hedefleri, ağırlıklar, zincirler, etek profili, yüz katman aralıkları ve çene ile kilit arasındaki örtme. Tek ve kısa bir swiftshader tarayıcı denemesi de yapıldı (oyun kapısı her koşudan önce kontrol edildi, pencere açılmadı). Bu denemede iki MToon benzeri ShaderMaterial kuruldu ve maliyetleri karşılaştırıldı: piksel başı ışıklı ve köşe ışıklı. Yakın planda Kanade'nin karta eklediği süre: piksel başı ışıkla +144 ms, köşe ışıklı (VLIT) + yalnız saçta normal haritası + ucuz konturla +77 ms; ikisi görsel olarak neredeyse aynı. Öneri: kendi ShaderMaterial'ımız (lights:true), ışık döngüsü köşede, parçada tek toon basamağı. İfade grupları göz ve ağız parçalarına ayrılıp tek hedefe pişiriliyor (26 hedef); ruh hali, dil, göz kırpma ve bakış zamanın saf fonksiyonu; bir anda en çok 8 etkin morph tasarım gereği. Saç ve etek: durum tutmayan, ikinci derece süzgeçten geçmiş salınım (geçmiş pozlar yeniden hesaplanır) + sözleşme sınırları + durumsuz itme. Kamera: çene kilidi örtmesinin asıl nedeni kamera yüksekliği değil baş eğimi çıktı (ölçüldü); kural: boyun+baş toplam eğimi en çok 20°, bakış göz kemikleriyle. Kanıtlar dosya:satır ile, ölçülen sayılar tahminlerden ayrı.",
+  "findings": [
+   "ÖLÇÜM (VRM): 7 ağ, 21 primitive, 51.458 üçgen (konturla +11.964), 34.4k köşe, 19 malzemenin hepsi VRM/MToon (KHR_materials_unlit), 29 doku (2048² olan üç doku: Body, Body_nml, Tops). 7 skin'in hepsi aynı 222 eklemi kullanıyor, IBM farkı 0. Dinlenmede bütün düğüm dönüşleri birim: yerel eksen = dünya ekseni. jaw kemiği yok.",
+   "ÖLÇÜM (r128 kaynağı): GLTFLoader her primitive'e ayrı Skeleton kuruyor (GLTFLoader.js:3664-3697), yani 21 iskelet. Tek iskelete bağlayınca CPU 0.84 → 0.10 ms/kare (tarayıcıda ölçüldü). Dokular örnekleyiciden LINEAR/LINEAR alıyor, mipmap yok (GLTFLoader.js:2613; VRM sampler 0 = 9729/9729): 2048² dokular geniş planda pürüzlü görünür.",
+   "ÖLÇÜM (dokular): FaceEyelash dokusunun en büyük alfası 0, kirpik primitive'i tamamen görünmez → atılmalı. Hair_00_01/02 kullanılan UV'lerde alfa hep 1 (MASK işe yaramıyor) → opak çizilir, discard olmaz. Body_SKIN'de 7732 üçgenin 1700'ü, Tops'ta 72'si, Shoes'ta 98'i alfa ile tamamen kesik. Matcap_RimHair p90 parlaklığı 1.0, yani bloom riski var (eşik 1.0, finish.js:70).",
+   "ÖLÇÜM (malzemeler): hepsinde _LightColorAttenuation 0, _IndirectLightIntensity 0.1, RimColor siyah, EmissionColor 0. Her malzemede _ShadeTexture _MainTex ile aynı doku, tek okuma yetiyor. Yüz, saç ve HairBack'te ShadeShift −1. Kontur yalnız Face/Body/Tops/Shoes'ta: genişlik 0.075 dünya kipinde = 0.75 mm, renk (0.27, 0.09, 0.13).",
+   "ÖLÇÜM (morph): Face'in 58 hedefinde yalnız POSITION var (normal yok) → r128'de 8 yuva (three.module.js:15305-15319, en büyük 8 seçiliyor). Bağlamalar: smug = MTH_Joy 75 + MTH_Fun 20 + EYE_Close 22 + EYE_Angry 35 + BRW_Angry 15; squint = EYE_Close 45 + EYE_Joy 15 + EYE_Angry 45 + BRW_Angry 35 + MTH_E 12 + MTH_Angry 25; tongue ve tongue_ac = MTH_A 55 + MTH_Joy 30 + kendi hedefi (56/57). Blink + smug göz kapağını %122, blink + squint %145 kapatır (EYE_Close en çok 29.2 mm) → kapak ötesine taşma.",
+   "ÖLÇÜM (yüz katmanları, dinlenme): İris → Göz akı p10 1.11 mm, medyan 3.8 mm; Parıltı → İris medyan 0.40 mm; Göz çizgisi → Deri p10 0.15 mm, medyan 0.89 mm. Composer tamponunun derinliği 16 bit (finish.js:66; three.module.js:21159-21187). Kuantum ≈ z²/(near·65536): yakın plan 0.8 mm, bel planı 1.2 mm, geniş plan 6 mm. Göz akı iristen sonra çizilirse iris kaybolur → renderOrder + 24 bit derinlik (stencilBuffer:true, three.module.js:21193-21203).",
+   "ÖLÇÜM (swiftshader 1280×720, medyan 7, dönüşümlü): taban 107-119 ms. Kanade'nin eklediği: geniş planda temel +11 / piksel başı MToon +24 / VLIT+saç normali +20; bel planında +27 / +79 / +46; yakın planda +38 / +144 / +77. Ayrıca yakın planda normal haritaları ~15 ms; ışık hesabıyla discard'lı kontur ~31 ms (ilk koşu). Kurulum: fetch 130-210 ms, glTF ayrıştırma 480-590 ms, ek dokular 150-265 ms, ilk kare (derleme + yükleme + mipmap) 2.4-3.1 s.",
+   "ÖLÇÜM (renk, öndeneme kareleri): oda ışığında ışık rengi doygunsuzlaştırılmadan (desat 0) saç tonu 32°, doygunluk 0.53, yani ALTIN; desat 0.6 ile ton 359°, doygunluk 0.17 (gümüş-pembe). MToon kesmesi (kazanç 1, min(col,lit)) yüz derisini L 0.91'e götürüp düzleştiriyor; kazanç 0.45-0.6'da L 0.84-0.88. Mavi kenar ışığı 0.35'te siyah elbiseyi L 0.24'e (leylak) çıkarıyor, çok güçlü.",
+   "ÖLÇÜM (çene ↔ kilit, ışın testi, kilit_olc.mjs): baş dik ve 20°'ye kadar eğikken yönetmenin bütün çekimlerinde (yüz, bel, gitar, kahraman, oda kahramanı, sahne φ 1.30-1.55) kilidin görünür oranı 0.97-1.00. 27°'de yakın planda 0.60, bel planında 0.88; göğüs hizasında (y 1.30) 0.9-1.3 m uzaklıktan 0.44-0.54. Yani 'göğüs hizasında çene kilidi örter' durumunun kökü baş eğimi; alttan bakan kamera dik başta 38°'de bile görüyor.",
+   "ÖLÇÜM (iskelet/zincir): 119 saç kemiği = Arka01-08 ×5 + ikiz Govde ×5 (ebeveyn: Arka01-02 R_Shoulder, 03-05 UpperChest, 06-08 L_Shoulder) + On01-03 ×3 + ikiz ×3 (Neck) + Capraz ×3×2 + Percem ×3×4 + Orgu ×3. Ağırlık kemik dizinine göre: 1:1591, 2:1734, 3:1235+1246G, 4:258+1382G, 5:34+2003G (uçlar ikizde). Saç y 1.125'e kadar iniyor. Askının geçtiği sol omuzda Arka06-08 var.",
+   "ÖLÇÜM (etek): 6 zincir × 4 kemik. Kemik 0 ile 1 belde aynı noktada, 2 ortada (y 0.85-0.88), 3 etek ucunda (0.68-0.75). Ağırlık yalnız 1 ve 2'de (223 köşe). Ön zincirler UpperLeg'e, yanlar Hips'e bağlı. Elbise önü y 1.06'da merkezin 0.189 m önünde (deri 0.112); etek y 0.86'da 0.25, ucu y 0.54'te 0.33 m. Arka kabarma y 0.62'de +0.404'e çıkıyor: odada yatak kenarı kökün 0.23 m gerisinde (layout.js BED.frame.z1 −0.42, CHAR.z −0.19), çömelmede (drop ≤ 7.5 cm, claude.js:412) etek örtüye girer.",
+   "KAYNAK: rigs.js:18-19 göz kırpma listesi rand() tüketiyor, figures.js:142 de bir rand() çağırıyor; ses akışı buna bağlı. Kanade'nin build'i tam bir kez rand() çağırmalı, listenin üretimi aynen kalmalı. sync-check ses.ozet bunu ölçüyor (sync-check.mjs:503-522). linearize() ShaderMaterial'ı atlıyor (finish.js:19) → VRM renkleri yüklemede sRGB→lineer çevrilip userData.linear=true konmalı.",
+   "KAYNAK: sim.update sırası rigs → … → director → applyRoster → strap (sim.js:92-105). Bakış kameraya, saç itmesi askıya ihtiyaç duyuyor → strap.update'ten sonra çağrılan bir 'late' kancası gerekli. guitarSd (strap.js:30-51) dışa açık değil; etek ve saç itmesi için export edilmeli. HUD/pankart etiketi MEMBER[k].name + role'den geliyor (banner.js:19).",
+   "ÖNDENEME TUZAĞI: r128 '#pragma unroll_loop' döngü gövdesini süslü parantezsiz kopyalıyor; yerel 'vec3 c' redefinition hatasıyla derlenmiyor ve kare ölçümleri yanıltıcı ölçüde 'ucuz' çıkıyor. İç blok gerekli. Deneyim defterine eklendi (iskelet tuzağıyla birlikte)."
+  ],
+  "proposal": "KANADE GÖRÜNÜM TASARIMI (uygulama turu için)\n\nA. VARLIK VE YÜKLEME — src/sim/stage/kanade/vrm-data.js + vrm.js\n- karakter.vrm ve karakter_sac.json → src/assets/kanade/ (serve.js .vrm'i octet-stream verir; kullanıcı onayı gerekli, 19.8 MB).\n- vrm-data.js saf (three'siz, node'da test edilir): glb → {json, accessor(i) → TypedArray, vrm: materialProperties, blendShapeGroups, humanoid, firstPerson}.\n- vrm.js: loadVRM(url) → Promise<VRMRig>. Adımlar:\n  - GLTFLoader.parse (vendor r128; importmap aynı modülü verir).\n  - VRM dokuları parser.getDependency('texture', i) ile alınır; yalnız kullanılanlar. Body/Face/HairBack normal haritaları YÜKLENMEZ, saç normali yüklenir.\n  - Renk dokularına LinearMipmapLinear + generateMipmaps.\n  - 21 SkinnedMesh tek iskelete bağlanır.\n  - Kirpik primitive'i atılır. EyeExtra yalnız Extra > 0 iken görünür.\n  - Alfa ile tamamen kesik üçgenler indeksten silinir (Body 1700, Tops 72, Shoes 98 üçgen).\n  - Saç opak, discard yok.\n  - frustumCulled=false.\n  - renderOrder renderQueue'dan: opak 0, iris 1 (göz akından sonra), saydam 3000 → 2, kirpik 4500 → 3, cam 4600 → 4.\n  - Kontur kabukları ayrı Mesh olarak; aynı geometri, iskelet ve morphTargetInfluences dizisi.\n  - aRegion niteliği (bölge maskesi) skin ağırlığından pişirilir (aşağıda B6).\n  - Kök: rotation.y=π, konum fig kökü (0.2, FLOOR, −0.19).\n  - rand() kullanılmaz; senkron build'de tam bir rand() (fig.ph). VRMRig hazır olana dek sim.whenReady bekler (canvas-tex.js:33-34'e ek bekleyen).\n\nB. MALZEME — src/sim/stage/kanade/mtoon.js: createMToon(mp, texOf, cls, o) ve createMToonOutline(mp, texOf, cls)\nKarar: ShaderMaterial (lights:true, fog:true, skinning:true, morphTargets, extensions.derivatives) + three parçaları (common, bsdfs, lights_pars_begin, skinning, morphtarget, fog). Neden MeshToon değil: gölge rengi, kayma, yumuşaklık, ışık rengi doygunsuzlaştırma, min(col,lit), kenar ışığı, matcap ve kontur yok, bunun için neredeyse her parçayı yamamak gerekir. Neden MeshStandard değil: PBR yansıma yanlış görünüş verir ve daha pahalı.\n\nB1. Köşe aşaması (VLIT):\n  - Lc = Σ desat(cᵢ·attᵢ)\n  - Ld = Σ Lᵢ·lum(cᵢ·attᵢ)\n  - E = Σ desat(cᵢ·attᵢ)·max(0, N·Lᵢ)\n  - Lh = desat(mix(½(sky+ground), hemi(N), _IndirectLightIntensity))\n  - Yardımcılar: desat(c) = mix(c, vec3(max3(c)), uDesat); lum, Rec.709 parlaklığı.\n  - Işık fonksiyonları r128'in getDirectional/Point/SpotDirectLightIrradiance'ı (π çarpanı yok).\n  - Açılan döngü gövdesi iç blokla yazılmalı.\n  - Kontur kabuğu: pos += N·max(0.01·_OutlineWidth·tOutlineW, uOutlinePx·2z/(P₁₁·H)), uOutlinePx = 0.7.\nB2. Parça aşaması:\n  - lit = sRGBToLinear(tMain)·_Color; ALPHATEST'te discard.\n  - shade = lit·_ShadeColor.\n  - t = smoothstep(_ShadeShift, _ShadeShift + max(1 − _ShadeToony, 1e−3), N·normalize(Ld)).\n  - col = (mix(shade, lit, t)·mix(Lc, E, uLambert) + Lh·lit)·uGain.\n  - col = min(col, lit).\n  - col += pow(sat(1 − N·V + RimLift), RimPow)·uRim·(Lc + Lh).\n  - MATCAP tanımlıysa col += sRGB→lin(matcap(V, N))·uMatcapK.\n  - col = min(col, 0.97): bloom'a hiç piksel girmez.\n  - Sis.\n  - Tanımlar: OUTLINE, ALPHATEST, NORMALMAP (yalnız saç), MATCAP, DOUBLE_SIDED. Kontur parçası ışıksız: OutlineColor·mix(1, min(Lc + Lh, 1), OutlineLightingMix); discard yok.\n  - NaN koruması: inversesqrt(max(dot,1e−8)), clamp'li pow. GPU=1 ile bir kez doğrulanmalı.\nB3. VRM → uniform eşlemesi: _Color, _ShadeColor ve _OutlineColor sRGB'den lineere (bir kez, userData.linear). _ShadeToony, _ShadeShift, _Cutoff, _IndirectLightIntensity aynen. _LightColorAttenuation yerine sınıf desat'ı. _RimColor (VRM'de 0) yerine mekânın kenar ışığı. _SphereAdd × sınıf katı; _OutlineWidth ×0.01 m. _EmissionMap kullanılmaz (Color 0). _BlendMode/_CullMode → transparent/side; renderQueue → renderOrder.\nB4. Sınıf ayarları (öndenemeyle ölçülen başlangıç):\n  - saç: desat 0.6, matcapK 0.35, normal haritası açık\n  - ten: desat 0.35, matcapK 0\n  - giysi: desat 0.3, matcapK 0.6\n  - göz: desat 0.5, kazanç ×1.15\n  - aksesuar: desat 0.5, matcapK 1\n  - uLambert 0.5: 0 saf MToon, 1 Blender önizlemesindeki MToon×Lambert'e yakın.\nB5. Mekân tonu, ENVS[env].kanade = {gain, rim:[hex, k, pow], lambert} (venues.js):\n  - kulüp: {0.55, [0x9fb4ff, 0.10, 4]}\n  - tiyatro: {0.7, [0xffb070, 0.08, 4]}\n  - zirve: {0.65, [0xbcd0ff, 0.12, 4]}\n  - oda: {0.8, [0xffd2a6, 0.06, 4]}\n  - Mekân değişince setTone uniformları yazar.\nB6. Sap kamerası: beden tek ağ. aRegion niteliği (0 baş, 1 gövde, 2-4 sol üst kol/ön kol/el, 5-7 sağ, 8 bacak, 9 etek) ve uHideMask kullanılır. Gizli bölgenin köşeleri gl_Position=(2,2,2,1) ile kırpılır; discard'sız, erken Z bozulmaz. Bu claude.js:434'teki headCam kancasının karşılığı.\nB7. Derinlik ve sıra: finish.js:66'daki RT'ye stencilBuffer:true (24 bit derinlik; genel değişiklik, poster testiyle doğrulanmalı). Ayrıca iris renderOrder 1. Saç, kirpik ve cam sıralaması A'daki gibi; nesne konumları eşit olduğu için z eşitliği id ile, belirlenimci.\nB8. Önizleme eşleme düzeneği: Blender 'studyo' ışıkları ve 'yuz' kamerası (ortak.py:340-352, 487-547: 85 mm, kare 0.34 m, hedef göz ortası −0.05) üç sahnede kurulur. son/yuz_studyo_T.png ile bölge ortalamaları karşılaştırılır (yüz, saç, yaka, elbise). Hedef ΔE00 ≤ 6. Ayarlanacaklar: uLambert, gain, matcapK.\n\nC. İFADE — src/sim/stage/kanade/face.js\nC1. Pişirme (yüklemede, saf): her grup göz ve ağız parçasına ayrılır.\n  - Ham hedef kategorisi: EYE_ ve BRW_ → göz; MTH_, HA_ ve Tongue → ağız.\n  - ALL_* hedefler dinlenme y maskesiyle bölünür: göz ≥ 1.540, ağız ≤ 1.528, arası doğrusal. Parçaların toplamı grup deltasına tam eşit.\n  - 26 hedef çıkar (yalnız POSITION, morphTargetsRelative). Dokuz yüz geometrisi aynı morphAttributes'u, ağlar aynı influences dizisini paylaşır.\nC2. Ruh hali (saf, p başına WeakMap). Girdiler: g = sm((I − 0.3)/0.45), x = texture(p, t), climax = director'daki doruk ve hits (clock.js'e climax(p) olarak taşınmalı).\n  - Puanlar:\n    - dingin 0.35\n    - sinsi sm((x.mute − 0.25)/0.4)·(1 − 0.7g)\n    - odak sm((x.dens − 3)/4)·(1 − x.mute)·(1 − g)\n    - coşku g·(0.4 + 0.6·x.chord)\n    - hüzün min(1, Σ_bükme a.w·e^(−((t − a.t)/0.35)²))·(0.3 + 0.7·balad(p)), balad = sm((90 − bpm)/25)\n  - Ağırlık: wₘ = max(0, Sₘ − S₍₃₎) (üçüncü puan çıkarılır). Böylece en çok iki ruh hali kalır ve geçiş sürekli; Σ > 1 ise ölçeklenir.\n  - Gruplar:\n    - dingin → squint.göz 0.2 (bilinen 'nötr göz biraz squint')\n    - sinsi → smug 0.85\n    - odak → squint 0.5\n    - coşku → Fun 0.6\n    - hüzün → Sorrow 0.45\nC3. Göz kırpma: rigs.js'teki seçilmiş anlar aynen kalır (rand sayısı değişmez); rigs blinkAt(fig, wall) dışa açar. u = (wall − T)/0.14, b = sm(1 − |2u − 1|). Blink.göz = b; öteki bütün .göz parçaları ×(1 − b). Böylece kapak taşması 0.\nC4. Dil (iki evreli):\n  - Olaylar: doruk ile hits arasındaki 'akor' ve 'sessizlik' vurguları (w ≥ 0.8), aralarında ≥ 8 sn, şarkıda en çok 4. Yalnız p ile seçilir; istenirse p.shots'taki yüzlü çekimlere kısıtlanır.\n  - Zarf: s = sm((t − tₐ)/0.20)·sm((tₐ + max(0.6 sn, 2 vuruş) − t)/0.30).\n  - Eşleme: tongue_ac = min(2s, 2 − 2s), tongue = max(0, 2s − 1). Dönüş aynı yoldan.\n  - Dil süresince öteki ağız hedefleri ×(1 − min(1, 2s)), Neutral dahil; doğrulanmış yol yalnız bu iki grup.\n  - Neutral.ağız = max(0, 1 − Σ ağız ruh hali − min(1, 2s)).\nC5. Yuva bütçesi: 2 ruh hali × 2 parça + Blink + tongue_ac + tongue + Neutral = 8. Hata ayıklamada sıfırdan farklı sayı ≤ 8 diye assert. A/I/U/E/O kullanılmaz (vokal yok).\nC6. Bakış: göz kemikleri J_Adj_L/R_FaceEye ile, VRM sınırları içe 8°, dışa 12°, aşağı 10°, yukarı 10°.\n  - Yakın, kahraman ve bel planında ve dingin/sinsi ruh halinde kameraya bakar (sinsi + göz teması). Odakta perdeye bakar (−10°).\n  - Ağırlıklar ruh hali ağırlıklarından, saf. Kamera gerektiği için late kancasında çalışır.\n\nD. SAÇ — src/sim/stage/kanade/sway.js (ortak süzgeç) + hair.js\nD1. Durumsuz salınım: kinAt(t, wall) poz kolunun saf fonksiyonu; baş, boyun, üst göğüs, omuzlar, kalça ve uylukların dünya matrislerini rigs.life'ın formülleriyle verir. Süzgeç:\n  - Çekirdek h(τ) = e^(−ζωτ)·sin(ω_d τ)/ω_d, w_k = h(kΔ)/Σh, Δ = 1/30, K = ⌈4/(ζωΔ)⌉.\n  - Kemik ucu: P̄ⱼ = Σ w_k·X(t − kΔ)·rⱼ, yani kafaya bağlı ucun geçmişinin süzülmüş hali. Dönmeyi ve öteleme eylemsizliğini birlikte verir; aşma (savrulma) negatif lobdan gelir.\n  - Yerçekimi: d' = slerp(normalize(P̄ⱼ₊₁ − P̄ⱼ), d₀ᵂ, γ). d₀ᵂ dik baştaki dinlenme yönü; γ arka 0.3, ön 0.15, perçem 0.\n  - FK ile kökten uca: qⱼ = dinlenme yönünden d''ye dönüş. Uca doğru ωⱼ = ω·(1 − 0.1(j − 1)) (kırbaç).\n  - Önerilen ω/ζ: Arka 1.1 Hz/0.35, On 1.6/0.4, Orgu 1.8/0.3, Capraz 2.5/0.5, Percem 3.0/0.6. Arka için 50 tap.\nD2. Sözleşme (karakter_sac.json): yön eşlemesi.\n  - VRM: geri +Z, ileri −Z, sol −X, sağ +X.\n  - Sahne çerçevesi: geri −z, ileri +z, sol +x.\n  - Kökte açı ≤ izin(kök); her kemikte birikimli açı ≤ k·izin(hepsi).\n  - Çarpışma yönünde yumuşak sınır L·tanh(a/L), öteki yönlerde 25°. Örnekler: perçem geri kök 3-9°, hepsi 2-5°; arka ileri kök 7-13°, hepsi 2-4°.\n  - Kafaya göre sabit engeller (gözlük, yüz, kulak) için bu sınır yeterli; itme yalnız gövdeye bağlı engeller içindir.\nD3. Durumsuz itme: engeller bodySd (Kanade vekilleri: kemik kapsülleri, yarıçap yüklemede deri köşelerinden p90), askı (member.strap.pts, r = TH/2 + 8 mm) ve guitarSd (strap.js'ten export, gitar yereli).\n  - Her kemik ucu ve ortası için sd < m ise α = asin(min(1, (m − sd)/ℓ)), eksen normalize(seg × ∇sd). Çocuklara FK; iki tur.\n  - Paylar: beden 10 mm, askı 8 mm, gitar 10 mm.\nD4. İkiz kuralı: saç zinciri ile _Govde ikizine aynı yerel dönüş verilir. İtme açısı iki zincirde de hesaplanır, büyük olan alınır. Baş eğimi ≤ 20° ve γ ≤ 0.3 iken ikizin fazla düzeltmesi ≤ 6° (tahmin; bant gerilmesiyle ölçülecek).\nD5. Maliyet (tahmin): CPU ≤ 1.5 ms/kare. updateMatrixWorld + tek iskelet 0.10 ms (ölçüldü).\n\nE. ETEK — skirt.js (aynı sway.js)\n- Deforme eden kemikler 1 (bel → orta, ℓ ≈ 0.14) ve 2 (orta → uç, ℓ ≈ 0.17).\n- Salınım ön/arka 1.4 Hz, ζ 0.45; yanlar 1.2 Hz. Sarkma γ 0.5: uyluğa bağlı ön zincir, bacak bacak üstünde kalkmasın diye dik dinlenme yönüne çekilir.\n- İtme sırası: gitar (guitarSd, 8 mm) → uyluk kapsülleri (15 mm) → oda yatağı ve oturma yüzeyi (room.bed.box, room-props surfaceAt; sd = y − yüzey).\n- Gitar koluna şart: etek bandında (y 0.85-1.02) gitar sırtı kalça merkezinin ≥ 0.13 m önünde olmalı (uyluk önü 0.082-0.089). Kanade'nin bodySd vekili deriyi değil ELBİSEYİ sarmalı (y 1.06'da 0.19 m).\n\nF. KAMERA — director.js küçük değişiklik\n- Referans: fig.restHead() kancası = göz ortası − 0.02 (zeminden 1.549, kökün 0.022 önü). Oturma için de duruşa bağlı.\n- Kanade FRAME'i:\n  - yakın {d 1.6, look −0.08, rise 0.05}: saç tepesi 2 cm içeride; bugünkü sayılarla 2.7 cm kesiliyor, ölçüldü.\n  - bel: bugünkü değerler.\n  - gitar: look = gitar gövde merkezinin dinlenme y'si − ref.\n  - kahraman: bugünkü değerler (kilit ≥ 0.98).\n- Sahne kamerasının hedefi gitarı izlemeli.\n- Poz koluna kural: boyun + baş eğimi ≤ 20° (headbang'in kalanı göğüs ve gövdeye). Gitara bakış göz kemikleriyle (−10°). Bu sağlanınca kilit bütün çekimlerde ≥ 0.97 görünür (ölçüldü).\n\nG. DOSYA SAHİPLİĞİ VE KOLLAR\n- K0 temel (tek kol, ilk): vrm-data.js, VRMRig sözleşmesi, src/assets/kanade, sim.whenReady eklemesi, rng kanıtı.\n- K1 malzeme: kanade/mtoon.js, vrm.js'in malzeme/kontur/bölge kısmı, venues.js ENVS.kanade, finish.js stencil; sonra tools/kanade-gorunum.mjs (renk + maliyet).\n- K2 yüz: kanade/face.js, clock.js climax(p), rigs.js blinkAt (yalnız dışa açma, rand dokunulmaz).\n- K3 saç ve etek: kanade/sway.js, hair.js, skirt.js, proxy.js; strap.js'te yalnız guitarSd export'u.\n- K4 kamera: director.js (restHead kancası, figüre göre FRAME), tools kilit ölçümü.\n- Poz kolu: kinAt, members/kanade.js, late kancası.\n\nH. ÖLÇÜM HEDEFLERİ\n- Kare süresi (eşleştirilmiş görünür/gizli) Kanade'nin eklediği: geniş ≤ 25, bel ≤ 50, yakın ≤ 85 ms.\n- Kurulum artışı ≤ 5 s.\n- sync-check ses.ozet aynen.\n- Renk (gerçek Finish ile):\n  - ten aydınlık yan L 0.72-0.85, ton 15-40°\n  - saç ton 280-360° veya 0-10°, doygunluk ≥ 0.06, L 0.70-0.88 (kulüp ve oda)\n  - elbise p95 L ≤ 0.12\n  - Kanade'den HDR ≥ 1.0 piksel 0\n- İfade:\n  - etkin morph ≤ 8\n  - EYE_Close eşdeğeri ≤ 1.0\n  - dil sırasında başka ağız hedefi 0\n  - kapak ve dil ucunda ikinci fark / birinci fark ≤ 0.6\n- Saç ve etek: 27 baş pozu × doruk örneklerinde kesişme 0, bant gerilmesi ≤ 1.5, sözleşme ihlali 0.\n- Uç salınım oranı: dorukta 0.8-1.5, sakinde ≤ 0.3.\n- Gitar ↔ etek, uyluk ↔ etek, yatak ↔ etek kesişmesi 0.\n- Kilit görünürlüğü ≥ 0.97.\n- 24 bit sonrası sabit pozda geniş planda yüz katmanları ardışık karede titremez.\n- İki işçi aynı kemik dönüşlerini bit eşit verir.",
+  "files": [
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\vrm_envanter.mjs",
+    "role": "VRM envanteri: ağlar, primitive'ler, MToon materialProperties, dokular, blendshape bind'ları, yay grupları (node, salt okur)"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\vrm_olc.mjs",
+    "role": "iskelet, J_Sec zincirleri, ağ sınırları, ağırlık dağılımı, IBM eşitliği, morph hedefi başına köşe ve büyüklük ölçümü"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\vrm_govde.mjs",
+    "role": "elbise ve etek ön/arka profili y bantlarında, etek ağırlıkları, saç zinciri köşe ve ağırlık dağılımı"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\doku_olc.mjs",
+    "role": "VRM içindeki PNG'leri zlib ile çözüp renk ve parlaklık istatistiği (matcap bloom riski, saç ve ten albedosu)"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\alfa_olc.mjs",
+    "role": "MASK/BLEND malzemelerde kullanılan UV'lerde alfa < 0.5 oranı ve tamamen kesik üçgen sayısı"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\alfa_max.mjs",
+    "role": "katman dokularının en büyük alfası (kirpik dokusu boş: 0)"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\kemik_konum.mjs",
+    "role": "etek ve saç zincir kemiklerinin konumları ve kemik dizinine göre ağırlık toplamları"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\kilit_olc.mjs",
+    "role": "çene ↔ choker kilidi görünürlüğü: LBS baş eğimi × yönetmen çekimleri × göğüs hizası kameraları, ışın-üçgen testi"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\katman_olc.mjs",
+    "role": "yüz katmanlarının alttaki yüzeye uzaklığı (16 bit derinlik riski)"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\piksel.mjs",
+    "role": "öndeneme karelerinde bölge rengi ve HSL (saç tonu, ten L, elbise L)"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\proto\\mtoon.js",
+    "role": "öndeneme 1: piksel başı ışıklı MToon benzeri ShaderMaterial (VRM → uniform eşlemesi)"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\proto\\mtoon_v.js",
+    "role": "öndeneme 2 (önerilen iskelet): köşe ışıklı VLIT MToon, ucuz kontur, tek doku okuması, isteğe bağlı normal haritası ve matcap"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\proto\\kanade.js",
+    "role": "öndeneme yükleyici: GLTFLoader r128, malzeme değiştirme, paylaşılan iskelet, kirpiği atma, opak saç, renderOrder, ifade gruplarını göz/ağız parçalarına pişirme"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\proto\\olc.html",
+    "role": "ölçüm sayfası: kulüp ve oda ışıkları, HalfFloat RT + ACES, yönetmen FRAME kadrajları, dönüşümlü kare zamanlaması (readPixels senkronu)"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\proto\\olc.mjs",
+    "role": "playwright swiftshader koşucusu (kök C:/work, salt okur); kadraj ve ifade PNG'leri, olc_sonuc.json"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\proto\\olc_sonuc.json",
+    "role": "ölçülen kurulum süreleri, kare süreleri (taban/temel/mt/nonm/vlit/vlitNm × geniş/bel/yakın), CPU iskelet süresi"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\src\\sim\\stage\\finish.js",
+    "role": "OKUNDU: linearize ShaderMaterial'ı atlıyor (19); composer RT 16 bit derinlik (66); bloom eşiği 1.0 (70)"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\src\\sim\\stage\\rigs.js",
+    "role": "OKUNDU: göz kırpma listesi rand() ile (18-19), life() groove gecikmeleri (55-68), applyRoster ve headCam (39-48)"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\src\\sim\\stage\\figures.js",
+    "role": "OKUNDU: figure() rand ph (142), restHead (238), strapAnchors ve bodySdFn sözleşmesi (149-215)"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\src\\sim\\camera\\director.js",
+    "role": "OKUNDU: FRAME ve FOV (24-35), üye kadrajı (182-205), doruk ve hits hesabı (71-92)"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\src\\sim\\sim.js",
+    "role": "OKUNDU: update sırası (84-108); late kancasının yeri strap.update'ten sonra (105)"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\src\\sim\\stage\\venues.js",
+    "role": "OKUNDU: ENVS ışık ve derecelendirme (11-23); kanade tonu buraya eklenecek"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\src\\sim\\stage\\scene.js",
+    "role": "OKUNDU: hemi/key/rim/spot ışıkları (17-20), kamera near değerleri (39-41)"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\src\\sim\\stage\\strap.js",
+    "role": "OKUNDU: guitarSd (30-51, dışa açık değil), member.strap ölçüm sözleşmesi (10-11)"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\src\\vendor\\three\\examples\\jsm\\loaders\\GLTFLoader.js",
+    "role": "OKUNDU: primitive başına Skeleton (3664-3697), örnekleyici minFilter (2613), associations (1958), morphTargetsRelative (1829)"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\src\\vendor\\three\\build\\three.module.js",
+    "role": "OKUNDU: morph en büyük 8 seçimi (15305-15319), ışık parçaları (12759), derinlik biçimi D16 ↔ D24S8 (21159-21203)"
+   },
+   {
+    "path": "C:\\Users\\kullanici\\.claude\\experience\\experience.md",
+    "role": "kullanıcı mandasıyla 2 madde eklendi: r128 unroll_loop süslü parantez tuzağı ve yanıltıcı ölçüm; GLTFLoader primitive başına Skeleton"
+   }
+  ],
+  "contracts": [
+   "VRMRig = loadVRM(url): Promise<{root, bones: {byName: Map<string,Bone>, humanoid: {hips, spine, chest, upperChest, neck, head, leftEye, rightEye, leftShoulder, ...}}, skeleton (tek, paylaşılan), meshes: [{mesh, gi (glTF malzeme dizini), cls: 'sac'|'ten'|'giysi'|'goz'|'aks', outline?: Mesh}], face: {meshes, names: string[], dict, infl: number[] (paylaşılan)}, hair: [{ad, kemikler: Bone[], ikiz?: Bone[], ebeveyn, sinir: {kok, hepsi} (sahne çerçevesinde)}], skirt: [{ad: 'L_SkirtFront'..., kemikler: Bone[4], ebeveyn}], restHeadLocal: Vector3 (göz ortası − 0.02)}>. Yükleme rand() çağırmaz.",
+   "createMToon(mp, texOf, cls, o) → ShaderMaterial. lights:true, fog:true, skinning:true, morphTargets=ağın morph'u var mı. userData.linear=true, userData.rq=renderQueue. Uniformlar: tMain, tNormal, tMatcap, tOutlineW, uColor(lin), uShadeColor(lin), uShadeToony, uShadeShift, uCutoff, uIndirect, uDesat, uGain, uLambert, uMatcapK, uRimColor, uRimPow, uRimLift, uMax=0.97, uOutlineW, uOutlinePx=0.7, uOutlineColor, uOutlineMix, uHideMask. Tanımlar: OUTLINE, ALPHATEST, NORMALMAP, MATCAP, DOUBLE_SIDED, RES_Y.",
+   "setTone(rig, ENVS[env].kanade = {gain, lambert, rim: [hex, k, pow], desat?: {sac, ten, giysi, goz, aks}}): setEnv'de çağrılır, durum tutmaz.",
+   "bakeExpressions(faceGeoms, blendShapeGroups, {eyeY: [1.528, 1.540]}) → {names (ör. 'smug.goz', 'smug.agiz'), dict}. Her parça yalnız POSITION; parça toplamı = grup deltası (tam).",
+   "faceAt(p, now, wall, {blink: 0..1, shot?}) → Float32Array(names.length), en çok 8 sıfırdan farklı. tongueS(p, now) ∈ [0,1] → tongue_ac = min(2s, 2−2s), tongue = max(0, 2s−1), öteki ağız ×(1−min(1,2s)). gazeAt(p, now, camPos, headM) → {yaw, pitch} (içe 8°, dışa 12°, aşağı 10°, yukarı 10° sınırlı). Hepsi zamanın saf fonksiyonu.",
+   "rigs.blinkAt(fig, wall) → 0..1: mevcut seçilmiş liste (rigs.js:18-19) aynen; Kanade figürü kurulumda tam bir rand() (ph) çağırır, başka rand yok.",
+   "kinAt(p, t, wall) → {head, neck, upperChest, shoulderL, shoulderR, hips, thighL, thighR: Matrix4 dünya}: rigs.life ile aynı formül, sahne grafiğine dokunmaz (poz kolu sağlar; saç ve etek geçmiş anlarda çağırır).",
+   "sway.kernel(f, zeta, dt=1/30) → Float32Array (Σ=1); hair.update(rig, kinAt, p, now, wall, obstacles), skirt.update(...). obstacles = {bodySd(p), strap: {pts, r}, guitar: {sdLocal(q), matrixWorld}, bed?: {box, surfaceAt}}. Çıktı yalnız kemik quaternion'ları; durum yok.",
+   "İkiz kuralı: J_Sec_Hair_<ad>_<k> ile J_Sec_Hair_<ad>_Govde_<k> aynı yerel (dinlenmeye göre) dönüşü alır (karakter_sac.json ikiz.kural).",
+   "sim.update sırası: rigs.updateBand → … → director.direct → applyRoster → strap.update → kanade.late(now, wall, activeCam) [yüz, bakış, saç, etek] → render.",
+   "director: fig.restHead() kancası (yoksa figures.restHead) ve fig.frames (FRAME'in üstüne yazılır): yakın {d 1.6, look −0.08, rise 0.05}; gitar.look = gitar gövde merkezinin dinlenme y'si − ref.",
+   "Poz kolu kuralı: boyun + baş toplam öne eğim ≤ 20° (kilit görünürlüğü ≥ 0.97); gitara bakış göz kemikleriyle.",
+   "Gitar kolu kuralı: etek bandında (zeminden y 0.85-1.02) gitar sırtı kalça merkezinin ≥ 0.13 m önünde; Kanade beden vekili deriyi değil elbiseyi sarar (y 1.06'da 0.19 m).",
+   "strap.js: guitarSd(model) export edilir (davranış aynı); saç ve etek aynı tanımı kullanır.",
+   "finish.js: composer RT {stencilBuffer: true} → DEPTH24_STENCIL8 (genel değişiklik; poster ve dekor testleriyle doğrulanır)."
+  ],
+  "numbers": [
+   "ÖLÇÜM iskelet (VRM yerel): hips 1.021, upperChest 1.318, neck 1.433, head 1.510, gözler 1.569 (z −0.022), upperArm ±0.108 y 1.391, saç tepesi 1.732, çene 1.478, choker 1.452-1.489, kilit z −0.045",
+   "ÖLÇÜM ağlar: Face 2055 köşe / 9 primitive / 58 hedef; Body 6641 (Body_SKIN 7732, Tops 2122, Shoes 760, HairBack 394 üçgen); Hair 18106 köşe / 23390 üçgen; gözlük 5136, cam 144, choker 3846, tırnak 5000 üçgen; toplam 51458 + kontur 11964",
+   "ÖLÇÜM dokular: Hair_01 ort. lineer (0.64, 0.52, 0.60); Face (0.89, 0.58, 0.55); Tops (0.015, 0.013, 0.014); Matcap_RimHair p90 1.0; Matcap_Rim p99 0.52; cam alfa ort. 0.057 (en çok 0.35); kirpik en çok alfa 0",
+   "ÖLÇÜM kesik üçgen: Body 1700/7732, Tops 72/2122, Shoes 98/760; saçta alfa < 0.5 oranı %0.0",
+   "ÖLÇÜM morph: EYE_Close en çok 29.2 mm, MTH_O 27.5, MTH_Joy 25.5, Tongue 17.8, TongueAc 19.3, Iris_Hide 48.1, HA_Hide 70.6 mm; pişirilmiş hedef sayısı 26",
+   "ÖLÇÜM katman aralığı: İris → göz akı p10 1.11 / medyan 3.77 mm; parıltı → iris medyan 0.40; göz çizgisi → deri p10 0.15 / medyan 0.89; kaş → deri medyan 2.77",
+   "HESAP 16 bit derinlik kuantumu (near 0.05): 1.6 m'de 0.78 mm, 2.0 m'de 1.2 mm, 4.5 m'de 6.2 mm; sahne kamerası (near 0.01) 1.3 m'de 2.6 mm",
+   "ÖLÇÜM kare (ms, medyan 7, swiftshader 1280×720), geniş: taban 106.7, temel 118.0, mt 130.8, nonm 129.7, vlit 124.9, vlitNm 127.1",
+   "ÖLÇÜM kare (ms), bel: taban 119.3, temel 146.0, mt 197.9, nonm 193.7, vlit 162.7, vlitNm 165.6",
+   "ÖLÇÜM kare (ms), yakın: taban 111.1, temel 148.7, mt 255.1, nonm 240.3, vlit 181.1, vlitNm 188.0; ilk koşuda mt 284.9 ve konturlu/konstursuz farkı ~31 (gürültü ±%15)",
+   "ÖLÇÜM kurulum: fetch 130-210 ms, glTF ayrıştırma 476-592 ms, ek dokular 148-265 ms, ilk kare 2381-3149 ms",
+   "ÖLÇÜM CPU: 21 iskelet güncellemesi 0.84 ms ↔ updateMatrixWorld + tek iskelet 0.10 ms/kare",
+   "ÖLÇÜM renk (öndeneme, ACES 1.4): oda desat 0 → saç tonu 32°, doygunluk 0.53 (altın); desat 0.6 → 359°, 0.17. Kulüpte kazanç 1.0 → yanak L 0.91; 0.6 → 0.88; 0.45 → 0.84. Kenar ışığı 0.35 → elbise L 0.24 (çok güçlü)",
+   "ÖLÇÜM kilit görünürlüğü θ = 0/10/20/27°: yakın 1/1/0.97/0.60; bel 1/1/1/0.88; gitar 1/1/1/0.88; kahraman 1/1/1/0.98; oda kahramanı 1/1/1/0.98; göğüs hizası y 1.30 d 0.9 → 1/1/0.99/0.54, d 1.3 → 0.44",
+   "ÖLÇÜM etek: zincirler 0≡1 belde (y 0.99-1.02), 2 y 0.85-0.88, uç 0.68-0.75; elbise önü y 1.06 → 0.189, 0.98 → 0.210, 0.86 → 0.249, 0.54 → 0.329 m; uyluk önü 0.082-0.089; arka kabarma y 0.62'de +0.404",
+   "ÖLÇÜM saç zincir boyları: Arka 0.257-0.338 (5 kemik), On 0.084-0.096, Percem 0.040-0.060, Capraz 0.064-0.102, Orgu 0.095; saç en alt y 1.125",
+   "SÖZLEŞME (karakter_sac.json) en dar: perçem geri kök 3-9°, hepsi 2-5°; arka ileri kök 7-13°, hepsi 2-4°; On geri kök 14-15°, hepsi 7-10°",
+   "TAHMİN saç ve etek CPU ≤ 1.5 ms/kare; kurulum artışı 3.5-4.5 s/sayfa; VRAM ~100 MB/işçi (normal haritaları atılınca ~-22 MB)"
+  ],
+  "risks": [
+   "Kare süresi: yakın planda Kanade +77 ms (VLIT, ölçüldü); mankenin kendi maliyeti çıkınca net fark bilinmiyor. Gerçek sahnede (230-250 ms) yakın planda ~+30% olabilir. Aşarsa sırayla: saç normali kapalı (~7 ms), uLambert 0, doku boyutu.",
+   "Asenkron VRM yüklemesi: hazır olmadan çizilen kare işçiler arasında fark yaratır; sim.whenReady'ye bağlanmalı. npm test her sayfada +3.5-4.5 s.",
+   "Ses akışı: Kanade build'i rand()'ı tam bir kez çağırmazsa ya da blink listesi değişirse ses programı kayar. sync-check ses.ozet ile kanıtlanmalı.",
+   "16 bit derinlik: iris/göz akı (p10 1.1 mm) ↔ kuantum 1.2-6 mm. Sıra yanlışsa geniş planda iris kaybolur. 24 bit genel bir değişiklik; poster ve dekor görünümü yeniden doğrulanmalı.",
+   "Bloom: Matcap_RimHair p90 1.0, uMax/matcapK olmadan saç kenarları parlar. GPU'da NaN riski (deneyim): korumalar var ama GPU=1 ile bir kez denenmeli.",
+   "Morph yuvası: 8'i aşan ağırlıkta r128 en küçüğü sessizce atar (sıçrama). Tasarım 8'i garantiliyor; hata ayıklamada assert.",
+   "Göz kırpma + smug/squint kapağı %122-145 kapatır; göz parçası kapısı olmadan kapak dışarı taşar.",
+   "Dil: başka ağız hedefiyle üst üste binerse doğrulanmış yol bozulur, dil dudaktan geçer.",
+   "İkiz zincirde yerçekimi düzeltmesi iki çerçevede farklı etki eder (ikizde fazla düzeltme ≤ 6°, tahmin). Bant gerilmesi ölçülmeli.",
+   "Köşe ışıklama: Tops yalnız 2122 üçgen, büyük panellerde gölge sınırı dalgalanabilir (siyah kumaşta az görünür, bakılmalı).",
+   "Ters kabuk kontur çift yüzlü kumaşta (etek ucu, iç astar) koyu bant yapabilir; swiftshader'da MSAA yok, 1 px çizgi titreşebilir.",
+   "Etek ↔ gitar çakışması kaçınılmaz (elbise kuşakta 0.19 m önde, etek 0.21-0.33 m kabarık). Gitar kolu ≥ 0.13 m şartını sağlamazsa itme etekte batma bırakır.",
+   "Odada ayakta: arka etek yatak kenarının üstünde kalıyor, çömelmede örtüye giriyor. Yatak engeli gerekli; oturmada da.",
+   "Sap kamerası: beden tek ağ, bölge maskesi olmadan gövde kadrajı kaplar.",
+   "Repo boyutu: 19.8 MB ikili dosya (README'deki 'hiçbir 3B model yok' ifadesi değişir). CI'nin dosyaya erişmesi gerekir.",
+   "linearize() VRM'den önce çalışıyor; Kanade'ye sonradan eklenecek ShaderMaterial dışı malzeme elle lineerleştirilmeli.",
+   "Öndeneme kadrajı gerçek Finish değil (bloom, sat 0.85, S eğrisi, vinyet yok). Renk hedefleri gerçek zincirde yeniden ölçülmeli."
+  ],
+  "order": [
+   "0) Kullanıcı onayı: VRM ve karakter_sac.json'u src/assets/kanade/ altına ekleme (git ya da LFS) ve üye ışığı/kenar ışığı rengi kararları.",
+   "1) K0 temel (tek kol): vrm-data.js (saf ayrıştırma, node testleri) + VRMRig sözleşmesi + vrm.js iskeleti (paylaşılan iskelet, kirpiği atma, kesik üçgen temizliği, renderOrder) + sim.whenReady entegrasyonu + rng kanıtı (stub üyeyle ses.ozet aynen).",
+   "2a) K1 malzeme (paralel): kanade/mtoon.js (VLIT + kontur + bölge maskesi) + venues ENVS.kanade + finish stencilBuffer + önizleme eşleme düzeneği; dosyaları: kanade/mtoon.js, vrm.js'in malzeme kısmı, venues.js, finish.js.",
+   "2b) K2 yüz (paralel): kanade/face.js (pişirme, ruh hali, dil, göz kırpma kapısı, bakış) + clock.js climax(p) + rigs.blinkAt; node testleri: yuva ≤ 8, kapak taşması 0, dil yolu.",
+   "2c) K3 saç ve etek (paralel): kanade/sway.js, hair.js, skirt.js, proxy.js + strap.js guitarSd export'u; node testleri: sözleşme, kesişme, saflık (iki çağrı bit eşit), uç salınım oranı.",
+   "2d) K4 kamera (paralel, küçük): director.js restHead kancası + fig.frames + kilit ölçümü (kilit_olc.mjs yöntemi canlı pozla).",
+   "3) Poz koluyla entegrasyon: members/kanade.js'te kinAt ve late kancası; baş eğimi ≤ 20° kuralı; gitar yeri kuralı (≥ 0.13 m).",
+   "4) Ölçüm ve ayar: tools/kanade-gorunum.mjs (eşleştirilmiş kare süresi 3 kadraj × 4 mekân, renk bölgeleri, bloom pikseli, morph yuvası, kesişmeler, kilit, iki işçi saflığı); önce GPU=1 ile bir NaN kontrolü; sonra sync-check (ses.ozet, el/gitar ölçüleri).",
+   "5) Sonraki tur (bu turda değil): oturma ve bacak bacak üstü (etek yatak ve uyluk engelleri, restHead duruşa bağlı) mevcut sözleşmelerle eklenebilir."
+  ],
+  "openQuestionsForUser": [
+   "19.8 MB'lık karakter.vrm (ve karakter_sac.json) repoya düz olarak mı, Git LFS ile mi eklensin? CI'nin ona erişmesi gerekiyor; README'deki 'hiçbir 3B model yok' cümlesi de değişecek.",
+   "Sahnedeki kehribar üye ışığı (0xffa04a) Claude'un kimliğiydi. Kanade için sahne ışıkları aynı kalıp yalnız onun malzemesinde ışık rengi mi doygunsuzlaştırılsın (önerim: saç gümüş kalıyor, ölçüldü), yoksa üye ışığı ve hüzme rengi Kanade'ye göre mi değişsin (ör. kırmızı-pembe göz rengi)?",
+   "Görünüş tercihi: saf MToon (düz, anime; uLambert 0) mı, Blender önizlemesine yakın yumuşak gölge (MToon × Lambert, uLambert ~0.5-1) mi? Önerim 0.5'ten başlamak ve önizleme eşleme ölçümüyle ayarlamak.",
+   "Composer derinliğini 24 bite almak (stencilBuffer:true) bütün sahneyi etkiler (poster çakışmasını da düzeltir). Onaylıyor musun?",
+   "Dil çıkarma anları yalnız doruktaki yüzlü çekimlere (yakın, kahraman, bel) mi bağlansın, yoksa kameradan bağımsız mı? Şarkı başına en çok 4 öneriyorum.",
+   "Ten ve kıyafette normal haritalarını kaldırmak (yakın planda ~15 ms ve ~22 MB kazanç) ve saçta tutmak kabul mü?",
+   "Ağız sesli harfleri (A/I/U/E/O) hiç kullanılmasın mı? Vokal yok; final vuruşlarında küçük bir 'A' haykırışı istenir mi?"
+  ],
+  "artifacts": [
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\proto\\olc_sonuc.json",
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\proto\\kadraj_yuz_vlit.png",
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\proto\\kadraj_yuz.png",
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\proto\\kadraj_bel_vlit.png",
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\proto\\kadraj_genis_vlit.png",
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\proto\\kadraj_hero.png",
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\proto\\ifade_dil.png",
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\proto\\ifade_smug.png",
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\proto\\ifade_squint_kirp.png",
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\proto\\ton_close_oda_d0.png",
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\proto\\ton_close_oda_d06.png",
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\proto\\ton_close_g060_rim.png",
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\proto\\ton_medium_g045_rim.png",
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\proto\\mtoon_v.js",
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\gorunum\\kilit_olc.mjs"
+  ]
+ },
+ {
+  "summary": "Kanade gitarı ÇALABİLİR: tam boy superstrat (L 0.648, 24 perde) ölçek değiştirmeden, ama mankenin yerinde değil. Gitar yüksek takılmalı (göğüs ve etek üstü), sap 43° yükselmeli, kapak ~15° oyuncuya dönük olmalı. Mankenin bugünkü yerleşimi Kanade'ye aynen uygulanınca perde karelerinin %6.6'sına, pena karelerinin %100'üne erişilemiyor. Önerilen yerleşimde erişim dışı kare %0.02. Dirsek iç açısı (sync-check'in uç tanımıyla) 60-120° aralığında: perdede %99.95, penada %100. Gitar göğse 8.7 mm, eteğe 6 mm boşlukla yaslanıyor.\n\nÖlçek küçültmek (0.94 ya da 0.88) çok az kazandırıyor. Darboğaz gitarın boyu değil: Kanade'nin kısa kolu (omuzdan bileğe 0.4336), dar omzu (eklemler ±0.109) ve gövde derinliği (göğüs önü 13.7 cm, belde etek açılımı 17-20 cm). Kanade'yi ölçeklemeyi önermiyorum.\n\nBulunan iki ciddi engel karakter dosyasında:\n1. Kol ağzı: el kemiğine bağlı ve 10 cm yarıçaplı yen ağzı perde karelerinin %89'unda, pena karelerinin %100'ünde gitara 5 mm'den fazla giriyor.\n2. Tırnaklar: her parmakta deri ucunun 5 mm ötesine taşıyor.\n\nEl tablosu (HAND), el çerçevesi ile VRM kemiği arasındaki hizalama dörtlükleri, avuç/topuk vekilleri, kemiğe bağlı beden ilkelleri ve askı noktaları ölçüldü. Uygulama verisi `oneri.json`'da.\n\nRepoya dokunulmadı, commit yok. Tüm betikler ve çıktılar `C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\` altında. Bu sırada başka biri HEAD'i 23cc6fb'ye ilerletti (\"README: 4. tur gitar ve askı\"); benim yaptığım bir şey değil.",
+  "findings": [
+   "ÖLÇÜLEN, iskelet (`iskelet.mjs`): 54 insansı kemik var. 7 skin'in her birinde 222 eklem var. VRM'deki 229 düğümün hiçbirinde dönüş yok, yani kemik yereli VRM eksenleriyle aynı. IBM sapması 7.45e-9. Taban (ayakkabı) y 0, deri tepesi 1.712, saç tepesi 1.732. Ayak bileği 0.138, platform ~5 cm, çıplak ayak boyu ~1.65. Ayrıca: köprücük boyu 0.0877, ön kolun dinlenme yönü 4.7° öne.",
+   "ÖLÇÜLEN, el (`olc-el.mjs`, `olc-yen.mjs`):\n- El çerçevesi, sağ el, VRM: x (−0.0793, 0.0427, −0.9959) başparmak yanı; y (0.9909, 0.1127, −0.074) parmaklar; z (0.1091, −0.9927, −0.0512) avuç. T duruşunda avuç aşağı bakıyor.\n- Parmak kökleri bilekten 0.061-0.067 (mankende 0.073-0.085).\n- Düz elin orta parmak ucu 0.147 (mankende 0.175).\n- Yarıçaplar: kök boğumu 0.0088-0.0098, orta boğum 0.0070-0.0088, uç yastık 0.0042-0.0050.\n- Avuç kutusu (el çerçevesi): x −0.0348..0.0292, y 0.0033..0.0716, z −0.0118..0.0235.\n- Hipotenar topuk (−0.0104, 0.0253, 0.0183).\n- Tırnaklar her parmakta deri ucunun 4.9-5.0 mm ötesine taşıyor.",
+   "ÖLÇÜLEN, yen (`olc-yen.mjs`, `govde-ilkel.mjs`):\n- `J_Sec_*_TipSleeve`'in ebeveyni el kemiği (`J_Bip_*_Hand`), `LowerSleeve`'inki ön kol.\n- Kol ağzı bileğin 4.7 cm ötesine kadar uzanıyor, yarıçapı 0.08-0.10.\n- T duruşunda avuç yanına 9 cm sarkıyor; `LowerSleeve` 7.8 cm aşağı.\n- Bugünkü haliyle (r 0.085, boy 0.047) gitar sapına/gövdesine >5 mm giriş: perde karelerinin %89'u (medyan 9.2, en çok 18.3 mm), pena karelerinin %100'ü (medyan 21 mm).\n- Daraltılmış yen (r 0.05, 2 cm) ile: perde %0.3, pena %11 (`yen-kontrol.mjs`; gitar çerçevesinde olduğu için yerleşimden bağımsız).",
+   "ÖLÇÜLEN, beden önü (`yuzey.mjs`, üçgenler 4 mm örneklenerek, figür çerçevesi):\n- Göğüs önü: y 1.26-1.30'da z 0.137.\n- Bel: 0.127-0.129.\n- Belde etek açılımı (kalça kemiğine bağlı): y 1.02-1.10'da 0.17-0.20.\n- Etek önü: y 0.96'da 0.19, y 0.52'de 0.33.\n- Etek yanı: 0.27'den 0.45'e.\n- Altı etek kök kemiği var: `J_Sec_*_SkirtFront1` (±0.072, 0.987, 0.15), `Side1`, `Back1`.",
+   "ÖLÇÜLEN, mankenin talepleri (`talep.mjs`; 11 şarkı, 2 karede bir, 9857 kare):\n- KNUCKLE sabiti 0.079 (claude.js:78). Pena tutuşu bilekten 0.0937 (vuruş) / 0.0561 (palm mute); `el-fk.mjs` claude.js:283-289'u birebir üretiyor.\n- Bilek tabanlı dirsek medyanı: perde 70.1°, pena 113.6°. sync-check'in uç tanımıyla (sync-check.mjs:346,365): taban perde medyanı 80.1° (60-90 %59.2, 90-120 %33.6, 0-60 %7.2), pena 107.7° (90-120 %99.2).\n- Üst kolun düşeyden açısı: perde 37.4°, pena 41.4°. Mankenin perde dirseği omzun 18.5 cm gerisinde.",
+   "ÖLÇÜLEN, mankenin yerleşimi Kanade'ye aynen uygulanınca (`olc-MANKEN.json`): perde erişim dışı %6.61, pena %100. Gitarın arkası gövdeye 89.6 mm, eteğe 160 mm giriyor. Bu yüzden guitar-model.js:21-25'teki yerleşim Kanade'ye taşınamaz.",
+   "ÖLÇÜLEN, yerleşim araması (`yerlesim.mjs`, `ara2.mjs`; doğallık cezalı koordinat inişi, 10 karede bir; sonra 9857 karenin hepsinde ölçüldü), ölçek 1, köprücük 0 (öneri):\n- Erişim dışı: %0.02 / %0.\n- sync-check dirseği perdede medyan 82.7° (p10-p90 71-106, 60-120 %99.95), penada medyan 103.9° (%100).\n- Bilek bükümü medyanı 30°, p90 41°.\n- Gitar ↔ gövde 5 mm (3×3 komşulukla; tam hücrede 8.7 mm), etek ~0.\n- Kol ↔ beden girişi yok. Ön kol ↔ gitar: perde −4 mm, pena p90 −6 / en çok +6.9 mm.\n\nÖlçek 0.94 / 0.88 / köprücük 2.5 cm / kol ×1.1 varyantlarında üst kol açıları hep 51-61° kaldı, skor 43-68. Ölçek darboğaz değil.",
+   "ÖLÇÜLEN, dirsek döngüsü (`swivelLow`): handPole sezgisi (claude.js:143-148) Kanade'de dirseği gereksiz kaldırıyor; üst kol düşeyden perde 53.7°, pena 60.6° çıkıyor. Omuz-bilek ekseni çevresinde ön kolu gitardan ve kolu bedenden açık tutan en alçak dirsek seçilince: perde medyan 37.8° (p90 63°), pena medyan 53.8° (en az 47.6°). Pena dirseğinin üst bombenin üstünden geçmesi zorunlu.",
+   "ÖLÇÜLEN, temas yerleri (`temas.mjs`): gitarın üst bombesinin arkası (gitar yerel 0.50, 0.11) göğüs ortasına 8.7 mm boşlukla yaslanıyor; figürde (−0.01, 1.29, 0.147). Alt bombenin tiz kenarı (0.78, −0.10) eteğe 6 mm yaklaşıyor; figürde (−0.08, 0.955, 0.223). Eğilme ekseni manken gibi göbekte değil, göğüs hizasında olmalı (rigs.js:54 LEAN_Z 0.22 → Kanade'de ~0.27).",
+   "ÖLÇÜLEN, askı (`aski-kanade.mjs`, öneri yerleşimi): yol 1.292 m (bugünkü REST 1.33, strap.js:16, sarkma payı %3). Üst pim (0.147, 1.397, 0.185), göğse 0.131 m. Alt pim (−0.222, 0.972, 0.203), kalçaya 0.196 m. Pimler gitar yerelinde (guitar-model.js:58), yerleşimle kendiliğinden taşınıyor.",
+   "KOD KANITI, rng: figure() kurulumda bir kez rand() çağırıyor (figures.js:142, fig.ph). rigs.js:18-19 her FIG için göz kırpma rand() akışı üretiyor. Kurulum sırası sim.js:38-46. Kanade'nin build'i bu rand() tüketimini birebir korumalı; yoksa doğaçlama şarkısının (improv.js:14,16) notaları ve ses programı özeti değişir.",
+   "KOD KANITI, çerçeve karışıklığı (bugün sorun çıkarmıyor çünkü figür dönmüyor; oturma ya da dönük figürde bozulur):\n- handPole dünya vektörü döndürüyor ve dünya z'sinde kısıyor (claude.js:144-146).\n- poseArm ise kutbu figür yereli sayıp fig.g.quaternion ile çeviriyor (figures.js:249).\n- pickHand POLE_P karışımını ve pp.z eklemesini dünyada yapıyor (claude.js:332).\n\nKanade'nin IK'sı kutbu ve kısıtları figür çerçevesinde kurmalı. room.bed.seat yönü bugün +z (room.js:45).",
+   "KOD KANITI, sözleşme bağımlılıkları:\n- poseArm iki parçayı eşit sayıyor: a = b = fig.reach (figures.js:243). Kanade'de üst kol 0.2193, ön kol 0.2143.\n- sync-check kol boyunu f.armLen || 2·reach diye alıyor (sync-check.mjs:345).\n- \"El ucu\" el + 0.045·el y'si (sync-check.mjs:346); dirsek bu uca göre (sync-check.mjs:365).\n- Parmak zinciri x.parent ile ele kadar yürünüyor (sync-check.mjs:192); avuç Mesh.geometry.boundingBox'tan, topuk H yerelinden okunuyor (sync-check.mjs:195, 287).\n- \"claude\" yuvası şarkı çekim listelerinde, director.js:111'de, sync-check'te ve oda-olcum'da kullanılıyor.",
+   "TAHMİN ve sınırlar:\n- Fizibilite modeli mankenin el taleplerini (gitar yerelinde) Kanade'nin avuç/tutuş ofsetleriyle uyarladı. El yönüne perdede ±25°, penada ±15° serbestlik verdi.\n- Beden 1 cm yükseklik haritası; etek rijit sayıldı; nefes ve eğilme yok.\n- Bu yüzden yerleşim ±2-3 cm / ±3° oynayabilir. Kesin değer el tablosu aramasıyla birlikte ince ayarlanmalı.\n- Kemiğe bağlı elipsoitler köşe kutusu sığdırması (%2-98); kalça elipsoidi etek başını da içeriyor. Askı noktaları ızgara yüzeyinden seçildi; kalça noktası etek açılımının içinde kalıyor, yerine etek açılmadan önce y ≈ 1.04 önerilir.",
+   "Not: paylaşılan scratchpad'e `yama1.cjs` ve `yama2.cjs` yazdım (11:29, 11:31). Aynı adda 10-17 tarihli eski dosyalar olduysa üzerine yazıldı; o tarihteki işler bitmişti. Sonraki yamaları kendi klasörüme yazdım. Deneyim defterine iki madde eklendi: kabukta sessiz ezme, ve `argv[1].endsWith(\"ad.mjs\")` ana-modül tuzağı."
+  ],
+  "proposal": "## 1. Gitar yerleşimi\n\nFigür çerçevesi, figür sahnede bugünkü yerinde (0.2, −0.95, −0.19), dönüşsüz.\n\n**Ölçek 1, yani L 0.648 ve 24 perde korunur. theory.js'e dokunulmaz.**\n\n- Gitar yerel P0 = (0.62, 0, 0) noktası, yani gövde arkasında köprü manyetiğinin altı (karına dayanan nokta), figürde o = (−0.0267, 1.132, 0.1875)'te.\n- Açılar: a = 0.7905, psi = 0.275, phi = 0.27. Dönüş R = Ry(−psi)·Rx(−phi)·M(a); M aynalı: x (−cos a, −sin a, 0), y (−sin a, cos a, 0), z (0, 0, 1).\n- Düz anlatımla: sap ön düzlemde 43.2° yükseliyor, kapak normali (−0.262, 0.267, 0.928). Yani kapak ~15° yukarı ve oyuncunun sağına dönük.\n\nAnahtar noktalar (figür çerçevesi):\n\n| Nokta | Konum |\n|---|---|\n| Eşik | (0.410, 1.572, 0.245), göz hizası |\n| Kafa ucu | (0.597, 1.692, 0.246) |\n| 12. perde | (0.174, 1.350, 0.242) |\n| Pena | (−0.009, 1.179, 0.243) |\n| Köprü | (−0.063, 1.129, 0.242) |\n| Kuyruk | (−0.205, 0.976, 0.206) |\n\nKod karşılığı (guitar-model.js:21-25): rig aynen kalır (scale.x −1, position.x 0.4).\n- `guitar.position (−0.225, 0.6067, 0.0028)`\n- `guitar.quaternion (−0.17534, 0.07401, −0.36091, 0.91298)`, Euler XYZ (−0.28, 0.2648, −0.7154)\n\nDönüştürücü: `kod-yerlesim.mjs`. Manken için (−0.2, 0.3201, −0.07), z −0.6 verdi; doğrulandı.\n\nYerleşim veri olsun: `YERLESIM = {ayakta: {o, a, psi, phi, s}, oturan: null}`, `createGuitarModel(scene, yer)`. Böylece yatakta oturma ayrı bir yerleşimle eklenir, kodu engellemez.\n\nYedek: ölçek 0.94 (24\" kısa ölçek). o = (−0.0167, 1.132, 0.1875), a 0.8405, psi 0.30, phi 0.28. Ancak perde 1-3'te dirsek >120° çıkarsa düşünülmeli.\n\nKanade'yi ölçeklemek önerilmez:\n- Boyu ayakkabıyla 1.71, saçla 1.73; manken ~1.79'du. Oda eşyalarıyla oranı zaten uygun.\n- Düzgün ölçek asıl nedeni çözmez: kol boyu ile gövde derinliği oranı aynı kalır.\n- Kol boyunu tek başına uzatmak (×1.1) aramada üstünlük vermedi.\n\n## 2. Kol ve el sözleşmesi: \"gölge iskelet + yeniden hedefleme\"\n\n- Kanade'nin `fig`'i mankenle aynı ölçüm sözleşmesini taşır; sync-check değişmeden okur. Ayrıntısı contracts alanında.\n- Bugünkü kod gölge iskeleti (görünmez makeHand(HAND_K) elleri ve vekil uzuvlar) pozlar. Ardından saf bir retarget adımı VRM kemiklerinin dönüşlerini yazar.\n- Retarget sabitleri ölçüldü: el qh, kapsül c_k dörtlükleri, kol dinlenme yönleri (`hizalama.json`).\n- Gölge eklemi ile VRM eklemi arasındaki sapma ≤ 0.5 mm olmalı; yeni bir öz-ölçüm bunu denetler.\n\n## 3. HAND_K türetme yöntemi (VRM dinlenme ağından)\n\n**El çerçevesi:**\n- y = normalize(Middle1 − Hand).\n- z = elin baskın deri köşelerinin en küçük yayılım ekseni (işareti VRM −Y).\n- x = y × z.\n\n**Tablo alanları:**\n- b: kök eklemin bu çerçevedeki yeri.\n- l0, l1: eklem arası uzaklık (VRM ofseti birebir).\n- l2: deri ucu − r2.\n- r0, r1: boğumun orta %40 kesitinde (p50 + p90) / 2.\n- r2: uçtan 4-9 mm gerideki yastık kesitinin p90'ı.\n- d: kökten orta ekleme dinlenme yönü.\n- ab, pa, LIM: mankenden.\n\nSonuç `el-fk.mjs` içinde HAND_K olarak duruyor. Ayrıca:\n- KNUCKLE (−0.0074, 0.0632, 0.003), MID 0.032.\n- Pena tutuşu bilekten 0.0764 / 0.0435.\n- Sol el, sağ tablonun x aynası (bugünkü gibi).\n\n## 4. Dirsek seçimi ve kol bükümü\n\nDirsek: handPole sezgisi yerine, figür çerçevesinde omuz-bilek ekseni çevresinde dönen dirsek konumu (döngü açısı φ) seçilir.\n\n- `φ* = softmin_φ [üst kol yükselişi + w·max(0, kol↔gitar/beden girişi)²]`\n- 36 örnek + inceltme. Her kare durumsuz hesaplanır; önceki kareye bakılmaz.\n- Sıçrama yeni metrikle ölçülür: kare başına dirsek yolu > 3 cm olan kare 0 olmalı.\n\nKol bükümü:\n- Önce menteşesiz ön kol kurulur.\n- El dönüşünün ön kol ekseni çevresindeki bükümünün k = 0.5'i ön kola verilir.\n- Bilekte kalan büküm ≤ 45° tutulur.\n\n## 5. El tablolarının yeniden araması\n\nAraç: `out/tur5/kollar/araclar/el-ara.mjs` (yeni, tarayıcısız node). Gerçek modülleri `createHands(EL)` fabrikasıyla ve gölge iskeletle yükler; VRM ağı gerekmez, `iskelet.json` yeter.\n\nSıra ve süre tahmini (BelowNormal öncelikte, oyun kapısından):\n\n1. **THUMB.** 3 anahtar × 7 sayı; yalnız ileri kinematik; hedef yastığın penaya 0.1 mm'den yakın olması. Saniyeler.\n2. **Pena duruşu.** ZETA, YAW_0, ROLL_0, ZETA_M, YAW_M, ROLL_M, PM_K[3], MU_H. 2 karede bir alınan pena karelerinde koordinat inişi. ~15 dk.\n3. **FRET_LO (7 nokta × 7) ve FRET_HI (2 × 7).** Blok koordinat inişi; her denetim noktası yalnız komşu aralığındaki karelerle değerlendirilir. 2-3 geçiş, ~30-45 dk.\n4. **Duruş planı.** regimePlan eşikleri LO_C/HI_C (claude.js:98) pencere başına çarpışma sonucundan yeniden kurulur. HS_MAX yeniden denetlenir.\n\nCeza fonksiyonu J, kare ortalaması:\n\n- uç hatası: w_uç·Σmax(0, e − 0.5 mm)²\n- sap/klavyeye giriş: w_sap·Σmax(0, derinlik − 1.5 mm)²\n- avuç ve ön kolun gövdeye girişi: w_gövde·max(0, giriş)²\n- eklem sınırına takılma: w_sınır·takılma sayısı\n- bilek bükümü: w_bilek·max(0, bükülme − 60°)²\n- dirsek: w_dirsek·band(uç dirseği, 60-120)²\n- tırnak: w_tırnak·max(0, tırnağın klavyeye girişi)²\n- yen: w_yen·max(0, yen girişi − 3 mm)²\n- erişim dışı: 1e4·oran\n- ve denetim noktaları arasında w_düz·Σ‖T_i − T_{i+1}‖²\n\nTablolar hem ayakta hem (sonraki tur) oturan yerleşimde aynı aramada değerlendirilmeli; yoksa oturma turunda tablo yeniden kırılır.\n\n## 6. Askı\n\n- strapPins gitar yerelinde kalır. REST 1.33 yeni yerleşimdeki 1.292 m yola %3 pay bırakıyor; korunabilir.\n- `strapAnchors(now)` aynı 7 kimlik ve sırayla, kemiğe bağlı ofsetlerden gelir (`aski-s100.json`, kemik yereli VRM):\n\n| Nokta | Kemik | Ofset |\n|---|---|---|\n| gogus | upperChest | (−0.0695, 0.0115, −0.1203) |\n| omuz | upperChest | (−0.0745, 0.1265, −0.0102) |\n| kurek | upperChest | (−0.0745, −0.0185, 0.0324) |\n| sirt | chest | (−0.0005, −0.0076, 0.0757) |\n| bel | hips | (0.0995, 0.0493, 0.1343) |\n| kalca | hips | y ≈ 1.04'e, etek açılımının üstüne taşınmalı |\n| karin | hips | (0.0895, 0.0493, −0.149) |\n\n- n: elipsoit gradyanı.\n- r: t yönündeki normal eğrilik, `κ = Σ t_i²/r_i² / |(x/rx², y/ry², z/rz²)|`.\n- `bodySdFn(o)` kemik başına elipsoit birleşimi (Quilez yaklaşımı `k0(k0−1)/k1`): hips, spine, chest, upperChest, neck, iki omuz (`govde-ilkel.json`). Buna eklenenler:\n  - uyluk kapsülleri r 0.075-0.081, baldır kapsülleri 0.045\n  - kalçaya bağlı etek kesik konisi: y 1.0'da yan 0.27 / ön 0.19 → y 0.6'da 0.45 / 0.31; ön paneli gitar iter\n- Sözleşme ve imza aynen korunur.\n- Kabul: ağ köşelerinin %95'i ilkel yüzeyine ≤ 1 cm; bağlantı noktalarında ≤ 3 mm.\n\n## 7. Karakter ve giysi bağımlılıkları\n\n- **Kol ağızları:** yarıçap ≤ 5 cm, bilekten en çok 2 cm öte; karakter hattında Blender'da kalıcı (morf yuvası harcamaz). Ek olarak yen kemikleri durumsuz yerçekimi ve gitar itmesi alır.\n- **Sol el tırnakları:** deri ucundan en çok 1 mm öte (perde eli).\n- **Etek:** ön zincirleri (`J_Sec_*_SkirtFront*`) gitar gövdesine göre durumsuz itilir.\n- **Eğilme:** ekseni göğüs hizasında (LEAN_Z ≈ 0.27).",
+  "files": [
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\oneri.json",
+    "role": "Uygulama verisi: yerleşim (öneri + yedek, kod sayıları), HAND_K, KNUCKLE/MID, avuç/topuk, tırnak, uç noktaları, qh ve kapsül c_k dörtlükleri, kol ölçüleri, beden ilkelleri, etek/yen kemikleri, metrik hedefleri"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\yerlesim.png",
+    "role": "Pano: ölçek 1 ve 0.94 adayları, önden (seyirci gözüyle) ve yandan; Kanade silueti, gitar hattı, kolların medyan omuz-dirsek-bilek konumları"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\glb.mjs",
+    "role": "Bağımlılıksız VRM/glTF ikili ayrıştırıcı (düğüm, dünya matrisi, insansı eşleme, skin köşeleri)"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\olc-el.mjs",
+    "role": "El, kol ve yen ölçümü → kanade-olcu.json"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\olc-yen.mjs",
+    "role": "Yen ağzı kemik ağırlıkları, parmak kesitleri, tırnak taşması"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\hizalama.mjs",
+    "role": "El çerçevesi ↔ VRM kemiği dörtlükleri (qh), kapsül → kemik c_k, uç noktaları, topuk → hizalama.json"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\el-fk.mjs",
+    "role": "HAND tablosu ileri kinematiği (figures.js/claude.js birebir); HAND_K tablosu; tutuş noktası → tutus.json"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\talep.mjs",
+    "role": "Mankenin el talepleri (11 şarkı, 9857 kare, gitar yerel) → talep.bin/json"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\yerlesim.mjs",
+    "role": "Fizibilite modeli: duruş, iki kemikli IK, koni serbestliği, dirsek döngüsü (swivelLow), çarpışmalar, skor, arama"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\ara2.mjs",
+    "role": "Doğallık cezalı yerleşim araması sürücüsü → ara2-*.json"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\olc-ozet.mjs",
+    "role": "Bir duruşun tüm karelerde ölçümü → olc-*.json"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\yuzey.mjs",
+    "role": "Gövde/etek/saç ön-arka yükseklik haritası (1 cm) → yuzey.bin/json"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\govde-ilkel.mjs",
+    "role": "Kemiğe bağlı elipsoitler, etek kesitleri, etek/yen kemikleri → govde-ilkel.json"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\aski-kanade.mjs",
+    "role": "Askı bağlantı noktaları (kemik ofsetleri) ve yol boyu → aski-s100.json"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\yen-kontrol.mjs",
+    "role": "Kol ağzı ↔ gitar giriş ölçümü"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\temas.mjs",
+    "role": "Gitar arka yüzü ↔ gövde/etek/saç en yakın noktalar"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\kod-yerlesim.mjs",
+    "role": "Figür duruşu → guitar-model.js position/quaternion (manken ile doğrulandı)"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\gitar.mjs",
+    "role": "HEAD gitar katıları, pimler, manken gitar matrisi → gitar.json"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\gorsel.mjs",
+    "role": "Yerleşim panosu PNG çizici"
+   },
+   {
+    "path": "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\three-hook.mjs",
+    "role": "node --import: three → src/vendor/three r128"
+   }
+  ],
+  "contracts": [
+   "`fig` (Kanade adaptörü; claude yuvası, mankenle aynı imza): g, up, head, sh[2] (Vector3, up yerelinde, her karede VRM upperArm ekleminden güncellenir), armLen = 0.4336, kolParca = [0.2193, 0.2143], reach = 0.2168 (yalnız sezgi), arms[i] = {up, fo, el} vekil Cylinder/Sphere Mesh (material.visible = false; setFigVisible'ın .visible'ı çizdirmez), hands[i] = gölge el grubu (bilekte, el çerçevesi yönünde, sol el scale.x −1), strapSide = +1, strapAnchors(now), bodySd(p), bodySdFn(o), nod(a), stance(s), ph (tek rand()).",
+   "`H.userData` (gölge el, figures.js:51-54 aynen): fingers = 5 uç boğum, her birinde userData.tip (yastık; VRM uç kemik yerelinde `uclar_ucKemikYerel`) ve userData.r. bones = [kök, orta, uç]. palm = görünmez Box Mesh (el çerçevesi x −0.0348..0.0292, y 0.0033..0.0716, z −0.0118..0.0235). heel = (−0.0104, 0.0253, 0.0183). Yeni: userData.nail = uç kemik yerelinde tırnak ucu (deri ucu + 5 mm, sırt yanı).",
+   "`retargetArm(vrm, i, S, E, W, handQ, k_tw = 0.5)`: upperArm dünya dönüşü = taban (rest yön e_u, menteşe ±Y_vrm) → (E−S, n = norm((E−S)×(W−E))). lowerArm aynı yöntemle, sonra ön kol ekseni çevresinde k_tw·büküm. Yerel = ebeveyn⁻¹ · dünya. VRM kökünün 180° dönüşü her iki tabana da uygulanır.",
+   "`retargetHand(vrm, i, handQ)`: el kemiği dünya = handQ · qh⁻¹. Değerler: qh_R (0.4635, 0.55749, −0.47835, 0.49552), qh_L (−0.46225, 0.55619, −0.47956, −0.497) (x, y, z, w).",
+   "`retargetFingers(vrm, i, gölgeEl)`: her kapsül boğumu için dünya tabanı (y boğum yönü, z avuç yanı, x = y × z; aynalı gölgede de sağ elli) · c_k → VRM parmak kemiği. c_k = qcapRest⁻¹ (hizalama.json). l0, l1 VRM ofsetlerine eşit olduğu için eklemler çakışır.",
+   "`poseArm2(fig, i, target, hand, opt)`: eşit olmayan parçalı iki kemikli IK (x = (a² − b² + L²) / 2L). Kutup figür çerçevesinde dirsek döngüsü φ* (softmin; ön kolu gitardan, kolu bedenden açık tutan en alçak dirsek). Durumsuz; önceki kareye bakmaz.",
+   "`createHands(EL)` (members/kanade/eller.js): tablolar enjekte edilir. handPlan/handAt/regimePlan/fingerPlan/pickPlan/pickAt saf kalır ve members/plan.js'e taşınır; manken çıktısı birebir aynı olmalı (sync-check BASE ile aynı sayılar).",
+   "`EL` (members/kanade/el-tablo.js, donmuş): HAND (HAND_K), KNUCKLE (−0.0074, 0.0632, 0.003), MID 0.032, SY, FRET_LO/FRET_HI, BX/BZ/RQ, FIST/FIST_M, GRIP_AT, ZETA…ROLL_M, PM_K, MU_H, THUMB, LO_C/HI_C eşikleri, TWIST 0.5, SWIVEL ayarları. `YERLESIM = {ayakta: {o, a, psi, phi, s}, oturan}`.",
+   "`m.aim` (claude.js:443-444) aynen: {fretArm 0, pickArm 1, fret, fretOff = KNUCKLE, pick, pickOff = grip.G, x, home, win, reg, press}.",
+   "`strapAnchors(now)` → [{id, p, n, t, r}]: 7 kimlik ve sırası aynı; kemik ofsetlerinden (bkz. aski-s100.json), n elipsoit gradyanı, r t yönündeki eğrilik. `bodySdFn(o)` kemiğe bağlı elipsoit/kapsül birleşimi + etek kesik konisi (o.legs ile bacaklar). İmza figures.js:149-158 ile aynı.",
+   "rng: Kanade build'i figures.js:142'deki gibi tam bir rand() tüketir (fig.ph). rigs.js:18-19 göz kırpma akışı değişmez. Sahnede yeni rand() yok; çeşitlilik gerekirse hash01.",
+   "`iskelet.json` (araç üretir, çalışma zamanı ve araçlar okur): eklem dinlenme konumları, HAND_K, qh, c_k, avuç/topuk/tırnak, ilkeller, askı ofsetleri. Yükleyici VRM'den aynısını hesaplayıp ≤ 0.1 mm sapmayı doğrular.",
+   "sync-check eklemeleri (tanım bölümüne yazılır): golgeSapma_mm (gölge ↔ VRM eklemi), tirnakKlavye_mm (userData.nail ↔ sap/klavye katısı), yenGitar (fig.sleeves[i] = [{a, b, ra, rb}] kapsüller ↔ gitar katıları, >5 mm %), bilekBukum_derece (ön kol ↔ el y), dirsekSicrama_cm. Bugünkü metrik tanımları değişmez."
+  ],
+  "numbers": [
+   "Kanade iskeleti (VRM yereli, m):\n- hips y 1.0207, upperChest 1.3185, neck 1.4331, head 1.5103, gözler 1.5692\n- upperArm x ±0.109, y 1.3909\n- üst kol 0.2193, ön kol 0.2143, toplam 0.4336 (manken 2 × 0.32)\n- köprücük 0.0877; deri tepesi 1.712, saç tepesi 1.732",
+   "Kanade eli, el çerçevesi, m:\n- KNUCKLE (−0.0074, 0.0632, 0.003) (manken 0.079)\n- Düz elin orta parmak ucu 0.147 (manken 0.175)\n- Pena tutuşu bilekten 0.0764 vuruş / 0.0435 palm mute (manken 0.0937 / 0.0561)",
+   "HAND_K satırları ({b, l, r, d}):\n- başparmak: b (0.0171, 0.0027, 0.007), l (0.046, 0.0284, 0.0171), r (0.015, 0.011, 0.005), d (0.636, 0.756, 0.158)\n- işaret: b (0.0166, 0.0655, 0.0028), l (0.0332, 0.0204, 0.0189), r (0.0093, 0.0082, 0.005), d (0.078, 0.990, 0.118)\n- orta: b (0, 0.0667, 0), l (0.037, 0.0228, 0.0201), r (0.0098, 0.0088, 0.005), d (−0.015, 0.989, 0.146)\n- yüzük: b (−0.0157, 0.0661, −0.0004), l (0.0343, 0.0198, 0.0165), r (0.0096, 0.0078, 0.0046), d (−0.075, 0.989, 0.125)\n- serçe: b (−0.0314, 0.0609, 0.0033), l (0.0314, 0.0181, 0.0149), r (0.0088, 0.007, 0.0042), d (−0.079, 0.990, 0.119)\n- ab, pa, LIM mankenden.",
+   "Tırnaklar: deri ucunun 4.9-5.0 mm ötesine taşıyor (5 parmakta da).",
+   "Kol ağzı: yarıçap 0.08-0.10, bilekten 4.7 cm öte. Gitara >5 mm giriş: perde %89 (medyan 9.2, en çok 18.3 mm), pena %100 (medyan 21 mm). r 0.05 / 2 cm ile: %0.3 / %11.",
+   "Beden önü (figür z): göğüs 0.137 (y 1.28); belde etek açılımı 0.17-0.20 (y 1.02-1.10); etek önü 0.19 → 0.33 (y 0.96 → 0.52).",
+   "Önerilen yerleşim (ölçek 1):\n- o (−0.0267, 1.132, 0.1875), a 0.7905, psi 0.275, phi 0.27\n- Sap yataydan 43.2°; kapak normali (−0.262, 0.267, 0.928)\n- Eşik (0.41, 1.572, 0.245); pena (−0.009, 1.179, 0.243)\n- guitar.position (−0.225, 0.6067, 0.0028), quaternion (−0.17534, 0.07401, −0.36091, 0.91298)",
+   "Önerilen yerleşimin ölçümü (9857 kare):\n- Erişim dışı: perde %0.02, pena %0\n- Uç dirseği: perde medyan 82.7° (60-120 %99.95), pena medyan 103.9° (%100)\n- Bilek bükümü medyan 30° / p90 41°\n- Gitar ↔ göğüs 8.7 mm, ↔ etek 6 mm\n- Pena ön kolu ↔ gövde: p90 −6 mm, en çok +6.9 mm",
+   "Dirsek döngüsü (en alçak, çarpışmasız), üst kolun düşeyden açısı: perde medyan 37.8° / p90 63°, pena medyan 53.8° (en az 47.6°). handPole sezgisiyle 53.7° / 60.6°.",
+   "Varyant skorları (düşük iyi):\n- ölçek 1: 57.1\n- ölçek 0.94: 44.2\n- ölçek 1 + köprücük 2.5 cm: 50.3\n- ölçek 0.88: 43.0\n- ölçek 1 + kol ×1.1: 68.4\n\nÜst kol açıları hepsinde 51-61°.",
+   "Mankenin yerleşimi Kanade'de: erişim dışı perde %6.61, pena %100.",
+   "Manken tabanı (out/tur4/taban.json, dagkrali):\n- Perde dirsek dağılımı: 0-60 %7.2, 60-90 %59.2, 90-120 %33.6\n- Pena dirseği: 90-120 %99.2\n- perdeParmak uç medyan 0.8 / p90 2.064 mm\n- parmakSap gt3mm %7.38, en çok 8.749 mm\n- palmMute köprü medyanı 7.675 mm\n- penaTel 0.7 / 0.901 mm\n- kolDonanim pena ön kolu: 525 kare > 5 mm (en çok 13.7 mm)",
+   "Askı (öneri yerleşimi): yol 1.292 m (REST 1.33). Üst pim (0.147, 1.397, 0.185), alt pim (−0.222, 0.972, 0.203).",
+   "Arama süresi tahminleri:\n- THUMB: saniyeler\n- Pena duruşu: ~15 dk\n- FRET_LO/HI: 30-45 dk\n- Yerleşim varyantı: 2.5-6 dk (10 karede bir örnek, BelowNormal öncelik)"
+  ],
+  "risks": [
+   "Yerleşim yaklaşık bir modelden geliyor:\n- mankenin el yönleri ±25° koni içinde serbest bırakıldı\n- beden rijit ve dinlenme halinde sayıldı; etek rijit\n\nKesin yer el tablosu aramasıyla birlikte ±2-3 cm / ±3° kayabilir. Arama yerleşimi de serbest parametre olarak içermeli.",
+   "Gitar göğse 8.7 mm, eteğe 6 mm boşlukla yaslanıyor. Nefes ve groove eğilmesi (lean 0.13 rad'a kadar) göğsü gitara sokar. Eğilme ekseni göğüs hizasına alınmalı (LEAN_Z ≈ 0.27) ve etek önü itilmeli.",
+   "Sap dik (43°), kafa baş hizasında (y 1.69). Yakın çekimlerde yüzün yanında kafa görünür, sap kamerasının açısı değişir; yönetmen kadraj ölçümleriyle denetlenmeli.",
+   "Kol ağzı ve tırnaklar karakter dosyası düzeltilmeden kapanmaz:\n- yen gitara perdede %89, penada %100 >5 mm giriyor\n- tırnaklar klavyeye girebilir (parmak dik basınca 2-3 mm)\n\nDüzeltme karakter hattında (C:\\work\\karakter); kullanıcı onayı gerekir.",
+   "Büküm kemiği yok. Ön kol bükümü ile bilek bükümü arasındaki paylaşım yanlışsa bilekte şeker sargısı ezilmesi olur; yenin sarkma yönü de ön kolla döner.",
+   "Durumsuz dirsek döngüsü softmin ile bile yerel minimumlar arasında atlayabilir. Kare başına dirsek yolu ölçülmeli (hedef: > 3 cm sıçrama 0).",
+   "rand() tüketimi değişirse (figures.js:142, rigs.js:18-19) doğaçlama şarkısının notaları ve ses programı özeti değişir. Kullanıcının \"ses değişmesin\" kuralı bozulur.",
+   "Kutup ve kısıtların dünya/figür çerçeve karışıklığı (claude.js:146, 332; figures.js:249) oturma turunda dönük figürde dirsekleri bozar. Kanade IK'sında figür çerçevesine geçilmeli.",
+   "iskelet.json ile VRM arasında kayma olabilir (karakter yeniden dışa aktarılırsa). Yükleyicide ≤ 0.1 mm denetimi şart.",
+   "Kare süresi: gölge iskelet ve dirsek örneklemesi (36 IK × 10 çarpışma örneği × 2 kol) ~1-2 ms; skinning maliyetinin yanında küçük. Yine de swiftshader'da A/B ile ölçülmeli (+%10 sınırı).",
+   "Ön saç perçemleri (On01-03, boyna bağlı) göğsün önüne y 1.38'e kadar iniyor. Kolların ve sapın onlara değmesi saç kolunun çarpışma itmesine dahil edilmeli.",
+   "Ölçek 0.94 seçilirse theory.js L sabiti ses için kullanılmıyor (yalnız bend.js görsel itme ve guitar-model). Yine de bütün tel/pena geometrisi yeniden ölçülmeli. Bu yüzden ölçek 1 öneriliyor."
+  ],
+  "order": [
+   "0. Kullanıcı kararları (açık sorular): gitar ölçeği, kol ağzı ve sol el tırnağı düzeltmesi, Kanade'nin ölçeği/kol boyu, üye yuva kimliği.",
+   "1. Kol A, VRM verisi (sahip: `tools/vrm-iskelet.mjs` ve `src/sim/stage/kanade/iskelet.json`): VRM'den eklemler, HAND_K, qh, c_k, avuç/topuk/tırnak, ilkeller, askı ofsetleri. Yükleyici ≤ 0.1 mm doğrulaması. B1 ile paralel.",
+   "2. Kol B1, planlayıcıları ayırma (sahip: `members/plan.js` yeni, `members/claude.js`): handPlan, regimePlan, fingerPlan, pickPlan, pickAt saf modüle taşınır. figures.js makeHand/reachFinger/bendFinger'a isteğe bağlı tablo parametresi eklenir (varsayılan HAND). Kabul: manken sync-check'i BASE ile birebir, ses özeti aynı.",
+   "3. Kol B2, gölge iskelet ve retarget (sahip: `src/sim/stage/kol-ik.js` yeni; `members/kanade/eller.js`, `el-tablo.js`, `members/kanade.js` yeni; `guitar-model.js` yalnız 21-25. satırlar → YERLESIM). Eşit olmayan parçalı IK, dirsek döngüsü, büküm paylaşımı, retarget. Kabul: golgeSapma ≤ 0.5 mm, rand() sayısı aynı. Kol A'nın iskelet.json'una bağlı.",
+   "4. Kol B3, tablo araması (sahip: `out/tur5/kollar/araclar/el-ara.mjs` + `el-tablo.js` sayıları): THUMB → pena duruşu → FRET_LO/HI → LO_C/HI_C, HS_MAX. Yerleşim parametreleri aramada serbest; oturan yerleşim gelince birlikte.",
+   "5. Kol C, beden yüzeyi ve askı (sahip: `src/sim/stage/kanade/govde-sd.js` yeni, strap.js yalnız REST): kemiğe bağlı elipsoit/kapsül bodySdFn, strapAnchors. Kabul: tur 4 askı hedefleri. A'dan sonra, B ile paralel.",
+   "6. Kol D, giysi (saç koluyla ortak; sahip: `src/sim/stage/kanade/giysi.js`): yen kemiklerine durumsuz yerçekimi ve gitar itmesi, etek ön zincirlerine itme. Karakter hattında yen daraltma ve sol el tırnağı kısaltma (C:\\work\\karakter).",
+   "7. Kol B, ölçüm (sahip: `tools/sync-check.mjs`): golgeSapma, tirnakKlavye, yenGitar, bilekBukum, dirsekSicrama eklenir. B3 bitince 11 şarkı node özeti + sync-check (dagkrali, agit, danny; BASE out/tur4/taban.json; AUDIO=1) + kare süresi A/B, tarayıcı açan her komut oyun.ps1 kapısından.",
+   "8. Oturan yerleşim (sonraki tur): YERLESIM.oturan ve aynı tablolarla doğrulama."
+  ],
+  "openQuestionsForUser": [
+   "Gitar tam boy (ölçek L 0.648) mı kalsın? Önerim bu: yüksek takılı, sap 43°, kafa baş hizasında. Yoksa 24\" kısa ölçek (×0.94) mü olsun? Kısa ölçek yalnız biraz daha rahat.",
+   "Kanade'nin geniş kol ağızları (yarıçap 8-10 cm, bilekten 4.7 cm öte) gitara %89-100 giriyor. Karakter dosyasında daraltayım mı (yarıçap ≤ 5 cm, bilekten ≤ 2 cm)? Ya da \"gitar çalarken yen kıvrık\" ayrı bir görünüm mü olsun?",
+   "Tırnaklar parmak ucunun 5 mm ötesine taşıyor. Perde eli (sol el) tırnakları gitarcılar gibi kısaltılsın mı (≤ 1 mm)? Pena elininkiler aynen kalabilir.",
+   "Kanade'nin oranları VRoid'deki gibi mi kalsın (kol 0.433, önerim bu), yoksa kollar %5-10 uzatılsın mı? Kanade'nin tamamını ölçeklemeyi önermiyorum, odayla oranı zaten uygun.",
+   "Kodda üye yuvasının kimliği \"claude\" kalsın, yalnız görünen ad (HUD) KANADE olsun mu? Bu yuva şarkıların çekim listelerinde, yönetmende, sync-check'te kullanılıyor; kimliği değiştirmek bunların hepsine dokunur."
+  ],
+  "artifacts": [
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\oneri.json",
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\yerlesim.png",
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\kanade-olcu.json",
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\hizalama.json",
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\govde-ilkel.json",
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\aski-s100.json",
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\ara2-s100.json",
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\ara2-s094.json",
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\olc-s100.json",
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\talep.json",
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\gitar.json",
+   "C:\\work\\zumruduanka\\out\\tur5\\tasarim\\kollar\\tutus.json"
+  ]
+ },
+ {
+  "conflicts": [
+   "1) El çerçevesi ve HAND tablosu uyuşmuyor. İskelet incelemesinde y, (Middle1 − Hand) vektörünün yataya izdüşümü, z aşağı. Kollar incelemesinde y doğrudan Middle1 − Hand. İki tanım arasındaki açıyı ölçtüm: 6.47° (elestiri/el-cerceve.mjs). İskelet'in kendi denemesinde 4.2°'lik fark kalibrasyonda 5-8.85 mm kayma veriyordu. Sonuç olarak iki HAND_K tablosundaki kök z'leri 7-8 mm farklı (orta parmak 0 / −0.0075) ve tablolar birbirinin yerine kullanılamaz. ÇÖZÜM: glb.js'te tek bir handFrame() işlevi olsun; üretici araç da çalışma zamanı kalibrasyonu da onu çağırsın. y kollar'daki gibi Middle1'den alınsın (orta kök z≈0 olur, mankenin HAND sözleşmesine uyar). z eklemlerden hesaplansın: (Index1 − Little1) × y, deri köşelerinin temel bileşenlerinden değil. Bütün sayılar (b, KNUCKLE, qh, c_k) bu tanımla yeniden üretilsin; testte kalibrasyon ile tablo arasındaki fark ≤ 0.1 mm olsun.",
+   "2) Vekil uzuvlar nasıl gizlenecek? Kollar material.visible = false diyor, iskelet object.visible = false artı setFigVisible kancası. Doğruladım: sync-check.mjs:433-434'teki ölçüm maskesi malzemeyi K ile değiştiriyor ve visible'a dokunmuyor, yani malzemeyle gizlenen vekil maskede siyah çizilir. Ayrıca figures.js:259 her karede .visible = true yazıyor. İskelet'in yolu doğru.",
+   "3) Omuzun kaynağı. Kollar sh'yi her karede VRM upperArm kemiğinden okumak istiyor; bu, VRM yüklü olmadan çalışan node araçlarını kırar. İskelet fig.shoulder() kancası öneriyor; bu da sync-check.mjs:362/377, claude.js:145 ve figures.js:243'ü değiştirmeyi gerektirir. ÇÖZÜM: fig.up = upperChest vekili olsun ve fig.sh[i] her karede beden.js'te köprücükten sonra güncellensin. Böylece mevcut bütün tüketiciler değişmeden doğru omzu okur.",
+   "4) Köprücük. İskelet erişime bağlı köprücük öneriyor (öne ≤ 0.20, yukarı ≤ 0.14 rad). Kollar 0 diyor; 2.5 cm'lik köprücük aramada belirleyici çıkmadı. ÇÖZÜM: bu turda köprücük yalnız nefes ve beden dilinden gelsin, erişimden değil. Tablolar sabit omuzla aranır. Arka01-02 ve 06-08 saç ikizleri Shoulder kemiğine bağlı olduğundan saçın geçmiş an hesabı (kinAt) da IK'sız kalır.",
+   "5) Dirsek. İskelet handPole genellemesini öneriyor; kollar durumsuz dönme açısı seçimini (softmin, 36 örnek). Kollar ölçmüş: handPole Kanade'de üst kolu gereksiz kaldırıyor (düşeyden 53.7° / 60.6°). ÇÖZÜM: dönme açısı yöntemi kol-ik.js'te, A kolunun sahipliğinde. Manken yolu birebir korunur. Kare başına dirsek sıçraması ölçüsü zorunlu.",
+   "6) Beden yüzeyi (SDF) için üç ayrı öneri var: iskelet yuzey.js (eliptik dilim + etek konisi), kollar govde-sd.js (kemiğe bağlı elipsoitler, Quilez birleşimi), görünüm proxy.js (kemik kapsülleri, p90 yarıçap). ÇÖZÜM: tek modül kanade/govde.js. Askı, dirsek çarpışması, saç/etek itmesi ve ölçümler aynı yüzeyi kullanır. Yüzey ten'i değil giysiyi sarar: ışınla ölçtüm, ön yüz y 1.05'te 0.184, y 1.00'da 0.206.",
+   "7) Sap kamerasında beden gizleme. İskelet indeks gruplarıyla [m, GIZLI] malzeme dizisi öneriyor; görünüm aRegion özniteliği ve gl_Position'ı ekran dışına atmayı. Görünüm yolu karışık bölgeli üçgende ekran dışına uzanan şerit çizer; sap kamerası tam da dirsek sınırını görür. Ayrıca MToon gölgelendiricisine bağımlı. Grup yolu da her ağda ek çizim çağrısı ekler. ÇÖZÜM: yüklemede indeks tamponu sıralansın (perde ön kolu, eli, yeni ve tırnakları önce gelsin). Sap kamerasında geometry.setDrawRange(0, n0); öbür ağlarda visible = false. Kontur ağı aynı geometriyi paylaştığı için kendiliğinden uyar; ek çizim yok.",
+   "8) Morph sınırı. İskelet öncelik sırasıyla 8'e kırpmayı öneriyor; görünüm ifade gruplarını göz ve ağız parçalarına pişirmeyi (26 hedef). Doğruladım: 9 yüz alt ağı aynı POSITION accessor'ını (10) ve aynı 58 hedefi paylaşıyor, NORMAL hedefi yok (elestiri/vrm-denetim.json). Yani pişirme tek seferlik ve güvenli. ÇÖZÜM: pişirme + active() ≤ 8 bekçisi; kırpma yalnız son savunma.",
+   "9) Nötr göz. Görünüm incelemesi 'dingin → squint.göz 0.2' ekliyor, yani 'nötr göz biraz squint karışımı' notunu istenen görünüm sayıyor. İskelet aynı notu düzeltilecek kusur sayıyor ('nötr göz squint düzeltmesi'). Bellek dosyasında bu not 'kalan' maddeler arasında geçiyor; anlamı kullanıcıya sorulmalı.",
+   "10) Gitar yerleşimi. İskelet saf öteleme tahmin ediyor (dy +0.15..0.20, dz +0.08..0.10, açı aynı). Kollar tam duruş araması yapmış: eşik göz hizasında (y 1.573), kafa ucu 1.70 (baş tepesi 1.712), sap 43°, pena 23 cm daha yukarıda. Doğruladım: kollar'ın kod sayıları figürde eşiği (0.409, 1.573, 0.249) noktasına koyuyor (elestiri/yer-denetim.mjs). ÇÖZÜM: kollar'ınki başlangıç olsun ama tablo aramasında serbest parametre kalsın. Göğüste yüksek takılı gitar alışılmış rock duruşu değil; temel kolun ilk gerçek VRM karesiyle kullanıcı onaylamalı.",
+   "11) Baş eğimi. İskelet nod(a)'yı boyuna 0.35, kafaya 0.65 dağıtıyor; a groove'dan geliyor ve dorukta 0.47 rad'a (≈27°) çıkıyor. Görünüm, çene kilidinin örtülmesinin asıl nedeninin baş eğimi olduğunu ölçmüş ve boyun + baş toplamı ≤ 20° kuralını koyuyor. ÇÖZÜM: Kanade groove'unda boyun + baş ≤ 0.35 rad; artan eğim göğüse ve upperChest'e gider.",
+   "12) Yaslanma telafisi. Kollar sabit kol öneriyor (LEAN_Z 0.22 → 0.27). İskelet genel çözüm öneriyor: gitarın temas noktası FK ile izlenir, pelvis o kadar geri alınır. Dört kemiğe dağıtılmış eğilmede yalnız genel olan doğru. İskelet'inki seçilmeli.",
+   "13) Kafanın hareketsiz konumu (restHead) için iki referans var. İskelet kafa merkezini alıyor (hip 1.0207 + headY 0.554 = 1.575). Görünüm göz ortası − 0.02'yi alıyor (1.549, 2.2 cm önde). Yönetmenin bütün FRAME look sayıları buna göre değişir. ÇÖZÜM: G kolu tek tanım seçsin (göz tabanlı öneriyorum) ve FRAME ile ROOM'u ona göre kursun.",
+   "14) Geç kancanın (saç, etek, bakış) yeri. İki inceleme de 'strap.update'ten sonra' diyor. Ancak sim.js:107'de oda confine kamerayı strap.update'ten SONRA içeri çekiyor; bakış o zaman bayat kameraya döner. ÇÖZÜM: kanca confine'dan sonra çağrılmalı.",
+   "15) Ölçüm genişletme. İskelet her kolun ölçümünü tools/olcum/<kol>.mjs'e koyup sync-check'in içe aktarmasını öneriyor. Ama sync-check ölçüm kodunu sayfada eval edilen dizgeler olarak çalıştırıyor (handsExtra); sunucunun kökü src/ olduğu için tools/ altındaki modül sayfaya yüklenemez. ÇÖZÜM: her kol bağımsız bir ölçüm betiği yazsın (tools/olcum/<kol>.mjs; ortak MK, kare döngüsü, istatistik ve skinPoints yardımcısı temel kolda). sync-check yalnız temel kolda asgari Kanade uyumu alır.",
+   "16) Adlar ve biçimler çelişiyor: kanade.vrm / karakter.vrm, iskelet.js (ES modülü) / iskelet.json, tools/kanade-iskelet.mjs / tools/vrm-iskelet.mjs, glb.js / vrm-data.js. ÇÖZÜM: src/assets/kanade/{kanade.vrm, sac.json, kaynak.json}, kanade/glb.js, tools/kanade-iskelet.mjs → src/sim/stage/kanade/iskelet.js. JSON değil, çünkü tarayıcıda JSON modülü import özniteliği ister. sac.json sınırları da şekil çerçevesine çevrilip tabloya gömülsün.",
+   "17) cloneAsset gereksiz. İskelet her sim için bir klon öneriyor. r128'de SkinnedMesh.copy eski Skeleton'u (eski kemikleri) taşır ve vendor'da SkeletonUtils yok. Doğruladım: bütün araçlar sayfa başına tek sim kuruyor (check.js her şarkıda h.fresh, sync-check her ölçümde fresh, render/shot/app tek sim). ÇÖZÜM: varlık tek kullanımlık olsun; klon yok.",
+   "18) Render bekçisi fazla geniş. İskelet 'manual sim'de ready değilken render() hata atsın' diyor ve ready yazı tipi dokularını da kapsıyor. Ama check.js'in ilk döngüsü (satır 49-58) whenReady beklemeden kare çiziyor; bekçi mevcut testi kırar. Bekçi yalnız 'Kanade takılı mı'ya bakmalı.",
+   "19) Kol ağzı ve tırnak. Kollar karakter dosyasında kalıcı düzeltme (Blender) öneriyor; iskelet ve görünüm çalışma zamanında itme. Doğruladım: J_Sec_*_TipSleeve yaprak kemik (yalnız _end çocuğu var), ama kol ağzının 104 köşesinin hepsi Hand + LowerArm + TipSleeve karışımı ve TipSleeve ağırlığı ortalama 0.477. Kemiği ölçeklemek daralmanın ancak yarısını verir (s = 0.5'te yarıçap ~%76'ya iner). r ≤ 5 cm için ağ düzeltmesi gerekir (Blender'da ya da yüklemede köşe yamasıyla). Karar VRM commitlenmeden önce verilmeli.",
+   "20) Temel kolun kapsamı farklı. Görünüm'ünkü küçük (ayrıştırma + whenReady + rng). İskelet her şeyi temele koyuyor. Kollar A ile B1'i paralel yürütüyor. ÇÖZÜM: temel hem davranışı değiştirmeyen refaktörü hem çalışan bir Kanade v0'ı içersin, çünkü her paralel kol canlı bir fig sözleşmesine ve ölçüme ihtiyaç duyuyor.",
+   "21) Süren oda cilası işiyle çakışma. Görünüm finish.js'e stencilBuffer eklemeyi öneriyor; bu zaten cila-derinlik dalında commitli (a741e16) ama birleşmedi. zc-dekor (lights.js, shell.js, wall-decor.js) ve zc-tekstil (cat.js, room-props.js) commitsiz değişiklik taşıyor. cila-tekstil layout.js'te CAMERA.avoid'u değiştiriyor; G kolunun değiştireceği CAMERA.subject aynı nesnede. Kanade kolları bu dosyalara dokunmamalı; önce cila kapanmalı."
+  ],
+  "gaps": [
+   "Varlık sırası: kol ağzı daraltma, sol el tırnakları, görünmez kirpik ilkeli, alfa ile tamamen kesik üçgenler (Body 1700, Tops 72, Shoes 98) ve 2048² dokuların boyutu VRM ilk kez commitlenmeden önce kararlaştırılmalı. Her yeni sürüm repoya +19.8 MB ekler. Kimse .gitattributes'ta '*.vrm binary' önermedi (Windows autocrlf riski). kaynak.json'daki sha1'i yükleyici ve üretici araç denetlemeli.",
+   "Saç engellerinde kollar yok. Görünüm D3'ün engelleri yalnız beden, askı ve gitar. Oysa kollar'ın yerleşiminde perde üst kolu ~54° kalkık (p90 74°), sap omzun önünden geçiyor ve On01-03 saçı göğüs önünde y 1.38'e iniyor. Kol kapsülleri ve sap katısı da saç engeli olmalı.",
+   "Saç ile beden kolları arasında sözleşme eksik. Saçın durumsuz süzgeci geçmiş anlarda gövde zincirine ihtiyaç duyuyor (kinAt). Temel kolda beden.js için saf bir chainAt(p, now, wall) → {hips, spine, chest, upperChest, neck, head, shoulderL, shoulderR} tanımlanmalı. life ve saç aynı işlevi kullanmalı; E kolu yalnız sayıları değiştirir.",
+   "Sap kamerası kadrajını kimse ölçmedi. Yeni yerleşimde kamera y 1.695'te (baş hizası), başa 0.6 m. Baş, bakış ekseninden ~38° uzakta; yatay yarı açı ~47° olduğundan kadrajın içinde. Bu yüzden baş, saç, gözlük, choker ve HairBack gizlenmeli. 8-10 cm yarıçaplı kol ağzı kameranın hemen önünde klavyeyi örtebilir; 'sap kamerasında klavye ve eşik görünür oranı' ölçülmeli.",
+   "Sahne kamerasının yörünge hedefi sabit kodlu (scene.js:43; figürde (0.07, 1.04, 0.19)). Kollar'ın gövde ortası (−0.017, 1.151, 0.206), yani 11 cm sapma var. Hedef gitardan türetilmeli.",
+   "Oda ölçülmedi. Etek arkası köke göre −0.40 m'ye kadar kabarıyor, yatak kenarı −0.23 m'de; çömelmede etek örtüye girebilir. oda-olcum karakteri skinPoints ile eşyaya karşı ölçmeli. shell.js:89'daki zemin gölgesi lekesi mankenin ölçüsünde; o dosya cilanın sahipliğinde.",
+   "Test süresi: check.js 24 taze sayfa açıyor; her biri ön-yükleme (1.1-1.7 s) ve ilk kare (2.4-4.9 s) ödeyecek. Flaş döngüsü de 11 şarkının her karesinde sim.update çağırıyor; artık buna Kanade aktarımı, ikincil hareket ve dirsek seçimi ekleniyor. CI'da tahmini +3-5 dk; bütçe konmalı, gerekirse flaş testi rigs'in saf flashAt'ını kullanmalı.",
+   "linearize sırası: araçlarda Kanade createRigs'te, yani linearize (sim.js:56) öncesinde takılır; önizlemede sonra. İki yolda aynı rengi almak için Kanade malzemelerinin hepsi ShaderMaterial olmalı ya da userData.linear = true taşımalı.",
+   "skinPoints maliyeti: 34 bin köşe için her karede boneTransform pahalı. Ölçümlerde bölge alt kümeleri kullanılmalı: eller, yenler, etek önü, göğüs.",
+   "Ölçüm tabanı: out/tur4/taban.json mankene ait. BASE eşitliği yalnız KARAKTER=manken için kabul ölçütü olabilir; Kanade'nin tabanı (out/tur5/taban-kanade.json) A kolunun sonunda yazılmalı.",
+   "Kimlik metinleri: improv.js'teki 'Claude'un doğaçlaması' adı odadaki plak etiketinde (wall-decor.js:720, cila sahipliğinde) ve video dosya adında da geçiyor. Ayrıca index.html, app.js CAM_NOTE, README ve MEMBER.claude.color (kehribar).",
+   "Vizör ve hale kalkınca bloom ve flaş tepkisi değişir. Kanade üye ışığının ve hüzmenin rengi seçilmeli. check.js parlaklık eşiği ve sync-check gövde parlaklığı yeniden tabana alınmalı.",
+   "GPU=1 yolu (MSAA 4 + HalfFloat) ile MToon ve konturda NaN ve kare süresi ayrıca denenmeli.",
+   "Gitar ile etek teması kalçaya ağırlıklı bantta (y 0.94-1.06); etek kemikleri orayı itemez. Işınla ölçtüm (elestiri/etek-onu.mjs): etek önü y 0.95, x −0.08'de 0.214; kollar'ın alt bombesi 0.223, yani dinlenmede ~1 cm boşluk. Nefes ve eğilmede bütün karelerde deri ölçümü gerekir.",
+   "Önizleme sayfası: VRM yüklenene kadar ne görüneceği (vekil mi, boş mu) belirlenmeli; check.js'teki 'sayfa hatası yok' satırı bu durumda da geçmeli.",
+   "Paralel ölçüm yükü: kollar worktree'lerde paralel yürüyecek ama kullanıcı aynı makinede oyun oynuyor. Tarayıcı ölçümleri tek kuyrukta sıraya girmeli (oyun.ps1 kapısı + dusuk.sh + tek kilit); kimse belirtmedi.",
+   "Görünüm 'clock.js climax(p)' istiyor, ama doruk ve vuruş hesabı director.js'in içinde (cutTimes). Kopyalanırsa iki yerde drift olur; temel kol cutTimes'ı birebir clock.js'e taşımalı, yönetmen oradan içe aktarmalı."
+  ],
+  "unverified": [
+   "Kollar yerleşiminin doğallığı doğrulanmadı. Kaynak bir fizibilite modeli: el yönüne perdede ±25°, penada ±15° serbestlik, beden ve etek rijit, nefes yok. Kendi verisinde perde üst kolu düşeyden medyan 53.7°, p90 74°, en çok 99°. 2H ve 3H pencerelerinde dirsek medyanı 160-170°. Dönme açısı sonuçları (37.8°) koddan değil modelden. Görsel olarak elde yalnız bir siluet panosu var.",
+   "İskelet'in gitar dy/dz değerleri 1 cm'lik kaba yükseklik haritasından gelen tahmin.",
+   "Görünüm'ün kare maliyetleri öndeneme sayfasında ölçüldü: gerçek sahne, Finish zinciri ve bloom yok, taban 107-119 ms (gerçek sahnede 230-250 ms). İskelet'in A/B ölçümü yalnız unlit malzemeyle. İlk kare iki ölçümde 2.4-3.1 s ve 4.9 s; fark yükten geliyor olabilir.",
+   "Görünüm'ün tahminleri ölçülmedi: saç ve etek CPU ≤ 1.5 ms/kare, ikiz zincirde fazla düzeltme ≤ 6°. Kilit görünürlüğü ≥ 0.97 ise dinlenme LBS'iyle ölçüldü; gitarın ve kolların örtmesi hesapta yok.",
+   "Kollar'ın yen girişi (perde %89, pena %100) silindir yen modeliyle hesaplandı, deri deformasyonuyla değil.",
+   "İskelet'in 0.096 mm aktarım hatası yalnız işaret parmağı zinciriyle denendi. Beş parmak, başparmak ve aynalı sol elin tamamı ölçülmedi.",
+   "Kare başına süre tahminleri gerçek sayfada ölçülmedi: commit ≤ 1 ms, dirsek seçimi (36 IK × çarpışma) 1-2 ms, saç süzgeci (50 örnek kinAt).",
+   "'Nötr göz biraz squint karışımı' notunun anlamı (istenen görünüm mü, kusur mu) belli değil.",
+   "Paylaşılan morphTargetInfluences dizisi ve pişirilmiş hedefler 9 yüz ağında yalnız öndenemede çalıştı; gerçek sahnede ve kontur ağıyla birlikte denenmedi.",
+   "Küçük düzeltme: iskelet 'placeCams yalnız kurulumda' diyor; aslında sahne çekiminde her karede de çağrılıyor (director.js:168). Sonuç değişmez.",
+   "Kendim doğruladıklarım (artık doğrulanmamış sayılmaz): kurulumda rand() yalnız figures.js:142 ve rigs.js:18-19'da çekiliyor; maske malzeme değişimi; finish.js HEAD'de hâlâ 16 bit derinlik; serve.js .vrm'i octet-stream veriyor; GLTFLoader ile importmap aynı three modülünü yüklüyor; firstPerson aralıkları 8/12/10/10; TipSleeve yaprak, ortalama ağırlık 0.48; yüz alt ağları accessor paylaşıyor; el çerçeveleri arası 6.47°; kollar'ın yerleşim sayıları tutarlı; ön yüz ölçüleri ±5 mm içinde."
+  ],
+  "recommendedPlan": "Birleşik plan. Salt okur eleştiri: repoya dokunmadım. Doğrulama betikleri C:\\work\\zumruduanka\\out\\tur5\\tasarim\\elestiri\\ altında: vrm-denetim.mjs (+ .json), yer-denetim.mjs, etek-onu.mjs, el-cerceve.mjs.\n\n0. ÖN KOŞULLAR (kod kolu değil, sırayla)\n\n0a. Oda cilasını kapat. cila-derinlik (finish.js stencil), cila-tekstil ve cila-dekor dalları ya birleştirilsin ya da donsun. Kanade dalları birleşmiş main'den çıksın. Kanade kolları şu dosyalara dokunmaz: finish.js, room-props.js, cat.js, wall-decor.js, room/lights.js, room/shell.js.\n\n0b. Kullanıcı kararları:\n(1) Gitar yerleşimi: kollar'ın önerisi kabul mü? Göğüste yüksek, eşik göz hizasında, sap 43°. Karar, temel kolun ilk gerçek VRM karesine bakılarak verilir.\n(2) Kol ağzı (r ≤ 5 cm, bilekten ≤ 2 cm) ve sol el tırnakları (≤ 1 mm): Blender'da mı, yüklemede köşe yamasıyla mı düzeltilsin? TipSleeve ağırlığı 0.48 olduğu için yalnız kemik ölçeklemek yetmez.\n(3) VRM git'e doğrudan girsin (LFS değil); kabul edilen sürüm tek kez commitlensin.\n(4) İç id 'claude' kalsın, görünen ad KANADE olsun. 'Claude'un doğaçlaması' şarkı adı değişsin mi?\n(5) 'Nötr göz squint' notu kusur mu, istenen görünüm mü?\n(6) Malzeme: saf MToon mu, Lambert karışımı mı? Üye ışığı rengi ne olsun? Ten ve kıyafette normal haritaları kalksın mı?\n(7) Headbang boyun + baş toplamında ≤ 20° ile sınırlansın mı? Artan eğim gövdeye gider.\n(8) Manken KARAKTER=manken olarak birleştirmeye kadar yedek kalsın mı?\n\n0c. Karakter hattı (C:\\work\\karakter): 0b(2) kararına göre yen, tırnak, görünmez kirpik ilkeli ve kesik üçgenler düzeltilir. Doku boyutu kararı verilir. Sonra VRM ve sac.json repoya kopyalanır.\n\n1. TEMEL KOL (sıralı, tek sahip; ayrıntısı tracks[0]'da)\n\nT0.1 Davranışı değiştirmeyen refaktör. Manken çıktısı bit bit aynı kalmalı.\n- handPlan, regimePlan, fingerPlan ve pickPlan members/plan.js'e; groove members/groove.js'e birebir taşınır.\n- figures.js kancaları: makeHand(spec), poseArm l1/l2 + kutup kancası, poseLegs boyları figürden, setFigVisible ve restHead kancaları.\n- rigs.js'te fig.life, blinkAt ve commit; geç kanca oda confine'dan SONRA çağrılır.\n- clock.js'e climax(p) taşınır (cutTimes birebir).\n- strap.js guitarSd'yi dışa açar.\n- guitar-model.js'e YERLESIM verisi ve createGuitarModel(scene, yer) gelir.\n- tools/olcum/ortak.mjs; sync-check'e yalnız ready kontrolü ve skinning'li maske malzemesi.\n- check.js bekçileri: her çekimin who'su FIG'de mi, rng durumu.\nKabul: SRC=eski ağaçla sync-check ve BASE farkı boş, ses özeti aynı, npm test geçer.\n\nT0.2 Veri (node, tarayıcısız).\n- kanade/glb.js: parse, accessor, restWorld, humanoid, handFrame.\n- tools/kanade-iskelet.mjs → kanade/iskelet.js. İçerik: kemikler F çerçevesinde, l1 0.2193 / l2 0.2143, bacak boyları, el başına HAND_K L/R (tek çerçeve), avuç kutusu, topuk, tırnak uçları, yen/etek/saç zincirleri, ikiz eşlemesi, sac.json sınırları F çerçevesinde, kollar'ın elipsoit uydurmaları, askı ofsetleri, yüz y maskesi, sha.\n- --denetle kipi; tools/kanade-test.mjs: kalibrasyon ile tablo ≤ 0.1 mm, aktarım ≤ 0.5 mm.\n\nT0.3 Çalışma zamanı v0.\n- vrm.js: preloadKanade, tek kullanımlık varlık, GLTFLoader eklentisi (glTF malzemesi kurulmaz), tek paylaşılan Skeleton (bind(sk, bindMatrix)), frustumCulled = false, kirpik atılır, sap kamerası için indeks sıralama + drawRange, setMaterialFactory.\n- vekil.js: fig sözleşmesi; up = upperChest vekili; sh her karede; vekiller object.visible = false.\n- aktarim.js: zincir eşleniği; kol iki-vektör tabanı + burulma payı α = 0.5; el ve parmaklarda W = P_now·P_rest⁻¹·Q_holder; err_mm.\n- v0 dosyaları: beden.js (iskelet'in dağılım sayıları + baş sınırı), govde.js (kollar'ın elipsoitleri + etek konisi; askı anchor'ları aynı id'lerle, kalça y ≈ 1.04), kol-ik.js (genelleştirilmiş poseArm), ifade.js (yalnız Blink + pişirme kancası), ikincil.js (boş kayıt defteri).\n- Kanade tabloları başlangıçta mankenin sayıları; gitar YERLESIM.kanade = kollar'ın sayıları.\n\nT0.4 Bağlantı.\n- harness.html ve browser.js ready() içinde preloadKanade; hata olursa throw.\n- app.js'te ön-yükleme ve yedek görünüm.\n- members.js: KANADE.\n- sim.ready ve whenReady Kanade'yi de kapsar; render bekçisi yalnız 'Kanade takılı mı'ya bakar.\n\nT0 kabulü:\n- KARAKTER=manken: BASE ile birebir.\n- Kanade: rng durumu 11/11 şarkıda mankenle aynı; ses özeti aynı.\n- İki taze sayfada aynı kare özeti; W = 0..2 ile N = 1 arasında 10 PNG bayt-eşit.\n- aktarim_mm ≤ 0.5 (dagkrali, bütün kareler); etkin morph ≤ 8.\n- Ön-yükleme ≤ 3 s, ilk kare ≤ 6 s, commit ≤ 1 ms/kare.\n- npm test geçer; CI süresi kaydedilir.\n- Kullanıcıya tek bir yakın plan ve geniş plan karesi gönderilir (0b(1) onayı için).\n- Ellerin yanlış yerde olması bu aşamada beklenen durum.\n\n2. PARALEL KOLLAR (T0'dan sonra, worktree'lerde)\n\nA el-gitar, B görünüm, C yüz, D ikincil, E beden, F gövde-askı. Dosya sahiplikleri çakışmaz; ayrıntı tracks'ta.\n- Her kol ölçümünü yalnız kendi tools/olcum/<kol>.mjs dosyasına yazar.\n- Ortak sözleşmeler T0'da donar: fig, chainAt, govde.bodySdFn/strapAnchors, ifade.set/apply, ikincil kayıt defteri, setMaterialFactory, YERLESIM.\n- Tarayıcı ölçümleri tek kuyrukta sırayla koşar: oyun.ps1 && dusuk.sh, pencere açılmaz.\n- Her kol birleşmeden önce ortak değişmezleri kanıtlar: rng 11/11, ses özeti aynı, saflık (geçmişli ↔ taze kare bit-eşit), çok işçi = tek işçi, aktarım ≤ 0.5 mm, morph ≤ 8, npm test.\n\n3. KAMERA KOLU (G): A ve E'den sonra.\n\n4. BİRLEŞTİRME (H)\n- Birleştirme sırası: F → E → A → D → C → B → G.\n- Tam sync-check: dagkrali, agit, danny, AUDIO=1, ODA=1.\n- oda-olcum, GPU=1 tek kare, üç şarkının tam render'ı, kulak ve göz kontrolü.\n- Yeni taban dosyası; README ve metinler.\n- Manken yolu yalnız kullanıcı onayıyla kaldırılır.\n\n5. SONRAKİ TUR (oturma) için tasarım engeli yok:\n- YERLESIM.oturan alanı boş bırakılır.\n- placeCams duruşa bağlanabilir.\n- chainAt ve govde duruştan bağımsız.\n- kol-ik kutbu figür çerçevesinde; bugünkü dünya/figür karışıklığı (claude.js:146 ve 332, figures.js:249) Kanade yolunda düzeltilmiş olur.",
+  "tracks": [
+   {
+    "key": "T0-temel",
+    "owns": "src/assets/kanade/{kanade.vrm,sac.json,kaynak.json}, .gitattributes; tools/kanade-iskelet.mjs, tools/kanade-test.mjs, tools/olcum/ortak.mjs; src/sim/stage/kanade/{glb.js, iskelet.js (üretilmiş), vrm.js, vekil.js, aktarim.js} ve v0 olarak beden.js, govde.js, kol-ik.js, ifade.js, ikincil.js (sonra ilgili kola geçer); src/sim/stage/members/{plan.js, groove.js (taşıma), claude.js, kanade/el-tablo.js (yer tutucu)}; src/sim/stage/{figures.js, rigs.js}; src/sim/sim.js; src/sim/music/clock.js (climax taşıma); src/sim/camera/director.js (yalnız climax importu ve restHead kancası, davranış aynı); src/sim/stage/strap.js (yalnız guitarSd export); src/sim/stage/guitar-model.js (YERLESIM verisi); src/sim/band/members.js; src/harness.html; tools/browser.js; src/app/app.js; src/index.html metinleri; tools/sync-check.mjs (asgari); tools/oda-olcum.mjs (skinPoints); tools/check.js",
+    "task": "Sırayla dört adım (recommendedPlan T0.1-T0.4).\n1) Mankeni bit bit koruyan refaktör: plan.js ve groove.js'e taşıma, kancalar, geç kanca confine'dan sonra, climax ve guitarSd taşıması, YERLESIM verisi, check.js bekçileri.\n2) Tarayıcısız veri: glb.js handFrame (y Middle1'den, z = (Index1 − Little1) × y). Üretici araç iskelet.js'i yazar; sac.json sınırları F çerçevesine çevrilip gömülür.\n3) Çalışma zamanı v0:\n- tek kullanımlık varlık, tek paylaşılan Skeleton, frustumCulled = false, kirpik atılır;\n- sap kamerası için indeks sıralama + drawRange;\n- fig.up = upperChest vekili, sh her karede, vekiller object.visible = false;\n- aktarım ve err_mm;\n- govde.js v0: kollar'ın elipsoitleri + etek konisi, 7 anchor (kalça y ≈ 1.04);\n- beden.js v0 ve chainAt(p, now, wall) sözleşmesi;\n- tam bir rand() (fig.ph); blink takvimi aynen.\n4) Ön-yükleme ve ready; görünen ad KANADE; Kanade gitar YERLESIM = kollar'ın sayıları. Tablolar mankenden.\nKullanıcıya onay için bir yakın plan ve bir geniş plan karesi.",
+    "measure": "Manken korunuyor mu:\n- KARAKTER=manken: sync-check BASE (out/tur4/taban.json) farkı boş (SRC=eski ağaçla aynı araç);\n- ses.ozet aynı; npm test geçer.\n\nKanade:\n- createSim ve load sonrası rng durumu 11/11 şarkıda mankenle AYNI; ses.ozet aynı.\n- İki taze sayfada aynı kare özeti; render W = 0..2/N = 3 ile N = 1 arasında 10 PNG bayt-eşit.\n- aktarim_mm ≤ 0.5 (dagkrali bütün kareler, 30 parmak eklemi + 10 uç dahil).\n- kanade-test: kalibrasyon ↔ tablo ≤ 0.1 mm; iskelet --denetle geçer (sha ve dinlenme farkı ≤ 0.1 mm).\n- Etkin morph ≤ 8.\n- Ön-yükleme ≤ 3 s, ilk kare ≤ 6 s, commit ≤ 1 ms/kare.\n- CI süresi kaydı (hedef artış ≤ 5 dk).",
+    "dependsOn": "0a cila kapanışı, 0b kullanıcı kararları (en az: VRM git'e, id claude, yen/tırnak yolu), 0c varlık sonlandırma"
+   },
+   {
+    "key": "A-el-gitar",
+    "owns": "src/sim/stage/members/kanade/el-tablo.js (POZ.kanade sayıları: KNUCKLE, MID, FRET_LO/HI, FIST/FIST_M, ZETA…ROLL_M, PM_K, MU_H, THUMB, LO_C/HI_C, HS_MAX, TWIST, SWIVEL); src/sim/stage/kanade/kol-ik.js; src/sim/stage/guitar-model.js (yalnız YERLESIM.ayakta sayıları); src/sim/stage/scene.js (yörünge hedefi gitardan); tools/olcum/el.mjs; out/tur5/el/* arama betikleri",
+    "task": "1) Dirsek dönme açısı:\n- softmin(üst kol yükselişi + giriş cezası), figür çerçevesinde, durumsuz;\n- ön kol burulma payı 0.5, bilekte kalan ≤ 45°.\n2) Tablo araması tarayıcısız, gerçek modüllerle, BelowNormal öncelikte. Sıra: THUMB → pena duruşu → FRET_LO/HI → LO_C/HI_C ve HS_MAX. Gitar yerleşimi (o, a, psi, phi) aramada serbest parametredir, kollar'ın değerinden başlar.\n3) Sap kamerası ve yörünge hedefi gitardan türetilir.\n4) Kanade tabanı out/tur5/taban-kanade.json yazılır.",
+    "measure": "dagkrali, agit, danny ve 11 şarkının özetinde:\n- erişim dışı ≤ %0.1;\n- uç tanımlı dirsek 60-120° bandında ≥ %99;\n- perde parmağı uç medyanı ≤ 1 mm, p90 ≤ 2.1 mm;\n- parmak ↔ sap > 3 mm oranı ≤ %7.4 (manken tabanı);\n- penaTel ≤ 1 mm;\n- palm mute topuk ↔ köprü medyanı ≤ 8 mm;\n- pena ön kolu ↔ donanım > 5 mm kare sayısı ≤ manken (525);\n- deri (skinPoints: el, yen, tırnak) ↔ gitar girişi ≤ 3 mm;\n- tırnak ↔ klavye ≤ 0;\n- kare başına > 3 cm dirsek sıçraması 0 kare;\n- bilek bükümü p90 ≤ 45°;\n- aktarim_mm ≤ 0.5.\nGitar ↔ beden (göğüs ve kalça bandındaki etek) boşluğu bütün karelerde ≥ 0. Yerleşim değişirse kullanıcıya bir kare.",
+    "dependsOn": "T0-temel"
+   },
+   {
+    "key": "B-gorunum",
+    "owns": "src/sim/stage/kanade/mtoon.js, src/sim/stage/kanade/malzeme.js (setMaterialFactory bağlantısı, renderOrder, mipmap, sınıf ayarları, Kanade ışık/hüzme rengi sabiti); src/sim/stage/venues.js (ENVS[*].kanade tonu); tools/olcum/gorunum.mjs",
+    "task": "Kendi MToon benzeri gölgelendiricimiz:\n- köşe ışıklı (VLIT), tek toon basamağı, min(col, lit), kenar ışığı, matcap, uMax 0.97;\n- konturda sabit piksel tabanı;\n- açılan döngü gövdesi iç blokla yazılır;\n- NaN korumaları; userData.linear = true.\nNormal haritası yalnız saçta (kullanıcı kararına bağlı). Mekân tonu setTone ile verilir. Önizleme eşleme düzeneği: Blender stüdyo kamerası ile ΔE karşılaştırması. finish.js'e dokunmaz; stencil düzeltmesi cila-derinlik dalından gelir.",
+    "measure": "- Gerçek sahnede görünür/gizli eşleştirilmiş kare süresi (A,B,A,B): Kanade'nin eklediği geniş ≤ 25 ms, bel ≤ 50 ms, yakın ≤ 85 ms, kulüp ve oda.\n- GPU=1 tek karede NaN veya kara bölge yok.\n- Kanade'den HDR ≥ 1.0 piksel sayısı 0.\n- Renk: ten L 0.72-0.85, ton 15-40°; saç doygunluğu ≥ 0.06, L 0.70-0.88; elbise p95 L ≤ 0.12.\n- Önizlemeye ΔE00 ≤ 6.\n- Kurulum artışı ≤ 5 s.\n- Çok işçi = tek işçi bayt-eşit.",
+    "dependsOn": "T0-temel"
+   },
+   {
+    "key": "C-yuz",
+    "owns": "src/sim/stage/kanade/ifade.js (pişirme, ruh hali, iki evreli dil, göz kırpma kapısı), src/sim/stage/kanade/bakis.js (göz kemikleri); tools/olcum/yuz.mjs",
+    "task": "1) Pişirme: grupları göz ve ağız parçalarına ayır (y maskesi 1.528/1.540, parçaların toplamı grup deltasına tam eşit, 26 hedef; 9 alt ağ aynı influences dizisini paylaşır).\n2) Ruh hali p ve t'nin saf işlevi; en çok iki ruh hali aynı anda.\n3) Göz kırpma rigs.blinkAt'tan gelir; kırpma sırasında öbür göz parçaları ×(1 − b).\n4) Dil: s ≤ 0.5 iken tongue_ac = 2s; sonra tongue_ac = 2 − 2s, tongue = 2s − 1. Dil sürerken öbür ağız hedefleri sıfırlanır.\n5) Bakış: içe 8°, dışa 12°, aşağı 10°, yukarı 10° sınırlı; geç kancada son kamerayla (confine'dan sonra).\n6) Nötr göz 0b(5) kararına göre.",
+    "measure": "- Etkin morph her karede ≤ 8.\n- EYE_Close eşdeğeri ≤ 1.0 (kapak taşması 0).\n- Dil sırasında başka ağız hedefi 0.\n- Kapak köşesi ve dil ucunda ikinci fark / birinci fark ≤ 0.6.\n- İris görünürlüğü (Blender'daki iris_gorunur ölçüsü) kırpma dışında > 0.\n- Saflık: geçmişli kare ile taze kare bit-eşit.",
+    "dependsOn": "T0-temel"
+   },
+   {
+    "key": "D-ikincil",
+    "owns": "src/sim/stage/kanade/ikincil.js, kanade/sway.js, kanade/sac.js, kanade/etek.js, kanade/yen.js; tools/olcum/ikincil.mjs",
+    "task": "1) Durumsuz ikinci derece süzgeçli salınım:\n- geçmiş pozlar beden.chainAt'tan yeniden hesaplanır;\n- uca doğru frekans düşer (kırbaç);\n- yerçekimi slerp'i.\n2) sac.json sınırları yön eşlemesiyle (Blender → VRM → F) yumuşak sınır olarak.\n3) Govde ikizleri ana zincirle aynı yerel dönüşü alır.\n4) Durumsuz itme. Engeller: govde.bodySdFn, askı noktaları, guitarSd ve kol kapsülleri ile sap katısı (eksik olan bu).\n5) Etek zincirleri 1-2: gitar, uyluk, yatak ve oturma yüzeyi.\n6) Yen: yerçekimi + gitar itmesi. 0c'de ağ düzeltilmediyse TipSleeve'in kısmi ölçeği de eklenir.",
+    "measure": "- sac.json sözleşme ihlali 0.\n- Kesişme 0: 27 baş pozu × doruk örneklerinde saç ↔ beden, askı, gitar ve kollar; etek ↔ gitar, uyluk ve yatak (ODA=1).\n- Bant gerilmesi ≤ 1.5.\n- Uç salınım oranı: dorukta 0.8-1.5, sakinde ≤ 0.3.\n- Saflık bit-eşit; CPU ≤ 1.5 ms/kare (gerçek sayfada).\n- Yen ↔ gitar > 5 mm oranı: perde ≤ %1, pena ≤ %5.",
+    "dependsOn": "T0-temel (chainAt ve govde sözleşmesi)"
+   },
+   {
+    "key": "E-beden",
+    "owns": "src/sim/stage/kanade/beden.js (life dağılımı, nefes, köprücük nefesi, nod payı, yaslanma telafisi, bacak IK, chainAt), src/sim/stage/members/groove.js (Kanade varyantı); tools/olcum/beden.js",
+    "task": "1) Omurgaya dağılım:\n- rx: pelvis 0.20, spine 0.25, chest 0.30, upperChest 0.25;\n- ry: spine 0.20, chest 0.35, upperChest 0.45.\n2) Nefes: Bust ölçeği, upperChest ve köprücük. torso.scale kullanılmaz.\n3) Boyun + baş ≤ 0.35 rad; artan eğim göğse.\n4) Yaslanma telafisi gitarın temas noktasından (FK); sabit LEAN_Z yok.\n5) Bacak boyları 0.3958 / 0.4492; platform taban yerde.\n6) chainAt saf ve life ile aynı işlev; köprücük erişimden bağımsız.",
+    "measure": "- Boyun + baş öne eğimi ≤ 20° (bütün kareler).\n- Çene kilidi görünürlüğü yönetmenin bütün yüz çekimlerinde ≥ 0.97 (kilit_olc yöntemi, canlı poz).\n- Gitar ↔ deri (göğüs ve kalçaya ağırlıklı etek bandı, skinPoints) girişi 0; nefes ve eğilme dahil.\n- Ayak kayması 0.\n- sync-check ritim ve kafa eğim istatistikleri mankenle aynı karakterde.\n- chainAt ↔ sahne grafiği farkı 0 (bit-eşit).",
+    "dependsOn": "T0-temel"
+   },
+   {
+    "key": "F-govde-aski",
+    "owns": "src/sim/stage/kanade/govde.js (bodySdFn, bodySd, strapAnchors; giysiyi saran elipsoit/kapsül birleşimi + etek kesik konisi), src/sim/stage/strap.js (yalnız REST ve askı sabitleri); tools/olcum/govde.mjs",
+    "task": "Kemiğe bağlı ilkellerin uydurulması:\n- elipsoitler, uyluk ve baldır kapsülleri;\n- kalçaya bağlı etek konisi (y 1.0'da 0.27 / 0.19 → y 0.6'da 0.45 / 0.31).\nYedi anchor aynı id ve sırada: n = gradyan, r = t yönündeki eğrilik; kalça noktası etek açılımının üstünde (y ≈ 1.04). REST 1.33 korunabilir (yol 1.292 m) ya da ölçüme göre ayarlanır. İmza figures.js:149-158 ile aynı.",
+    "measure": "- Deri ve giysi köşelerinin %95'i ilkel yüzeyine ≤ 1 cm; bağlantı noktalarında ≤ 3 mm.\n- Tur 4 askı hedefleri (yol, boşluk, giriş: gövde, beden, kol, el; sıçrama) mankenle aynı eşiklerde.\n- Askı ↔ saç sırası doğru: saç askının üstünde, kesişme 0 (D ile birlikte ölçülür).\n- bodySdFn çağrı maliyeti mankene göre ≤ 2×.",
+    "dependsOn": "T0-temel"
+   },
+   {
+    "key": "G-kamera",
+    "owns": "src/sim/camera/director.js (FRAME/ROOM/FOV Kanade'ye, restHead göz tabanlı, FRAME.guitar.look gitardan); src/sim/stage/room/layout.js (yalnız CAMERA.subject; cila-tekstil birleştikten sonra); tools/olcum/kamera.mjs",
+    "task": "1) restHead referansı tek: göz ortası − 0.02.\n2) Yakın plan saç tepesi kadrajın 2 cm içinde (görünüm: bugünkü sayılarla 2.7 cm kesiliyor).\n3) Gitar ve bel planında eller ve eşik alt bandın (y > 600) üstünde.\n4) Kahraman planında yüz ve gitar birlikte.\n5) Sap kamerası kadrajı: klavye görünür, kol ağzı örtmüyor.\n6) Oda karşılıkları ve confine konusu Kanade'ye göre.",
+    "measure": "- sync-check framing: kafa ve sap eli kadrajda, alt bant ihlali ≤ manken tabanı.\n- Sap kamerasında eşik ve ilk perdelerin görünür oranı.\n- oda-olcum: kamera odanın içinde, eşya ve Kanade'nin içinde değil, near ihlali 0.\n- Kilit görünürlüğü ≥ 0.97.\n- Çekim planı özeti (cekimPlani) değişmez.",
+    "dependsOn": "A-el-gitar (son yerleşim), E-beden (baş hareketi), cila-tekstil birleşmesi"
+   },
+   {
+    "key": "H-birlestirme",
+    "owns": "README.md, src/index.html ve app.js metinleri, improv.js adı (karara göre), out/tur5/taban-kanade.json; KARAKTER=manken yolunun kaldırılması (yalnız onayla)",
+    "task": "1) Kolları F → E → A → D → C → B → G sırasıyla birleştir.\n2) Tam sync-check: dagkrali, agit, danny, AUDIO=1, ODA=1.\n3) oda-olcum, GPU=1 tek kare, üç şarkının tam render'ı (swiftshader, 3 işçi), kulak ve göz kontrolü.\n4) README'de 'hiçbir 3B model yok' cümlesi düzelir, CC0 kaynak notu eklenir.\n5) Deneyim defteri ve proje belleği güncellenir.",
+    "measure": "Kolların bütün ölçütleri birleşik dalda yeniden geçer:\n- rng 11/11, ses.ozet aynı;\n- çok işçi ile tek işçi bayt-eşit;\n- aktarim_mm ≤ 0.5, morph ≤ 8;\n- kare süresi bütçesi (manken + Kanade payı) tutuyor;\n- npm test ve CI geçer.\nKullanıcı videoyu onaylar.",
+    "dependsOn": "A, B, C, D, E, F, G"
+   }
+  ]
+ }
+]

@@ -1,0 +1,305 @@
+{
+ "refaktor": {
+  "where": "C:\\work\\zk-temel (dal kanade-temel, 23cc6fb üstünde b08de94); ölçüm çıktıları C:\\work\\zumruduanka\\out\\tur5\\temel\\",
+  "commits": [
+   "b08de94 Tur 5 T0.1: Kanade için kancalar, manken birebir aynı"
+  ],
+  "filesChanged": [
+   "src/sim/stage/members/plan.js (yeni: handPlan/handAt, regimePlan/regimeAt, fingerPlan/pressed, pickPlan/pickAt, planOf/regOf/fplanOf/pickOf önbellekleri; birebir taşıma)",
+   "src/sim/stage/members/groove.js (yeni: groove birebir taşıma)",
+   "src/sim/stage/members/claude.js (planlar/groove import edilir; HAND yerine H.userData.spec)",
+   "src/sim/stage/figures.js (makeHand(scene, skin, spec=HAND) + userData.spec, tablo başına geometri önbelleği; poseArm fig.l1/fig.l2 ve fig.pole(i,S,T,pole) kancası; poseLegs fig.legLen; setFigVisible(fig,v,headCam) -> fig.setVisible; restHead fig.restHead)",
+   "src/sim/stage/rigs.js (blinkAt/BLINK dışa açık; life L sayıları -> fig.life(L) ya da mankenLife; pozdan sonra fig.commit(now,wall); late(ctx) -> fig.late)",
+   "src/sim/sim.js (rigs.late oda confine'dan SONRA; sim.ready getter)",
+   "src/sim/music/clock.js (climax(p) -> {hits, doruk}, cached; cutTimes'tan birebir)",
+   "src/sim/camera/director.js (cutTimes climax'ı import eder)",
+   "src/sim/stage/strap.js (export guitarSd)",
+   "src/sim/stage/guitar-model.js (YERLESIM.manken = {rig:0.4, p:[-0.2,0.32,-0.07], r:[0,0,-0.6]}; createGuitarModel(scene, yer=YERLESIM.manken))",
+   "tools/check.js (bekçiler: çekimin who'su FIG'de mi; kurulum rand() sayısı = 7468 (tohum 1), kareler 0 rand(); satırda rand kurulum/yükleme/kare)",
+   "tools/sync-check.mjs (ready ?? texReady denetimi; maske siyahı SkinnedMesh/morflu ağda skinning/morphTargets bayraklı klon)",
+   "tools/oda-olcum.mjs (ready ?? texReady denetimi)",
+   "tools/olcum/ortak.mjs (yeni: MK, SKIN (boneTransform'lu deri noktası), kareler() kare döngüsü, st/r3 istatistik; kendi denetimi)"
+  ],
+  "done": [
+   "Önceki kesilen denemenin commitsiz refaktörü git diff ile satır satır okundu ve doğrulandı (baştan yazılmadı); eksik madde bulunmadı, kaynakta ek değişiklik gerekmedi",
+   "T0.1 maddelerinin hepsi yerinde: plan.js/groove.js taşıması, figures.js kancaları (makeHand spec, l1/l2 + pole, legLen, setVisible, restHead), rigs.js life/blinkAt/commit/late, geç kanca confine'dan sonra, clock.js climax, strap guitarSd export, guitar-model YERLESIM + createGuitarModel(scene, yer), tools/olcum/ortak.mjs, sync-check ready + skinning'li maske, check.js bekçileri",
+   "Kabul ölçümü: SRC=C:/work/zumruduanka/src (23cc6fb) ile eski.json (önceki denemeden, aynı araç) ve zk-temel ile yeni.json; SONG=dagkrali,agit,danny AUDIO=1 T=10.2,16.65,72.4,47.5,54.47,73.35 BASE=out/tur4/birlesik.json",
+   "karsilastir.mjs: 2390 alan (meta hariç) fark 0; 11 şarkının ses programı özeti aynı; determinizm 6/6 true, doku determinizmi aynı; ham ses üç şarkıda Chromium gürültü tabanında (en büyük 35-39 LSB, fark RMS 6e-6..1.2e-5)",
+   "BASE farkı: eski ve yeni koşunun BASE tablosundaki '*' satırları birebir aynı (23 satır, hepsi oda bölümü: BASE ODA=1 ile koşmuş, bu koşu ODA'sız)",
+   "esdeger.mjs (node, tarayıcısız): 11 şarkıda handPlan, fingerPlan, regimePlan, pickPlan, handAt, pickAt, groove ve yönetmen planShots eski ↔ yeni bit bit aynı",
+   "ortak.mjs kendi denetimi geçti (16 kare, deri noktası ↔ köşe farkı 0)",
+   "npm test commit öncesi yeniden koşuldu: Hepsi geçti (38 ✓, 0 ✗, rand 7468/…/0 her şarkıda)",
+   "Bütün koşular oyun kapısı + sira.sh + dusuk.sh ile, swiftshader, pencere açmadan"
+  ],
+  "metrics": [
+   {
+    "name": "sync-check eski↔yeni alan farkı",
+    "before": "-",
+    "after": "0 / 2390",
+    "target": "0"
+   },
+   {
+    "name": "ses programı özeti (11 şarkı)",
+    "before": "23cc6fb değerleri",
+    "after": "11/11 aynı",
+    "target": "11/11 aynı"
+   },
+   {
+    "name": "ham ses en büyük fark (ilk/agit/danny)",
+    "after": "37.8 / 39.4 / 34.8 LSB16, RMS 1.2e-5 / 1.2e-5 / 6.4e-6",
+    "target": "gürültü tabanı (max 0.004, rms 5e-5)"
+   },
+   {
+    "name": "determinizm kareleri",
+    "after": "6/6 true",
+    "target": "6/6"
+   },
+   {
+    "name": "kurulum rand() (tohum 1)",
+    "before": "7468",
+    "after": "7468",
+    "target": "7468"
+   },
+   {
+    "name": "karelerin rand() çekmesi",
+    "after": "0",
+    "target": "0"
+   },
+   {
+    "name": "node plan/groove/planShots eşitliği",
+    "after": "11/11 şarkı bit bit aynı",
+    "target": "bit bit aynı"
+   },
+   {
+    "name": "npm test",
+    "after": "geçti (323 sn)",
+    "target": "geçer"
+   },
+   {
+    "name": "sync-check süresi (yeni)",
+    "after": "414 sn"
+   }
+  ],
+  "frames": [],
+  "contracts": [
+   "figures.js makeHand(scene, skin, spec = HAND): el h.userData.spec ile kendi tablosunu taşır; bendFinger/reachFinger/gripAt/başparmak tablosu oradan okur",
+   "poseArm: üst kol fig.l1 ?? fig.reach, ön kol fig.l2 ?? fig.reach; fig.pole(i, S, T, pole) varsa dirsek yönü (dünya) ondan, yoksa eski yol",
+   "poseLegs: [uyluk, baldır] = fig.legLen || mankenin boyları",
+   "setFigVisible(fig, v, headCam): fig.setVisible(v, headCam) varsa figür kendisi seçer",
+   "restHead(fig): fig.restHead (figür yereli Vector3) varsa o nokta",
+   "rigs.js: export BLINK = 0.14, blinkAt(f, wall) -> kırpma başından geçen süre ya da -1; fig.life(L) L = {br, rx, rz, ry, drop, nod, look, spread}; fig.commit(now, wall) pozdan sonra; fig.late(ctx) ctx = {now, wall, p, model, strap, cam, headCam}, sim.update sonunda oda confine'dan sonra",
+   "clock.js climax(p) -> {hits: final vuruşları (sn), doruk: vuruş} ya da notasız şarkıda null; p başına önbellekli (dizi paylaşılır, değiştirme)",
+   "strap.js export guitarSd(model)",
+   "guitar-model.js export YERLESIM = {manken: {rig, p, r}}; createGuitarModel(scene, yer = YERLESIM.manken)",
+   "sim.ready (bugün texPending() === 0; Kanade yüklemesi T0.4'te buraya girecek)",
+   "members/plan.js dışa açık: winX, sm, SP, LEAD, LIFT, NOFING, NOPICK, handPlan, handAt, planOf, regimePlan, regimeAt, regOf, fingerPlan, fplanOf, pressed, pickPlan, pickAt, pickOf",
+   "tools/olcum/ortak.mjs: MK, SKIN, kareler(h, P, adim), st, r3, openHarness"
+  ],
+  "notDone": [
+   "T0.2-T0.4 (glb.js/iskelet.js, vrm.js/vekil.js/aktarim.js, ön-yükleme, KANADE görünen adı, .gitattributes, VRM) bilerek yapılmadı: Kanade kodu bu adımın kapsamı dışında",
+   "Push yok; ana klasöre (C:\\work\\zumruduanka) yalnız out/tur5/temel/ altına çıktı yazıldı, README'ye dokunulmadı",
+   "check.js'te yükleme (sim.load) rand() sayısı yalnız raporlanıyor, şarkı başına beklenen değerle bekçilenmiyor (improv tohuma bağlı rand çekiyor)"
+  ],
+  "notesForNext": "Kanıt dosyaları C:\\work\\zumruduanka\\out\\tur5\\temel\\: eski.json/.log (23cc6fb), yeni.json/.log (b08de94 öncesi aynı ağaç), karsilastir.mjs + karsilastir.log (2390 alan fark 0, ham ses --ham kararı), esdeger.mjs + hook-yeni.mjs + esdeger.log (node'da plan/groove/planShots eşitliği; 'node --import ./hook-yeni.mjs esdeger.mjs', three'yi zk-temel vendor'a eşler), olc.sh (kullanım: bash olc.sh <ad> <SRC>, sync-check'i kabul parametreleriyle koşar), npmtest2.log (commit öncesi npm test), ortak.log. Sonraki adım T0.2/T0.3 aynı worktree'de (C:\\work\\zk-temel, dal kanade-temel, HEAD b08de94) sürebilir; KARAKTER=manken kabulü için olc.sh ile yeni koşu + karsilastir.mjs eski.json <yeni>.json yeterli. Ham ses FNV özetleri (res.ses.ozet, res.ek[id].ses.ozet) Chromium gürültüsüyle her koşuda değişir; karar --ham'dan (karsilastir.mjs bunu ayırıyor). climax(p) önbellekli bir dizi döndürür: tüketen (C kolu dil çıkarma, final vuruşları) diziyi değiştirmemeli. Kanade'nin fig.commit'i rigs.updateBand içinde pozdan hemen sonra, fig.late sim.update'in en sonunda çağrılır; Kanade kurulumunun createSim'de ek rand() çekmesi check.js'in KURULUM_RAND bekçisine takılır (tasarım: tam bir rand() fig.ph için, sayı değişirse bekçi bilerek güncellenmeli değil, mankenle aynı sayıda kalmalı)."
+ },
+ "karakter-dosyasi": {
+  "where": "C:\\work\\karakter (git deposu değil, commit yok). Son dosya: C:\\work\\karakter\\cikti\\karakter.vrm (sha1 788488383e609db371b4e9a8e86f2dd0c79915dc, 20 079 264 bayt). Eski dosya C:\\work\\karakter\\cikti\\karakter-son3.vrm olarak duruyor (sha1 9099b43f3c3587e607832476e25451fb4cb10090, 19 762 020 bayt). Kayıt: C:\\work\\karakter\\cikti\\kaynak.json. Önizlemeler: C:\\work\\karakter\\gorsel\\tur5\\son\\. Ölçüm çıktıları: C:\\work\\karakter\\calisma\\tur5\\son\\.",
+  "commits": [],
+  "filesChanged": [
+   "C:\\work\\karakter\\cikti\\karakter.vrm (resmi hatla yeniden üretildi: birlestir.py varsayılan yollarla; d3 deneme kurulumuyla bayt eşit)",
+   "C:\\work\\karakter\\cikti\\karakter_sac.json (yeniden üretildi; karakter-son3_sac.json ile bayt eşit)",
+   "C:\\work\\karakter\\cikti\\kaynak.json (yeniden yazıldı: sha1, bayt, tarih, degisiklikler[], blendshapeGruplari[], yenSozlesmesi + kilitsiz adaylar, temizlik, dogrulama: three r128 / Blender piksel, tırnak, yeniden üretim)",
+   "C:\\work\\karakter\\cikti\\karakter-son3.vrm (eski dosya, dokunulmadı)",
+   "C:\\work\\karakter\\calisma\\birlesik.blend, C:\\work\\karakter\\calisma\\birlestir_rapor.json (resmi hattın varsayılan çıktıları, yeniden üretildi)",
+   "C:\\work\\karakter\\betik\\parca_yen.py, parca_temizlik.py, parca_aksesuar.py (TIRNAK_KISA), birlestir.py (önceki oturumun parça betikleri; pyc kıyasıyla doğruladım: d3'ten sonraki tek değişiklik parca_yen docstring'i, kod aynı)",
+   "C:\\work\\karakter\\betik\\tur5_olc.py (oynayan köşe/üçgen kesişmesi + kalan kesişmenin kemiğe göre dağılımı)",
+   "C:\\work\\karakter\\betik\\tur5_yen_ayar.py ('kilit': false aday seçeneği)",
+   "C:\\work\\karakter\\betik\\tur5_gorsel.py (parmak ucu yakın planı, bilek bükük çalma pozu, çalma pozunda üst görünüm, panolar)",
+   "C:\\work\\karakter\\betik\\tur5_kaynak.py (yeni kanıtlar, kilitsiz adaylar)",
+   "C:\\work\\karakter\\betik\\tur5_uc.html + tur5_uc.mjs (yeni: three r128 GLTFLoader ile eski/yeni piksel kıyası, kıvrık yen + TipSleeve kilidi örnek uygulaması)",
+   "C:\\work\\karakter\\betik\\tur5_normal_hedef.mjs, tur5_tirnak_denetim.mjs, tur5_ibm_denetim.mjs, tur5_tirnak_fark.mjs (yeni node denetimleri, BIN öz denetimli)",
+   "C:\\work\\karakter\\betik\\tur5_s4.sh, tur5_s5.sh, tur5_s6.sh (denetim zincirleri)",
+   "C:\\work\\karakter\\gorsel\\tur5\\son\\* (önizlemeler ve panolar)",
+   "C:\\work\\karakter\\calisma\\tur5\\son\\* (ölçüm jsonları ve günlükler), calisma\\tur5\\ayar\\adaylar2.json + sonuc2.json",
+   "C:\\Users\\kullanici\\.claude\\experience\\experience.md (2 madde: Blender import normali kaynaklı önizleme farkı; glb okuyucusunda 8 bayt BIN kayması)"
+  ],
+  "done": [
+   "Önceki oturumun yarım kalan işini okudum ve doğruladım. Görev metnindeki 'cikti/ değişmedi' bilgisi eskiymiş: önceki oturum d3 deneme kurulumunu 18:19'da cikti/'ya kopyalamış, kaynak.json'u yazmış, sonra resmi koşuda oyun kapısında kalmıştı. Üstüne kurdum, hiçbir şeyi baştan yazmadım.",
+   "Resmi hattı koşturdum (blender -b --factory-startup --python betik/birlestir.py -- kucukresim=…). Çıkan dosya d3 deneme kurulumuyla bayt bayt aynı (sha1 7884883…). Yani hat dosyayı baştan, deterministik üretiyor. karakter_sac.json da son3 ile bayt eşit.",
+   "1) yen_kivrik_L ve yen_kivrik_R: VRM blendShapeMaster grupları, ikili değil. Her biri Body.baked mesh'inde hedef 0/1'e ağırlık 100 ile bağlı. Body'nin 4 ilkelinin hepsinde hedef sayısı 2, eşit. Şekil anahtarı yalnız Tops üzerinde kol başına 89 köşeyi oynatıyor. 1.0'da dirseğin altındaki çan büzgü bandına toplanıyor, manşet ön kolu sarıyor, kenar bileğin 26.8 mm gerisinde kalıyor ve 4 mm dışa kıvrık. 0'da önceki dosyayla aynı (29 pozda en büyük fark 5.9e-5 mm).",
+   "Kol ağzı sözleşmesini (TipSleeve kilidi) kaynak.json'daki yenSozlesmesi'ne yazdım. Kilit gerçekten gerekli mi diye ölçtüm: kilitsiz dört aday (kenar uc 0.875 / 0.83 / 0.80 / 0.78, manşet 28-35 mm) sol kolda 29 pozda denendi. Hiçbiri yarıçap sınırını tutturamadı (52-55 mm). 9-18 pozda kesişme arttı. Kenar geri çekildikçe, el dönünce savrulma büyüyor. Ağırlık aktarımı da yol değil: 0 durumunun birebir kalması ağırlıkları sabit tutmayı gerektiriyor. Sonuç: daha temiz bir çözüm yok, kemik sözleşmesi gerekli.",
+   "2) Sol el tırnakları kısa ve yuvarlak uçlu, aynı Aksesuar_Siyah_Parlak malzemesi. Sağ el tırnakları değişmedi: 1260/1260 köşe ve 2500/2500 üçgen eski dosyayla bayt eşit (glb'de doğrulandı).",
+   "3) Temizlik dışa aktarılmış glb'nin indeks tamponlarında yapıldı, köşe verisine dokunulmadı. Görünmez kirpik ilkeli (FaceEyelash, 224 üçgen) kaldırıldı. Her mip seviyesinde (0-6) alfa ile tamamen kesilen üçgenler çıkarıldı: Body deri 886, EyeHighlight 57. Tops ve Shoes'ta 0 üçgen silindi, çünkü eleştirmenin 68-72 / 90-98 sayısı yalnız 0. mip seviyesine ait. O üçgenler 3-4. mip seviyesinde alfa ≥ 0.5 oluyor, yani uzak çekimde çiziliyor.",
+   "Görünür piksel farkını dosyanın asıl kullanıcısında ölçtüm: three r128 GLTFLoader, swiftshader, tırnaklar gizli. T / A / gitar pozları × 7 kamera (yakın yüz, iki el ve mip'leri sınayan uzak çekim dahil), 21 görünüm: fark 0 piksel. Gürültü kontrolü olarak eski dosyanın iki ayrı yüklemesi kıyaslandı: 0. Pozitif kontrol: tırnaklar görünürken sol elde 326 piksel fark, sağ elde 0.",
+   "Blender Eevee önizlemesinde 1 piksellik (2/255) fark kalıyor. Kaynağını ayırdım: Blender içe aktarırken custom normalleri silinen üçgene komşu köşelerde yeniden kodluyor, normal en çok 7e-5 kayıyor. Farklı çıkan 504 Body + 79 Face köşesinin hepsi silinen üçgene komşu; glb'deki NORMAL verisi bayt eşit.",
+   "4) Değişmeyenler: glTF denetimi 0 hata. IBM'ler, düğümler, skin'ler, humanoid, secondaryAnimation, firstPerson, meta (başlık Kanade, CC0), 29 doku (sha1 eşit, boyutlar aynı), malzeme özellikleri ve diğer 19 grup bayt eşit. Body'nin NORMAL hedefi yalnız Tops ilkelinde var ve yalnız oynayan 89 köşe ile 13 komşusunda sıfırdan farklı.",
+   "Yeni önizlemeler: T pozunda ön, üst, yan ve yakın; çalma pozunda (dirsek 90) yakın, yan, üst; bilek bükük ve burulmuş poz (60/45/30, sözleşmeli); gitar pozunda boy; tırnak yakın planı ve parmak ucu yakın planı (eski/yeni). Hepsi kıvrık 0 ve 1 için, panolar halinde. Ayrıca three r128'de kıvrık 0 ve 1 kareleri (uc_*.png)."
+  ],
+  "metrics": [
+   {
+    "name": "VRM sha1 / boyut",
+    "before": "9099b43f3c3587e607832476e25451fb4cb10090 / 19 762 020 B",
+    "after": "788488383e609db371b4e9a8e86f2dd0c79915dc / 20 079 264 B (+317 244 B: Body'ye 2 morph hedefi)",
+    "target": "resmi hat baştan üretebilsin"
+   },
+   {
+    "name": "Resmi hat ile deneme kurulumu (d3) aynı mı",
+    "after": "sha1 eşit (bayt eşit)",
+    "target": "eşit"
+   },
+   {
+    "name": "Kenarın bilek eklemine göre yeri (29 poz × 2 kol, kıvrık 1, sözleşmeli; eksi = bileğin gerisinde)",
+    "before": "+62.8 mm (kıvrık 0, elin üstünde)",
+    "after": "-23.4 mm (bilekten 2 cm'den ileri köşe sayısı 0)",
+    "target": "≤ -20 mm, el üstüne hiç gelmez"
+   },
+   {
+    "name": "Yarıçap: ön kolun distal %60'ı / bilek çevresi (kıvrık 1)",
+    "before": "101.5 / 101.5 mm",
+    "after": "43.6 / 43.6 mm",
+    "target": "≤ 50 / ≤ 45 mm"
+   },
+   {
+    "name": "Yen ↔ deri: deriye giren köşe / kesişen üçgen çifti (29 poz, iki kol toplamı)",
+    "before": "456 / 2888",
+    "after": "kıvrık 0: 456/2888, kıvrık 0.5: 456/2888, kıvrık 1: 456/2888. Oynayan köşelerden deriye giren 0. Kalanların 384'ü üst kol, 72'si dirsek köşesi (önceki dosyada da aynı).",
+    "target": "0 ya da öncekinden az"
+   },
+   {
+    "name": "Yen ↔ el kesişen üçgen çifti",
+    "before": "0",
+    "after": "0 (kıvrık 0, 0.5 ve 1)",
+    "target": "0"
+   },
+   {
+    "name": "Kilitsiz (sözleşmesiz) kıvrık 1, kanıt amaçlı",
+    "after": "kenar -10.3 mm, yarıçap 52.2 mm, deriye giren 486 / kesişen çift 3524 (oynayan köşelerden 30 giren)",
+    "target": "sözleşmenin gerekli olduğunu göstermek"
+   },
+   {
+    "name": "Kıvrık 0'da önceki dosyadan sapma (29 poz)",
+    "after": "5.9e-5 mm (6276/6276 köşe eşleşti)",
+    "target": "birebir"
+   },
+   {
+    "name": "Sol el tırnak ucunun parmak ucunu geçtiği mesafe (kemik ekseninde) / uçtan deriye uzaklık",
+    "before": "4.92-5.01 / 5.01-5.06 mm",
+    "after": "0.63-0.70 / 0.92-0.96 mm",
+    "target": "≤ 1 mm"
+   },
+   {
+    "name": "Sağ el tırnakları",
+    "after": "4.92-5.01 mm; 1260/1260 köşe ve 2500/2500 üçgen bayt eşit",
+    "target": "değişmez"
+   },
+   {
+    "name": "Silinen üçgen",
+    "before": "Body deri 7732, EyeHighlight 192, FaceEyelash 224, Face ilkel sayısı 9",
+    "after": "Body deri 6846 (-886), EyeHighlight 135 (-57), FaceEyelash ilkeli kaldırıldı (-224), Face ilkel sayısı 8, Tops/Shoes 0 silindi",
+    "target": "yalnız hiçbir noktası görünmeyenler"
+   },
+   {
+    "name": "three r128 piksel farkı (21 görünüm, tırnaklar gizli)",
+    "after": "0 piksel (eski-eski kontrolü 0; pozitif kontrol sol el 326 / sağ el 0)",
+    "target": "0"
+   },
+   {
+    "name": "Blender Eevee önizleme piksel farkı (12 görünüm)",
+    "after": "1 piksel (T_yuz, en çok 2/255). Kaynağı içe aktarılan normalin yeniden kodlanması: 583 köşe, hepsi silinen üçgene komşu, en çok 7e-5",
+    "target": "0 (glb düzeyinde sağlandı)"
+   },
+   {
+    "name": "glTF denetimi",
+    "after": "0 hata. İndeksler u32. İlkel başına hedef sayısı eşit (Body 2×4, Face 58×8). Bağ indeksleri geçerli. IBM ve düğümler bayt eşit.",
+    "target": "0 hata"
+   }
+  ],
+  "frames": [
+   "C:\\work\\karakter\\gorsel\\tur5\\son\\pano_yen_T.png (T pozu; üst sıra kıvrık 0, alt sıra kıvrık 1; ön / üst / yan / yakın)",
+   "C:\\work\\karakter\\gorsel\\tur5\\son\\pano_calma.png (çalma pozunda dirsek 90: yakın, yan, üst; son sütun bilek bükük ve burulmuş 60/45/30, sözleşmeli; üst sıra 0, alt sıra 1)",
+   "C:\\work\\karakter\\gorsel\\tur5\\son\\pano_gitar.png (gitar pozunda boy; sol kıvrık 0, sağ kıvrık 1)",
+   "C:\\work\\karakter\\gorsel\\tur5\\son\\pano_tirnak.png (üst sıra eski, alt sıra yeni; iki el + parmak ucu yakın planı)",
+   "C:\\work\\karakter\\gorsel\\tur5\\son\\uc_gitar_kolL_0.png ve uc_gitar_kolL_1.png (three r128'de sol ön kol, kıvrık 0 ve 1, TipSleeve kilidiyle)",
+   "C:\\work\\karakter\\gorsel\\tur5\\son\\uc_T_on_1.png, uc_gitar_on_0.png, uc_gitar_on_1.png (three r128 boy kareleri)",
+   "C:\\work\\karakter\\gorsel\\tur5\\son\\kiyas\\ (Blender eski/yeni kıyas kareleri ve fark haritası)"
+  ],
+  "contracts": [
+   "yen_kivrik_<taraf> (taraf L/R; s ∈ [0,1]): çalarken 1, değilken 0, geçiş doğrusal. Gruplar ikili değil, presetName 'unknown'. Her grubun tek bağı var: Body.baked mesh'i, hedef adı = grup adı (extras.targetNames'te indeks L=0, R=1), ağırlık 100.",
+   "TipSleeve kilidi (s > 0 iken zorunlu; kilitsiz ölçüm sınırları aşıyor): J_Sec_<taraf>_TipSleeve'in dünya matrisi = slerp(doğal, kilit, s). Dönüş için slerp, konum için lerp kullanılır. kilit = W(J_Bip_<taraf>_LowerArm) · B(LowerArm)⁻¹ · B(TipSleeve) (B: dünyadaki dinlenme matrisi). Yerel matris = W(J_Bip_<taraf>_Hand)⁻¹ · istenen dünya matrisi. Durumsuz, karede taraf başına bir slerp. three r128'de çalışan örnek: C:\\work\\karakter\\betik\\tur5_uc.html, kivrik() işlevi.",
+   "J_Sec_<taraf>_LowerSleeve ve TipSleeve'in ikincil salınımı (yerçekimi, gitar itmesi) × (1 − s). s = 1 iken ikisi de dinlenme yerinde. LowerSleeve için kilit gerekmiyor.",
+   "Ağırlıklar değişmedi. Kilitliyken kol ağzında bilek dönüşünü yalnız Hand ağırlığı (≤ 0.18) taşıyor; bütün ölçümler bu payla yapıldı.",
+   "Body.baked'te 4 ilkelin her birinde 2 morph hedefi var. POSITION hedefi yalnız Tops köşelerini oynatıyor. Tops ilkelinde NORMAL hedefi de var: three r128'de morphNormals açılırsa bu ilkelde en çok 4 etkin morph sınırı geçerli, ilkelde zaten 2 hedef var.",
+   "Face.baked artık 8 ilkel (FaceEyelash ilkeli yok). three r128 GLTFLoader'da ağ sayısı 21'den 20'ye düştü. T0'daki 'kirpik atılır' adımı artık işsiz; çalışma zamanı kirpik ilkelinin varlığını varsaymamalı. Kirpik malzemesi ve dokusu dosyada kalıyor ama kullanılmıyor.",
+   "kaynak.json alanları: sha1, bayt, tarih, degisiklikler[], blendshapeGruplari[], yenSozlesmesi (TipSleeve, LowerSleeve, olcum, alternatif, kilitsiz_adaylar), temizlik, dogrulama. Yükleyici ve üretici araç sha1'i buradan denetleyebilir."
+  ],
+  "notDone": [
+   "Yen ↔ deri kesişmesi 'öncekinden az' olmadı, aynı kaldı (456 köşe / 2888 çift). Şekil anahtarı hiç yeni kesişme eklemiyor; oynayan köşelerden deriye giren 0. Kalanlar önceden de vardı: üst kol ve dirsek kıvrımındaki köşeler (384 + 72). Bunlar ağırlık geçiş bölgesinde; şekil anahtarıyla oynatmak bükülünce kesişmeyi artırıyor (deneyim defterinde ölçülmüş). Azaltılması istenirse ayrı bir iş.",
+   "Eleştirmenin Tops 72 / Shoes 98 üçgeni bilerek silinmedi. 3-4. mip seviyesinde görünüyorlar, silmek uzak çekimde piksel değiştirirdi.",
+   "Blender önizlemesinde 1 piksellik fark sıfırlanmadı (içe aktarıcıdan geliyor). Çalışma zamanında (three r128) fark 0.",
+   "Kullanıcı görsel onayı bekleniyor: kıvrık yenin görünümü (kol düşük çokgenli olduğu için büzgü katları ince, manşet ve çan belirgin) ve sol el tırnaklarının uç biçimi (köşeleri yuvarlatılmış, hafif kare uç).",
+   "Repoya kopyalama, .gitattributes, commit ve npm test bu kolun işi değil; T0-temel yapacak. Bu klasör git deposu değil, README'ye dokunulmadı."
+  ],
+  "notesForNext": "T0 için:\n- C:\\work\\karakter\\cikti\\ altındaki karakter.vrm (sha1 788488383e609db371b4e9a8e86f2dd0c79915dc), karakter_sac.json ve kaynak.json, plana göre src/assets/kanade/{kanade.vrm, sac.json, kaynak.json} olarak kopyalanacak. .gitattributes'a '*.vrm binary' eklenecek.\n- Çalışma zamanının kıvrık yen için iki şey yapması gerek: morph etkisi (yen_kivrik_L/R) ve TipSleeve kilidi. three r128'de çalışan örnek uygulama C:\\work\\karakter\\betik\\tur5_uc.html içindeki kivrik() işlevi. Kilitsiz çalışırsa kenar bileğe 10 mm yaklaşıyor, yarıçap 52 mm'ye çıkıyor.\n- D-ikincil: yen salınımı × (1 − s).\n- Face.baked artık 8 ilkel (kirpik yok), r128'de 20 ağ.\n\nPaylaşılan sıra (sira.sh) hakkında: oda cilası iş akışının art arda iş gönderen zincirleri (kuyruk*.sh, olc.mjs, sync-check, npm test) kilidi hep önce kapıyor. Benim tek tek bekleyen işlerim 40 dakikadan fazla sırada kaldı. Kalan adımları tek bir sıra kaydında, her adımdan önce kapıya bakan bir betikle (tur5_s5.sh) birleştirince geçti. Sonraki ajanlar ağır adımları böyle tek kayıtta toplamalı.\n\nKendi hatam: yazdığım node denetimlerinde glb BIN ofseti 8 bayt kaymıştı (28 + jl + 8). Eşitlik sonuçları yine de makul görünüyordu. Düzelttim, hepsini yeniden koştum (sonuçlar yukarıda). Okuyuculara POSITION min/max öz denetimi ekledim; kaydırılmış okumada hata verdiğini pozitif kontrolle gösterdim. Önceki oturumun tur5_gltf_denetim.mjs dosyasında bu hata yoktu.\n\nYeniden üretim:\n- Hat: tur5_son.sh. Bu, birlestir.py'yi varsayılan yollarla koşturur ve d3 ile sha1 kıyaslar. Kapı, sira ve dusuk.sh ile sarılmalı.\n- Denetimler: tur5_s5.sh, tur5_s6.sh, tur5_uc.mjs.\n- kaynak.json: python -I betik/tur5_kaynak.py cikti/karakter.vrm cikti/karakter-son3.vrm calisma/tur5/son gorsel/tur5/son cikti/kaynak.json calisma/tur5/ayar/sonuc2.json"
+ },
+ "denetle:karakter": {
+  "pass": true,
+  "issues": [
+   {
+    "severity": "medium",
+    "issue": "Kıvrık yen (s=1) istenen gotik görünümü tam vermiyor. Dirseğin altında ayrı ayrı okunan yumuşak katlar ve kıvrık kenar olarak görünen dantel/fırfır yok. Kol daha çok kısa, dar, manşetli bir yen gibi duruyor. Ön koldaki ikinci fiyonk baskısı da sıkışıp bozuluyor. İşlevsel ölçüler tutuyor, ama bu görsel madde kısmen karşılanmamış.",
+    "evidence": "Kendi Eevee önizlemelerim (hattın aydınlatma geçişi): C:\\work\\zumruduanka\\out\\tur5\\denetim-karakter\\gorsel\\pano_T_L.png (ön/alt/uç/yakın, üst sıra 0, alt sıra 1), gorsel\\C_d90_el45_k30_L_yakin_1.png (fiyonk sıkışmış, kat yok), gorsel\\pano_calma_L.png, pano_calma_R.png. Uygulayıcı da 'büzgü katları ince' diye not düşmüş.",
+    "fix": "Kullanıcı ilk karede onaylasın. Katlar istenirse parca_yen.py'de pli_a/pli_n artırılsın ve kat bandı normal hedefiyle birlikte ölçülsün. Ön kolun düşük çokgenli olması sınırlayıcı."
+   },
+   {
+    "severity": "low",
+    "issue": "Gerçek gitar pozunda sağ (pena) kolda sınırlara çok yakın: kenar −20.2 mm (sınır −20), r60 49.7 mm (sınır 50). kaynak.json'daki 'kenar −23.4 mm / yarıçap ≤ 43.6 mm' değerleri yalnız hattın 29 pozluk ızgarasından. Bu ızgarada hattın kendi gitar pozu (ortak._gitar) ve bilek yan sapması yok. Kilitliyken bilek bükümü kol ağzına Hand ağırlığı (≤ 0.18) üzerinden geçiyor ve kenarı öne itiyor. Çalışma zamanında bilek daha sert bükülürse −20 mm sınırı birkaç mm aşılabilir. El yine de kapanmaz.",
+    "evidence": "Kendi 149 pozluk ızgaram (Blender'ın kendi armature değiştiricisi, kilit sözleşme metninden yeniden yazıldı): blender_olcum.json. 'gitar' 1.0 R: kenar_mm −20.2, r60_mm 49.7, sarma 0.897. Izgaranın geri kalanında en kötü değerler kenar −22.9, r60 47.2 (d*_el30_k30_s−20), rbilek 43.8. el_ustu 0, ileri_2cm 0, el_cift 0.",
+    "fix": "T0, çalışma zamanının gerçek pena bileği açılarıyla ilk karede kenar ve yarıçap ölçümünü yeniden yapsın. Pay gerekirse YEN['uc'] 0.875'ten 0.86'ya çekilsin. kaynak.json'daki ölçüm özeti gitar pozunu da kapsasın."
+   },
+   {
+    "severity": "low",
+    "issue": "'Oynayan köşelerden deriye giren 0' iddiası geniş ızgarada tutmuyor. Burulmanın tamamı ele verildiğinde (±60°) ve bilek ±30° bükülüp ±20° sapınca, 15 pozda kol başına 1 oynayan köşe deriye giriyor. 9 pozda yen ↔ deri kesişen üçgen çifti s=0'a göre artıyor (en çok +16, d60_el−60_k−30_s−20). Toplam ve gitar pozu temiz.",
+    "evidence": "blender_olcum.json, 149 poz toplamı, s=0 → s=1: deriye giren 1223 → 1212, kesişen çift 7546 → 7134 (yani toplamda öncekinden az). Kesişme 47 pozda azalıyor, 9 pozda artıyor. ice_oyn s=1 toplamı 15. Gitar pozunda ice_oyn 0. Oynayan köşelerin deriye en kısa uzaklığı 0.4 mm.",
+    "fix": "Çalışma zamanında el burulmasının bir kısmı ön kola dağıtılırsa sorun büyük olasılıkla kalkar. T0 kol IK'sı için not düşülsün. Dosyada değişiklik şart değil."
+   },
+   {
+    "severity": "low",
+    "issue": "Blender Eevee önizlemesinde eski ↔ yeni piksel farkı 0 değil. Kendi kemik tabanlı kameralarımla 12 görünümün 5'inde fark var: T_yuz 7 piksel (en çok 5/255), T_yan 6 piksel (3/255), T_goz 5 piksel (2/255), gitar_yuz ve gitar_goz 1'er piksel. kaynak.json'da yalnız '1 piksel (T_yuz, 2/255)' yazıyor. Uygulayıcının açıklamasıyla tutarlı: içe aktarıcı, silinen üçgenlere komşu köşelerde custom normali yeniden kodluyor. glb'deki NORMAL bayt eşit; three r128'de fark 0.",
+    "evidence": "C:\\work\\zumruduanka\\out\\tur5\\denetim-karakter\\gorsel\\fark.json, F_fark_*.png. glTF düzeyinde Face/Body POSITION, NORMAL, UV, JOINTS ve WEIGHTS bayt eşit (gltf_denetim.json). Tırnak gizliyken gövde, göğüs ve uzak görünümlerde fark 0.",
+    "fix": "kaynak.json'daki Blender farkı açıklaması 'birkaç piksel, ≤ 5/255' diye düzeltilsin. Başka iş gerekmiyor."
+   },
+   {
+    "severity": "low",
+    "issue": "Silinen 886 deri ve 57 göz vurgusu üçgeni yalnız mip seviyesi 0-6'da görünmez. Tam mip zincirinde (seviye 7+) hepsinin alfası eşiği geçiyor. Bugün sorun değil: örnekleyici minFilter=9729 (LINEAR), yani GLTFLoader mip kullanmıyor ve silinenler kumaş altında (göğüs, üst kol). Ama T0 dokulara mipmap filtresi açarsa çok uzak ya da sıyırma açılı çekimde fark doğabilir.",
+    "evidence": "Kendi PNG çözücümle yaptığım alfa denetimi (alfa_denetim.json, ayak izi + 1.5 texel pay): silinen_gorunur_s0 = 0 (bütün silinenler seviye 0'da görünmez), silinen_gorunur_mip: Body 886/886, EyeHighlight 57/57. Örnekleyici: {\"magFilter\":9729,\"minFilter\":9729}. Ön kol ve el derisinde görünmez ya da yarı saydam üçgen yok (0/922), yani kıvrık açınca delik çıkmıyor.",
+    "fix": "T0 sözleşmesine 'Kanade dokularında minFilter LINEAR kalır (mipmap açılırsa temizlik yeniden değerlendirilir)' notu eklensin."
+   },
+   {
+    "severity": "low",
+    "issue": "Sol el kısa tırnakların uçları makro yakın planda pürüzlü ve dişli görünüyor. Uca doğru sıklaşan satırlar ve satır başına ışın kaldırması yüzünden parmak ucuna kıvrılan kenar düzgün değil. Eski uzun tırnakların ucu pürüzsüzdü. Üstten bakışta uçlar temiz ve yuvarlatılmış. Ayrıca gitar pozunda, bükülü parmaklarda tırnak üst yüzünden 15-39 köşe deri yüzeyinin ≤ 1.5 mm altına düşüyor (eski sol tırnaklarda 0-18). Bu ölçütüm kaba; görselde gömülme görünmüyor.",
+    "evidence": "gorsel\\N_L_uc_yeni.png ile N_L_uc_eski.png (6 cm'lik kare), N_L_ust_yeni.png (temiz), pano_tirnak.png. Ölçü: sol el taşma 0.63-0.70 mm, uçtan deriye 0.92-0.96 mm (≤ 1 mm sağlanıyor). Sağ el 4.92-5.01 mm, eskiyle aynı. tirnak_yeni_gitar.L_*.ust_gomulu 2/39/37/29/15 (Thumb/Index/Middle/Ring/Little).",
+    "fix": "İsteğe bağlı: parca_aksesuar.py'de TIRNAK_KISA için uç satır sayısı (Nu_e) düşürülsün ya da uç bölgede 'yuk' kaldırması satır boyunca yumuşatılsın. Kullanıcı yakın planda onaylasın."
+   },
+   {
+    "severity": "low",
+    "issue": "Çalışma zamanı sözleşmesinde eksik bir not var. Body.baked artık morph hedefli. T0 GLTFLoader malzemeleri yerine kendi MToon ShaderMaterial'ını kurarsa, r128'de material.morphTargets=true gerekir (Tops'ta isteğe bağlı morphNormals). Yoksa kıvrık hiçbir uyarı vermeden uygulanmaz. Ayrıca ağırlık Body.baked'in 4 ilkel ağının hepsine yazılmalı (r128'de her ilkel ayrı SkinnedMesh). kaynak.json'da yalnız morphNormals sınırı geçiyor.",
+    "evidence": "gltf_denetim.json: Body.baked'in 4 ilkelinde 2 hedef var. Hedefler ortak erişimciyi paylaşıyor (ilkeller_ayni_erisimci: true). NORMAL hedefi yalnız Tops ilkelinde. tur5_uc.html'deki kivrik() örneği ağırlığı yenAg'deki bütün ağlara yazıyor (doğru), ama bu kural sözleşmede yazılı değil.",
+    "fix": "kaynak.json yenSozlesmesi'ne 'r128: Body malzemelerinde morphTargets=true; ağırlık Body.baked'in tüm ilkel ağlarına' satırı eklensin."
+   }
+  ],
+  "remeasured": [
+   "glTF/VRM geçerliliği kendi glb okuyucumla, öz denetimli: 0 sorun. Başlık/yığın boyları, erişimci ve bufferView sınırları, indeks < köşe, soysuz üçgen 0, 67 erişimcide min/max öz denetimi geçti. Betik C:\\work\\zumruduanka\\out\\tur5\\denetim-karakter\\gltf_denetim.mjs, sonuç gltf_denetim.json",
+   "sha1 788488383e609db371b4e9a8e86f2dd0c79915dc ve 20 079 264 bayt kaynak.json ile eşit. Önceki dosya karakter-son3.vrm (9099b43f…) kaynak.json 'onceki' alanıyla eşit",
+   "Morph sayıları ilkel başına eşit: Face 58×8, Body 2×4, öteki ağlarda 0. targetNames boyları doğru. yen_kivrik_L/R: preset unknown, isBinary false, bağlar Body.baked/0 ve Body.baked/1, ağırlık 100. Eski 19 grup bayt eşit",
+   "Değişmezler: nodes, skins, IBM, materials, textures, samplers, 29 görüntünün baytları; VRM meta (Kanade, CC0), humanoid, firstPerson, secondaryAnimation, materialProperties eşit. Bütün ağlarda POSITION/NORMAL/UV/JOINTS/WEIGHTS bayt eşit. Tırnakta yalnız POSITION/NORMAL/UV değişti, ağırlıklar eşit. Silinen üçgenler eski üçgenlerin alt kümesi (eskide olmayan yeni üçgen 0; tırnak hariç)",
+   "Şekil anahtarı kol başına 89 köşeyi oynatıyor, hepsi Tops ilkelinde ve ön kolda (deri, ayakkabı, saç 0). NORMAL hedefi 102 köşede sıfır değil",
+   "Baştan yeniden üretim: birlestir.py'yi hattın çıktılarına dokunmadan kendi klasörüme (yeniden/) koşturdum. karakter.vrm sha1 788488383e… ve karakter_sac.json sha1 9bbfb21f… bayt eşit; karakter_sac.json, karakter-son3_sac.json ile de eşit",
+   "Silinen üçgenlerin görünmezliği kendi PNG çözücümle (alfa_denetim.mjs): seviye 0'da (örnekleyici LINEAR) 1.5 texel payla 886 deri + 57 vurgu + 224 kirpik üçgeninin hepsi görünmez. Silinenlerin baskın kemikleri göğüs, Bust ve üst kol. Ön kol ve el derisinde delik yok",
+   "Kıvrık yen: 149 poz × s ∈ {0, 0.5, 1} + kilitsiz. Pozlar: dirsek 60/90/120 × el burulması ±60/±30/0 × bilek ±30 × sapma ±20, ön kol burulması ±60, omuz çeşidi, ±90 burulma, T, A, gitar. Blender'ın kendi deri bağlaması, kendi kilit uygulamam. Sonuçlar s=1, kilitli: kenar en kötü −20.2 mm (gitar R), bileği geçen 0, bilekten 2 cm'den ileri 0, r60 ≤ 49.7, rbilek ≤ 43.8, yen ↔ el/tırnak 0, ön kolu sarma ≥ 0.87. Kilitsiz: kenar +22.1 mm, sarma 0.33 (kilit gerekli)",
+   "Yen ↔ deri toplamı s=0 → s=1: deriye giren 1223 → 1212, kesişen çift 7546 → 7134; kendi kendine kesişme 1433 → 1342",
+   "Sol el tırnakları: taşma 0.63-0.70 mm, uçtan deriye 0.92-0.96 mm. Sağ el 4.92-5.01 mm, eskiyle aynı (dinlenme ve gitar pozu)",
+   "Blender önizleme farkı (tırnaklar gizli, kemik kameraları): 12 görünümün 7'sinde 0, 5'inde ≤ 7 piksel ve ≤ 5/255 (fark.json)",
+   "Kendi önizlemelerimi Read ile inceledim: C:\\work\\zumruduanka\\out\\tur5\\denetim-karakter\\gorsel\\pano_T_L.png, pano_T_R.png, pano_calma_L.png, pano_calma_R.png, pano_gitar.png, pano_tirnak.png, T_L_uc_1.png, N_L_uc_yeni.png, N_L_uc_eski.png, N_L_ust_yeni.png, N_L_profil_yeni.png, C_d90_el45_k30_L_yakin_1.png"
+  ]
+ }
+}

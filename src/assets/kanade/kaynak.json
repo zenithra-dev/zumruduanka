@@ -1,0 +1,997 @@
+{
+ "dosya": "karakter.vrm",
+ "sha1": "788488383e609db371b4e9a8e86f2dd0c79915dc",
+ "bayt": 20079264,
+ "tarih": "2026-10-18",
+ "baslik": "Kanade",
+ "lisans": "CC0 (VRoid Project AvatarSample_D) + Zümrüdüanka düzenlemesi",
+ "onceki": {
+  "dosya": "karakter-son3.vrm",
+  "sha1": "9099b43f3c3587e607832476e25451fb4cb10090",
+  "bayt": 19762020
+ },
+ "uretim": {
+  "komut": "blender -b --factory-startup --python betik/birlestir.py -- kucukresim=calisma/kucukresim/kanade_kucukresim_son2.png",
+  "adimlar": [
+   "sac",
+   "yuz",
+   "aksesuar",
+   "uyum",
+   "ten",
+   "yen",
+   "salinim_siniri",
+   "temizlik"
+  ],
+  "yeni_parcalar": [
+   "parca_yen.py",
+   "parca_temizlik.py",
+   "parca_aksesuar.py (TIRNAK_KISA)"
+  ]
+ },
+ "degisiklikler": [
+  "yen_kivrik_L / yen_kivrik_R blendshape grupları: Body'de kol başına 89 köşe; 1.0'da yen dirsek çevresinde aynen, altında büzgü bandına toplanır, manşet ön kolun bilek tarafını sarar (kenar bileğin 26.8 mm gerisinde; yarıçap dinlenmede ≤ 41.0 mm, 29 çalma pozunda ≤ 43.6 mm; kenar halkası 4 mm dışa kıvrık); 0'da önceki dosyayla aynı",
+  "sol el (perde eli) tırnakları kısa: parmak ucunun en çok 0.7 mm ötesinde biten yuvarlak uç, aynı siyah parlak malzeme; sağ el tırnakları aynen (köşe/üçgen bayt eşit)",
+  "temizlik (dışa aktarımdan sonra, glb indeks tamponlarında): görünmez kirpik ilkeli (FaceEyelash, dokusunun en büyük alfası 0) ağdan kaldırıldı; alfa ile her mip seviyesinde (0-6) tamamen kesilen üçgenler indekslerden çıktı (üçgen): Body deri 886, EyeHighlight 57, FaceEyelash 224; köşe verisi (konum, normal, UV, ağırlık, morph) bayt eşit, boşta kalan köşeler ve kullanılmayan kirpik malzemesi/dokusu dosyada kalır (yüklenmez)",
+  "Body ağına 2 morph hedefi geldi (dosya +317 KB); karakter_sac.json, kemikler, düğümler, dokular, malzemeler, meta, diğer 19 grup bayt eşit"
+ ],
+ "blendshapeGruplari": [
+  {
+   "ad": "Neutral",
+   "preset": "neutral",
+   "baglar": [
+    {
+     "mesh": "Face.baked",
+     "hedef": "Face.M_F00_000_00_Fcl_ALL_Neutral",
+     "agirlik": 100
+    }
+   ],
+   "malzemeDegeri": 0
+  },
+  {
+   "ad": "A",
+   "preset": "a",
+   "baglar": [
+    {
+     "mesh": "Face.baked",
+     "hedef": "Face.M_F00_000_00_Fcl_MTH_A",
+     "agirlik": 100
+    }
+   ],
+   "malzemeDegeri": 0
+  },
+  {
+   "ad": "I",
+   "preset": "i",
+   "baglar": [
+    {
+     "mesh": "Face.baked",
+     "hedef": "Face.M_F00_000_00_Fcl_MTH_I",
+     "agirlik": 100
+    }
+   ],
+   "malzemeDegeri": 0
+  },
+  {
+   "ad": "U",
+   "preset": "u",
+   "baglar": [
+    {
+     "mesh": "Face.baked",
+     "hedef": "Face.M_F00_000_00_Fcl_MTH_U",
+     "agirlik": 100
+    }
+   ],
+   "malzemeDegeri": 0
+  },
+  {
+   "ad": "E",
+   "preset": "e",
+   "baglar": [
+    {
+     "mesh": "Face.baked",
+     "hedef": "Face.M_F00_000_00_Fcl_MTH_E",
+     "agirlik": 100
+    }
+   ],
+   "malzemeDegeri": 0
+  },
+  {
+   "ad": "O",
+   "preset": "o",
+   "baglar": [
+    {
+     "mesh": "Face.baked",
+     "hedef": "Face.M_F00_000_00_Fcl_MTH_O",
+     "agirlik": 100
+    }
+   ],
+   "malzemeDegeri": 0
+  },
+  {
+   "ad": "Blink",
+   "preset": "blink",
+   "baglar": [
+    {
+     "mesh": "Face.baked",
+     "hedef": "Face.M_F00_000_00_Fcl_EYE_Close",
+     "agirlik": 100
+    }
+   ],
+   "malzemeDegeri": 0
+  },
+  {
+   "ad": "Blink_L",
+   "preset": "blink_l",
+   "baglar": [
+    {
+     "mesh": "Face.baked",
+     "hedef": "Face.M_F00_000_00_Fcl_EYE_Close_L",
+     "agirlik": 100
+    }
+   ],
+   "malzemeDegeri": 0
+  },
+  {
+   "ad": "Blink_R",
+   "preset": "blink_r",
+   "baglar": [
+    {
+     "mesh": "Face.baked",
+     "hedef": "Face.M_F00_000_00_Fcl_EYE_Close_R",
+     "agirlik": 100
+    }
+   ],
+   "malzemeDegeri": 0
+  },
+  {
+   "ad": "Angry",
+   "preset": "angry",
+   "baglar": [
+    {
+     "mesh": "Face.baked",
+     "hedef": "Face.M_F00_000_00_Fcl_ALL_Angry",
+     "agirlik": 100
+    }
+   ],
+   "malzemeDegeri": 0
+  },
+  {
+   "ad": "Fun",
+   "preset": "fun",
+   "baglar": [
+    {
+     "mesh": "Face.baked",
+     "hedef": "Face.M_F00_000_00_Fcl_ALL_Fun",
+     "agirlik": 100
+    }
+   ],
+   "malzemeDegeri": 0
+  },
+  {
+   "ad": "Joy",
+   "preset": "joy",
+   "baglar": [
+    {
+     "mesh": "Face.baked",
+     "hedef": "Face.M_F00_000_00_Fcl_ALL_Joy",
+     "agirlik": 100
+    }
+   ],
+   "malzemeDegeri": 0
+  },
+  {
+   "ad": "Sorrow",
+   "preset": "sorrow",
+   "baglar": [
+    {
+     "mesh": "Face.baked",
+     "hedef": "Face.M_F00_000_00_Fcl_ALL_Sorrow",
+     "agirlik": 100
+    }
+   ],
+   "malzemeDegeri": 0
+  },
+  {
+   "ad": "Surprised",
+   "preset": "unknown",
+   "baglar": [
+    {
+     "mesh": "Face.baked",
+     "hedef": "Face.M_F00_000_00_Fcl_ALL_Surprised",
+     "agirlik": 100
+    }
+   ],
+   "malzemeDegeri": 0
+  },
+  {
+   "ad": "Extra",
+   "preset": "unknown",
+   "baglar": [
+    {
+     "mesh": "Face.baked",
+     "hedef": "Face.M_F00_000_00_Fcl_EYE_Extra",
+     "agirlik": 100
+    },
+    {
+     "mesh": "Face.baked",
+     "hedef": "EyeExtra_01.M_F00_000_00_EyeExtra_On",
+     "agirlik": 100
+    }
+   ],
+   "malzemeDegeri": 0
+  },
+  {
+   "ad": "smug",
+   "preset": "unknown",
+   "baglar": [
+    {
+     "mesh": "Face.baked",
+     "hedef": "Face.M_F00_000_00_Fcl_MTH_Joy",
+     "agirlik": 75
+    },
+    {
+     "mesh": "Face.baked",
+     "hedef": "Face.M_F00_000_00_Fcl_MTH_Fun",
+     "agirlik": 20.000000298023224
+    },
+    {
+     "mesh": "Face.baked",
+     "hedef": "Face.M_F00_000_00_Fcl_EYE_Close",
+     "agirlik": 21.99999988079071
+    },
+    {
+     "mesh": "Face.baked",
+     "hedef": "Face.M_F00_000_00_Fcl_EYE_Angry",
+     "agirlik": 34.99999940395355
+    },
+    {
+     "mesh": "Face.baked",
+     "hedef": "Face.M_F00_000_00_Fcl_BRW_Angry",
+     "agirlik": 15.000000596046448
+    }
+   ],
+   "malzemeDegeri": 0
+  },
+  {
+   "ad": "tongue",
+   "preset": "unknown",
+   "baglar": [
+    {
+     "mesh": "Face.baked",
+     "hedef": "Face.M_F00_000_00_Fcl_MTH_A",
+     "agirlik": 55.000001192092896
+    },
+    {
+     "mesh": "Face.baked",
+     "hedef": "Face.M_F00_000_00_Fcl_MTH_Joy",
+     "agirlik": 30.000001192092896
+    },
+    {
+     "mesh": "Face.baked",
+     "hedef": "Yuz_MTH_Tongue",
+     "agirlik": 100
+    }
+   ],
+   "malzemeDegeri": 0
+  },
+  {
+   "ad": "tongue_ac",
+   "preset": "unknown",
+   "baglar": [
+    {
+     "mesh": "Face.baked",
+     "hedef": "Face.M_F00_000_00_Fcl_MTH_A",
+     "agirlik": 55.000001192092896
+    },
+    {
+     "mesh": "Face.baked",
+     "hedef": "Face.M_F00_000_00_Fcl_MTH_Joy",
+     "agirlik": 30.000001192092896
+    },
+    {
+     "mesh": "Face.baked",
+     "hedef": "Yuz_MTH_TongueAc",
+     "agirlik": 100
+    }
+   ],
+   "malzemeDegeri": 0
+  },
+  {
+   "ad": "squint",
+   "preset": "unknown",
+   "baglar": [
+    {
+     "mesh": "Face.baked",
+     "hedef": "Face.M_F00_000_00_Fcl_EYE_Close",
+     "agirlik": 44.999998807907104
+    },
+    {
+     "mesh": "Face.baked",
+     "hedef": "Face.M_F00_000_00_Fcl_EYE_Joy",
+     "agirlik": 15.000000596046448
+    },
+    {
+     "mesh": "Face.baked",
+     "hedef": "Face.M_F00_000_00_Fcl_EYE_Angry",
+     "agirlik": 44.999998807907104
+    },
+    {
+     "mesh": "Face.baked",
+     "hedef": "Face.M_F00_000_00_Fcl_BRW_Angry",
+     "agirlik": 34.99999940395355
+    },
+    {
+     "mesh": "Face.baked",
+     "hedef": "Face.M_F00_000_00_Fcl_MTH_E",
+     "agirlik": 11.999999731779099
+    },
+    {
+     "mesh": "Face.baked",
+     "hedef": "Face.M_F00_000_00_Fcl_MTH_Angry",
+     "agirlik": 25
+    }
+   ],
+   "malzemeDegeri": 0
+  },
+  {
+   "ad": "yen_kivrik_L",
+   "preset": "unknown",
+   "baglar": [
+    {
+     "mesh": "Body.baked",
+     "hedef": "yen_kivrik_L",
+     "agirlik": 100
+    }
+   ],
+   "malzemeDegeri": 0,
+   "yeni": true,
+   "anlam": "1.0: sol kolun yeni toplanmış (gitar çalarken 1); Body.baked ilkellerinde POSITION, Tops ilkelinde POSITION + NORMAL hedefi"
+  },
+  {
+   "ad": "yen_kivrik_R",
+   "preset": "unknown",
+   "baglar": [
+    {
+     "mesh": "Body.baked",
+     "hedef": "yen_kivrik_R",
+     "agirlik": 100
+    }
+   ],
+   "malzemeDegeri": 0,
+   "yeni": true,
+   "anlam": "1.0: sağ kolun yeni toplanmış (gitar çalarken 1); Body.baked ilkellerinde POSITION, Tops ilkelinde POSITION + NORMAL hedefi"
+  }
+ ],
+ "yenSozlesmesi": {
+  "gruplar": [
+   "yen_kivrik_L",
+   "yen_kivrik_R"
+  ],
+  "s": "çalarken 1, değilken 0; geçiş doğrusal (0.5 de ölçüldü)",
+  "agirlik": "değişmez: kol ağzı köşeleri Hand (0.13-0.18) + LowerArm + J_Sec_*_TipSleeve (0.36-0.61) karışımı",
+  "TipSleeve": "s = yen_kivrik_<taraf>; J_Sec_<taraf>_TipSleeve dünya matrisi = slerp(doğal, kilit, s) (dönüş slerp, konum lerp); kilit = W(J_Bip_<taraf>_LowerArm) · B(LowerArm)⁻¹ · B(TipSleeve) (B: dünya dinlenme matrisi; yani ön kola dinlenmedeki göreli yerinde kilitli, bilek dönüşü iptal). Eşdeğeri: kilit = W(LowerArm) · L0(Hand) · L0(TipSleeve) (L0: dinlenme yerel matrisi); TipSleeve yerel = W(Hand)⁻¹ · istenen dünya matrisi.",
+  "LowerSleeve": "J_Sec_<taraf>_LowerSleeve ve TipSleeve ikincil salınımı (yerçekimi, gitar itmesi) × (1 − s); s = 1 iken ikisi de dinlenme yerinde",
+  "kalan": "kilitliyken kol ağzında yalnız Hand ağırlığı (≤ 0.18) bilek dönüşünü taşır; ölçüm pozlarında bu payla ölçüldü",
+  "gecis": "s 0 → 1 doğrusal; ara değerlerde de kesişme ölçüldü (s = 0.5)",
+  "ayar": {
+   "ta": 0.3,
+   "tb": 0.75,
+   "uc": 0.875,
+   "gecis": 0.08,
+   "yogunluk_manset": 0.35,
+   "manset": [
+    0.3,
+    0.4
+   ],
+   "ic_erken": 0.04,
+   "r_manset": 0.035,
+   "sarkma": 0.002,
+   "kivrik": 0.004,
+   "kivrik_bant": 0.17,
+   "pli_n": 5,
+   "pli_a": 0.15,
+   "katlar": [
+    0.28,
+    0.52
+   ],
+   "bosluk": 0.009
+  },
+  "normal": "Tops ilkelinde shape key NORMAL hedefi var (büzgü katları ışıkta okunsun); three r128 morphNormals açılırsa bu ilkelde en çok 4 etkin morph sınırı geçerli (ilkelde yalnız 2 hedef var)",
+  "olcum": {
+   "pozlar": "T, A ve iki kolda dirsek iç açısı 60/90/120 × ön kol burulması ±45/0 (yarısı ön kol, yarısı el) × bilek ±30/0",
+   "deriye_giren_kose": {
+    "0.0": 456,
+    "0.5": 456,
+    "1.0": 456,
+    "1.0_serbest": 486,
+    "once": 456
+   },
+   "kesisen_ucgen_cifti": {
+    "0.0": 2888,
+    "0.5": 2888,
+    "1.0": 2888,
+    "1.0_serbest": 3524,
+    "once": 2888
+   },
+   "el_ile_kesisen": {
+    "0.0": 0,
+    "0.5": 0,
+    "1.0": 0,
+    "1.0_serbest": 0
+   },
+   "bilek_otesi_mm": {
+    "0.0": 62.8,
+    "0.5": 20.0,
+    "1.0": -23.4,
+    "1.0_serbest": -10.3
+   },
+   "r_distal60_mm": {
+    "0.0": 101.5,
+    "0.5": 71.5,
+    "1.0": 43.6,
+    "1.0_serbest": 52.2
+   },
+   "r_bilek_mm": {
+    "0.0": 101.5,
+    "0.5": 71.5,
+    "1.0": 43.6,
+    "1.0_serbest": 52.2
+   },
+   "sifirda_ayni_mm": 5.9e-05,
+   "oynayan_kose_deriye_giren": {
+    "0.0": 0,
+    "0.5": 0,
+    "1.0": 0,
+    "1.0_serbest": 30
+   },
+   "oynayan_ucgen_kesisen_cift": {
+    "0.0": 150,
+    "0.5": 150,
+    "1.0": 150,
+    "1.0_serbest": 786
+   },
+   "kalan_kesisme_yeri": {
+    "aciklama": "kıvrık 0, 0.5 ve 1 aynı; deriye giren köşelerin baskın kemiği (eski dosyada da aynı, iki kol toplamı)",
+    "kemik": {
+     "J_Bip_L_LowerArm": 36,
+     "J_Bip_L_UpperArm": 192,
+     "J_Bip_R_LowerArm": 36,
+     "J_Bip_R_UpperArm": 192
+    }
+   }
+  },
+  "alternatif": "Ağırlık aktarımı yolu yok: TipSleeve yalnız kol ağzı köşelerini taşıyor ve 0 durumunun birebir kalması ağırlıkları sabitliyor; blendshape deri bağlamasından önce uygulandığı için bileği iptal etmenin tek yolu kemik ayarı. Sözleşmesiz ölçüm (1.0_serbest) kenarı bilekten yalnız 10.3 mm geride tutuyor, bilek çevresi yarıçapı 52.2 mm'ye çıkıyor ve kesişmeyi artırıyor; kenarı geri çekip daraltan kilitsiz adaylar da (kilitsiz_adaylar: sol kol, 29 poz; taban = sözleşmeli) sınırları birlikte tutturamıyor: el dönünce kenar, bilek pivotuna uzaklığı kadar savrulur, kenar geri çekildikçe savrulma büyür. Sözleşme gerekli; LowerSleeve için kilit gerekmedi (yalnız salınımı s ile sönümlenir).",
+  "kilitsiz_adaylar": {
+   "taban": {
+    "kilit": true,
+    "ayar": {},
+    "bilek_otesi_mm": -23.4,
+    "r_distal60_mm": 43.6,
+    "r_bilek_mm": 43.6,
+    "deriye_giren_kose": 228,
+    "kesisen_cift": 1444,
+    "artan_poz": [
+     0,
+     0
+    ]
+   },
+   "kilitsiz_taban": {
+    "kilit": false,
+    "ayar": {},
+    "bilek_otesi_mm": -10.3,
+    "r_distal60_mm": 52.2,
+    "r_bilek_mm": 52.2,
+    "deriye_giren_kose": 243,
+    "kesisen_cift": 1762,
+    "artan_poz": [
+     9,
+     18
+    ]
+   },
+   "kilitsiz_uc83": {
+    "kilit": false,
+    "ayar": {
+     "uc": 0.83
+    },
+    "bilek_otesi_mm": -19.0,
+    "r_distal60_mm": 55.2,
+    "r_bilek_mm": 55.2,
+    "deriye_giren_kose": 273,
+    "kesisen_cift": 2002,
+    "artan_poz": [
+     18,
+     18
+    ]
+   },
+   "kilitsiz_uc80_r30": {
+    "kilit": false,
+    "ayar": {
+     "uc": 0.8,
+     "r_manset": 0.03
+    },
+    "bilek_otesi_mm": -26.6,
+    "r_distal60_mm": 53.0,
+    "r_bilek_mm": 53.0,
+    "deriye_giren_kose": 330,
+    "kesisen_cift": 1987,
+    "artan_poz": [
+     18,
+     18
+    ]
+   },
+   "kilitsiz_uc78_r28": {
+    "kilit": false,
+    "ayar": {
+     "uc": 0.78,
+     "r_manset": 0.028,
+     "manset": [
+      0.25,
+      0.35
+     ]
+    },
+    "bilek_otesi_mm": -31.1,
+    "r_distal60_mm": 52.7,
+    "r_bilek_mm": 52.7,
+    "deriye_giren_kose": 345,
+    "kesisen_cift": 1996,
+    "artan_poz": [
+     18,
+     18
+    ]
+   }
+  }
+ },
+ "temizlik": {
+  "olcut": "MASK: üçgenin UV ayak izindeki en büyük alfa (doku × base_color alfası) < cutoff, BLEND: = 0; ayak izi 0.5 texel aralıkla örneklenir, her mip seviyesinde (0-6, 2×2 kutu ortalaması) 3×3 en büyük süzgeciyle çift doğrusal örneğe pay bırakılır; bir seviyede bile görünen üçgen kalır",
+  "sayim": {
+   "Face": {
+    "F00_000_00_FaceEyeline_00_FACE": {
+     "kip": "BLEND",
+     "esik": 0.0,
+     "ucgen": 384,
+     "silinen": 0,
+     "seviyede_gorunmez": [
+      120,
+      111,
+      94,
+      68,
+      46,
+      0,
+      0
+     ],
+     "seviye": 6
+    },
+    "F00_000_00_FaceEyelash_00_FACE": {
+     "kip": "BLEND",
+     "esik": 0.0,
+     "ucgen": 224,
+     "silinen": 224,
+     "seviyede_gorunmez": [
+      224,
+      224,
+      224,
+      224,
+      224,
+      224,
+      224
+     ],
+     "seviye": 6
+    },
+    "F00_000_00_FaceBrow_00_FACE": {
+     "kip": "BLEND",
+     "esik": 0.0,
+     "ucgen": 160,
+     "silinen": 0,
+     "seviyede_gorunmez": [
+      118,
+      114,
+      104,
+      90,
+      62,
+      40,
+      0
+     ],
+     "seviye": 6
+    },
+    "F00_000_00_EyeIris_00_EYE": {
+     "kip": "MASK",
+     "esik": 0.5,
+     "ucgen": 192,
+     "silinen": 0,
+     "seviyede_gorunmez": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "seviye": 6
+    },
+    "F00_000_00_EyeHighlight_00_EYE": {
+     "kip": "BLEND",
+     "esik": 0.0,
+     "ucgen": 192,
+     "silinen": 57,
+     "seviyede_gorunmez": [
+      176,
+      176,
+      172,
+      166,
+      154,
+      130,
+      57
+     ],
+     "seviye": 6
+    },
+    "F00_000_00_EyeExtra_01_EYE": {
+     "kip": "BLEND",
+     "esik": 0.0,
+     "ucgen": 64,
+     "silinen": 0,
+     "seviyede_gorunmez": [
+      16,
+      16,
+      16,
+      12,
+      0,
+      0,
+      0
+     ],
+     "seviye": 6
+    }
+   },
+   "Body": {
+    "F00_002_02_Body_00_SKIN": {
+     "kip": "MASK",
+     "esik": 0.5,
+     "ucgen": 7732,
+     "silinen": 886,
+     "seviyede_gorunmez": [
+      1692,
+      1668,
+      1650,
+      1502,
+      1444,
+      1272,
+      890
+     ],
+     "seviye": 6
+    },
+    "F00_002_01_Tops_01_CLOTH": {
+     "kip": "MASK",
+     "esik": 0.5,
+     "ucgen": 2122,
+     "silinen": 0,
+     "seviyede_gorunmez": [
+      68,
+      68,
+      68,
+      10,
+      0,
+      0,
+      0
+     ],
+     "seviye": 6
+    },
+    "F00_002_01_Shoes_01_CLOTH": {
+     "kip": "MASK",
+     "esik": 0.5,
+     "ucgen": 760,
+     "silinen": 0,
+     "seviyede_gorunmez": [
+      90,
+      84,
+      58,
+      38,
+      0,
+      0,
+      0
+     ],
+     "seviye": 6
+    },
+    "F00_000_HairBack_00_HAIR": {
+     "kip": "BLEND",
+     "esik": 0.0,
+     "ucgen": 394,
+     "silinen": 0,
+     "seviyede_gorunmez": [
+      12,
+      12,
+      6,
+      6,
+      2,
+      2,
+      0
+     ],
+     "seviye": 6
+    }
+   },
+   "Hair001": {
+    "F00_000_Hair_00_HAIR_02": {
+     "kip": "MASK",
+     "esik": 0.5,
+     "ucgen": 172,
+     "silinen": 0,
+     "seviyede_gorunmez": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "seviye": 6
+    },
+    "F00_000_Hair_00_HAIR_01": {
+     "kip": "MASK",
+     "esik": 0.5,
+     "ucgen": 23218,
+     "silinen": 0,
+     "seviyede_gorunmez": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+     ],
+     "seviye": 6
+    }
+   }
+  },
+  "yer": "dışa aktarılmış glb: yalnız indeks erişimcisi sayısı ve bufferView boyu kısalır (yerinde); Blender’da silmek kodlanmış custom normalleri komşu köşelerde bozuyordu (0.74’e kadar), geri yazmak da bit eşit değildi",
+  "not_": "Eleştirmenin Tops 72 / Shoes 98 (ve Body ~1700) sayısı yalnız 0. seviyedir; Tops 68 ve Shoes 90 üçgen tam çözünürlükte görünmez ama 3-4. mip seviyesinde komşu opak texel'lerle alfa ≥ 0.5 oluyor (LinearMipmapLinear ile uzak çekimde çizilir), bu yüzden kaldı"
+ },
+ "dogrulama": {
+  "gltf_hata": 0,
+  "dogrula_sorun": [],
+  "kose_kiyasi": {
+   "Face.baked": {
+    "eslesmeyen": 0,
+    "silinen": {
+     "F00_000_00_EyeHighlight_00_EYE": 57,
+     "F00_000_00_FaceEyelash_00_FACE": 224
+    },
+    "eskide_olmayan_ucgen": {}
+   },
+   "Body.baked": {
+    "eslesmeyen": 0,
+    "silinen": {
+     "F00_002_02_Body_00_SKIN": 886
+    },
+    "eskide_olmayan_ucgen": {}
+   },
+   "Hair001.baked": {
+    "eslesmeyen": 0,
+    "silinen": {},
+    "eskide_olmayan_ucgen": {}
+   },
+   "Aksesuar_Gozluk": {
+    "eslesmeyen": 0,
+    "silinen": {},
+    "eskide_olmayan_ucgen": {}
+   },
+   "Aksesuar_GozlukCam": {
+    "eslesmeyen": 0,
+    "silinen": {},
+    "eskide_olmayan_ucgen": {}
+   },
+   "Aksesuar_Choker": {
+    "eslesmeyen": 0,
+    "silinen": {},
+    "eskide_olmayan_ucgen": {}
+   },
+   "Aksesuar_Tirnak": {
+    "eslesmeyen": 700,
+    "silinen": {
+     "Aksesuar_Siyah_Parlak": 1460
+    },
+    "eskide_olmayan_ucgen": {
+     "Aksesuar_Siyah_Parlak": 1460
+    }
+   }
+  },
+  "piksel_kiyasi": {
+   "three_r128": {
+    "aciklama": "çalışma zamanı: GLTFLoader r128 kendi (unlit) malzemeleri, swiftshader, tırnaklar gizli; T / A / gitar × ön, arka, yan, uzak (mip), yüz, iki el; kontrol = eskinin iki ayrı yüklemesi",
+    "gorunum": 21,
+    "fark_piksel": 0,
+    "kontrol_fark_piksel": 0,
+    "pozitif_kontrol_tirnakli": {
+     "elL": {
+      "fark_piksel": 326,
+      "en_buyuk_255": 222
+     },
+     "elR": {
+      "fark_piksel": 0,
+      "en_buyuk_255": 0
+     }
+    },
+    "ag_sayisi_eski_yeni": [
+     21,
+     20
+    ]
+   },
+   "blender_eevee": {
+    "T_on_boy": {
+     "fark_piksel": 0,
+     "en_buyuk_255": 0.0,
+     "piksel": 655360
+    },
+    "T_arka": {
+     "fark_piksel": 0,
+     "en_buyuk_255": 0.0,
+     "piksel": 655360
+    },
+    "T_yan": {
+     "fark_piksel": 0,
+     "en_buyuk_255": 0.0,
+     "piksel": 655360
+    },
+    "T_yuz": {
+     "fark_piksel": 1,
+     "en_buyuk_255": 2.0,
+     "piksel": 589824
+    },
+    "T_elL": {
+     "fark_piksel": 0,
+     "en_buyuk_255": 0.0,
+     "piksel": 589824
+    },
+    "T_elR": {
+     "fark_piksel": 0,
+     "en_buyuk_255": 0.0,
+     "piksel": 589824
+    },
+    "A_on_boy": {
+     "fark_piksel": 0,
+     "en_buyuk_255": 0.0,
+     "piksel": 655360
+    },
+    "A_yan_sag": {
+     "fark_piksel": 0,
+     "en_buyuk_255": 0.0,
+     "piksel": 655360
+    },
+    "gitar_on_boy": {
+     "fark_piksel": 0,
+     "en_buyuk_255": 0.0,
+     "piksel": 655360
+    },
+    "gitar_uc_ceyrek": {
+     "fark_piksel": 0,
+     "en_buyuk_255": 0.0,
+     "piksel": 655360
+    },
+    "gitar_elL": {
+     "fark_piksel": 0,
+     "en_buyuk_255": 0.0,
+     "piksel": 589824
+    },
+    "gitar_elR": {
+     "fark_piksel": 0,
+     "en_buyuk_255": 0.0,
+     "piksel": 589824
+    }
+   },
+   "blender_aciklama": {
+    "neden": "Blender içe aktarıcısı custom normalleri köşe yelpazesine göreli kodluyor; silinen üçgene komşu köşelerde yelpaze değiştiği için çözülen normal 1e-4 düzeyinde kayıyor (glb NORMAL bayt eşit), toon gölge sınırındaki 1-2 piksel bundan",
+    "farkli_kose": {
+     "Body": 504,
+     "Face": 79
+    },
+    "silinene_komsu": {
+     "Body": 504,
+     "Face": 79
+    },
+    "en_buyuk_normal_farki": {
+     "Body": 7.2e-05,
+     "Face": 4.3e-05
+    }
+   }
+  },
+  "tirnak_sol": {
+   "L_Thumb": {
+    "tasma_eksen_mm": 0.7,
+    "uc_deri_mm": 0.96
+   },
+   "L_Index": {
+    "tasma_eksen_mm": 0.66,
+    "uc_deri_mm": 0.92
+   },
+   "L_Middle": {
+    "tasma_eksen_mm": 0.67,
+    "uc_deri_mm": 0.92
+   },
+   "L_Ring": {
+    "tasma_eksen_mm": 0.63,
+    "uc_deri_mm": 0.93
+   },
+   "L_Little": {
+    "tasma_eksen_mm": 0.64,
+    "uc_deri_mm": 0.93
+   }
+  },
+  "tirnak_sag_yeni_eski": {
+   "R_Thumb": [
+    {
+     "tasma_eksen_mm": 5.01,
+     "uc_deri_mm": 5.06
+    },
+    {
+     "tasma_eksen_mm": 5.01,
+     "uc_deri_mm": 5.06
+    }
+   ],
+   "R_Index": [
+    {
+     "tasma_eksen_mm": 4.93,
+     "uc_deri_mm": 5.02
+    },
+    {
+     "tasma_eksen_mm": 4.93,
+     "uc_deri_mm": 5.02
+    }
+   ],
+   "R_Middle": [
+    {
+     "tasma_eksen_mm": 4.92,
+     "uc_deri_mm": 5.02
+    },
+    {
+     "tasma_eksen_mm": 4.92,
+     "uc_deri_mm": 5.02
+    }
+   ],
+   "R_Ring": [
+    {
+     "tasma_eksen_mm": 4.98,
+     "uc_deri_mm": 5.01
+    },
+    {
+     "tasma_eksen_mm": 4.98,
+     "uc_deri_mm": 5.01
+    }
+   ],
+   "R_Little": [
+    {
+     "tasma_eksen_mm": 4.97,
+     "uc_deri_mm": 5.01
+    },
+    {
+     "tasma_eksen_mm": 4.97,
+     "uc_deri_mm": 5.01
+    }
+   ]
+  },
+  "tirnak_denetim": {
+   "kose_esit_farkli": {
+    "L": [
+     560,
+     700
+    ],
+    "R": [
+     1260,
+     0
+    ],
+    "?": [
+     0,
+     0
+    ]
+   },
+   "sag_ucgen": [
+    2500,
+    2500
+   ],
+   "sag_ucgen_esit": true
+  },
+  "yeniden_uretim": [
+   "788488383e609db371b4e9a8e86f2dd0c79915dc",
+   "788488383e609db371b4e9a8e86f2dd0c79915dc"
+  ]
+ }
+}

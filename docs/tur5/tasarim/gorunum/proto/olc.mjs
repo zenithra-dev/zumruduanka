@@ -1,0 +1,31 @@
+// Tek ve kısa tarayıcı ölçümü (swiftshader, 1280×720, headless): yükleme süresi, kare maliyeti (eşleştirilmiş, dönüşümlü), kadraj görüntüleri.
+// node out/tur5/tasarim/gorunum/proto/olc.mjs   (kök C:/work servis edilir: zumruduanka/src/vendor ve karakter/cikti salt okunur)
+import fs from "node:fs";
+import path from "node:path";
+import { chromium } from "playwright";
+import { startServer } from "../../../../../tools/serve.js";
+const OUT = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Z]:)/, "$1"));
+const server = await startServer("C:/work");
+const browser = await chromium.launch({args: ["--use-gl=swiftshader", "--enable-unsafe-swiftshader"]});
+const page = await browser.newPage({viewport: {width: 1280, height: 720}});
+page.on("pageerror", e => console.error("SAYFA HATASI", e.message));
+page.on("console", m => { if (m.type() === "error" || m.type() === "warning") console.error("KONSOL", m.type(), m.text().slice(0, 300)); });
+await page.goto(server.url + "/zumruduanka/out/tur5/tasarim/gorunum/proto/olc.html");
+await page.waitForFunction(() => window.ready, null, {timeout: 30000});
+const res = {};
+res.setup = await page.evaluate(() => window.setup({}));
+console.log("KURULUM", JSON.stringify(res.setup));
+const save = async (name, fr, cfg, ex) => { if (ex) await page.evaluate(w => window.expr(w), ex); const d = await page.evaluate(([f, c]) => window.shot(f, c), [fr, cfg]);
+  fs.writeFileSync(path.join(OUT, name + ".png"), Buffer.from(d.split(",")[1], "base64")); };
+await save("kadraj_genis", "wide", "mt"); await save("kadraj_bel", "medium", "mt"); await save("kadraj_yuz", "close", "mt"); await save("kadraj_hero", "hero", "mt");
+await save("kadraj_yuz_temel", "close", "basic"); await save("kadraj_yuz_vlit", "close", "vlitNm"); await save("kadraj_bel_vlit", "medium", "vlitNm"); await save("kadraj_genis_vlit", "wide", "vlitNm");
+await save("ifade_smug", "close", "mt", {"smug.goz": 0.8, "smug.agiz": 0.8});
+await save("ifade_dil", "close", "mt", {"tongue.agiz": 1});
+await save("ifade_squint_kirp", "close", "mt", {"squint.goz": 0.25, "squint.agiz": 0.25, "Blink.goz": 0.5});
+await page.evaluate(() => window.expr({}));
+res.timing = await page.evaluate(() => window.timing(["wide", "medium", "close"], ["base", "basic", "mt", "nonm", "vlit", "vlitNm"], 7));
+console.log("KARE ms (medyan)", JSON.stringify(res.timing, null, 1));
+res.cpu = await page.evaluate(() => window.cpu(200));
+console.log("CPU", JSON.stringify(res.cpu));
+fs.writeFileSync(path.join(OUT, "olc_sonuc.json"), JSON.stringify(res, null, 1));
+await browser.close(); server.close();

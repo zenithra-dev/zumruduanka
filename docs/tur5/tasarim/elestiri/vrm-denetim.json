@@ -1,0 +1,379 @@
+{
+ "yen": [
+  {
+   "n": "J_Sec_L_LowerSleeve",
+   "i": 103,
+   "parent": "J_Bip_L_LowerArm",
+   "children": [
+    "J_Sec_L_LowerSleeve_end"
+   ],
+   "worldPos": [
+    -0.4334,
+    1.3606,
+    -0.0093
+   ]
+  },
+  {
+   "n": "J_Sec_L_TipSleeve",
+   "i": 126,
+   "parent": "J_Bip_L_Hand",
+   "children": [
+    "J_Sec_L_TipSleeve_end"
+   ],
+   "worldPos": [
+    -0.5366,
+    1.366,
+    -0.0082
+   ]
+  },
+  {
+   "n": "J_Sec_R_TipSleeve",
+   "i": 169,
+   "parent": "J_Bip_R_Hand",
+   "children": [
+    "J_Sec_R_TipSleeve_end"
+   ],
+   "worldPos": [
+    0.5376,
+    1.366,
+    -0.0082
+   ]
+  }
+ ],
+ "kolAgziL": {
+  "kose": 104,
+  "ortAgirlik": 0.477,
+  "salt": 0,
+  "karisim": {
+   "J_Bip_L_Hand+J_Bip_L_LowerArm+J_Sec_L_TipSleeve": 104
+  }
+ },
+ "yuz": {
+  "ad": "Face.baked",
+  "prim": 9,
+  "posAcc": [
+   10
+  ],
+  "idx": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9
+  ],
+  "hedef": 58,
+  "hedefPaylasim": 1,
+  "normalVar": false
+ },
+ "aglar": [
+  {
+   "ad": "Face.baked",
+   "prim": 9,
+   "mat": [
+    "F00_000_00_FaceMouth_00_FACE",
+    "F00_000_00_EyeWhite_00_EYE",
+    "F00_000_00_FaceEyeline_00_FACE",
+    "F00_000_00_FaceEyelash_00_FACE",
+    "F00_000_00_FaceBrow_00_FACE",
+    "F00_000_00_EyeIris_00_EYE",
+    "F00_000_00_EyeHighlight_00_EYE",
+    "F00_000_00_Face_00_SKIN",
+    "F00_000_00_EyeExtra_01_EYE"
+   ]
+  },
+  {
+   "ad": "Body.baked",
+   "prim": 4,
+   "mat": [
+    "F00_002_02_Body_00_SKIN",
+    "F00_002_01_Tops_01_CLOTH",
+    "F00_002_01_Shoes_01_CLOTH",
+    "F00_000_HairBack_00_HAIR"
+   ]
+  },
+  {
+   "ad": "Hair001.baked",
+   "prim": 2,
+   "mat": [
+    "F00_000_Hair_00_HAIR_02",
+    "F00_000_Hair_00_HAIR_01"
+   ]
+  },
+  {
+   "ad": "Aksesuar_Gozluk",
+   "prim": 1,
+   "mat": [
+    "Aksesuar_Siyah_Parlak"
+   ]
+  },
+  {
+   "ad": "Aksesuar_GozlukCam",
+   "prim": 1,
+   "mat": [
+    "Aksesuar_Cam"
+   ]
+  },
+  {
+   "ad": "Aksesuar_Choker",
+   "prim": 3,
+   "mat": [
+    "Aksesuar_Deri",
+    "Aksesuar_Gumus",
+    "Aksesuar_Siyah_Parlak"
+   ]
+  },
+  {
+   "ad": "Aksesuar_Tirnak",
+   "prim": 1,
+   "mat": [
+    "Aksesuar_Siyah_Parlak"
+   ]
+  }
+ ],
+ "firstPerson": {
+  "firstPersonBone": 18,
+  "firstPersonBoneOffset": {
+   "x": 0,
+   "y": 0.05999999865889549,
+   "z": 0
+  },
+  "lookAtHorizontalInner": {
+   "curve": [
+    0,
+    0,
+    0,
+    1,
+    1,
+    1,
+    1,
+    0
+   ],
+   "xRange": 90,
+   "yRange": 8
+  },
+  "lookAtHorizontalOuter": {
+   "curve": [
+    0,
+    0,
+    0,
+    1,
+    1,
+    1,
+    1,
+    0
+   ],
+   "xRange": 90,
+   "yRange": 12
+  },
+  "lookAtTypeName": "Bone",
+  "lookAtVerticalDown": {
+   "curve": [
+    0,
+    0,
+    0,
+    1,
+    1,
+    1,
+    1,
+    0
+   ],
+   "xRange": 90,
+   "yRange": 10
+  },
+  "lookAtVerticalUp": {
+   "curve": [
+    0,
+    0,
+    0,
+    1,
+    1,
+    1,
+    1,
+    0
+   ],
+   "xRange": 90,
+   "yRange": 10
+  },
+  "meshAnnotations": 0
+ },
+ "blend": [
+  {
+   "ad": "Neutral",
+   "preset": "neutral",
+   "bag": "Face.baked#0@100",
+   "mat": 0
+  },
+  {
+   "ad": "A",
+   "preset": "a",
+   "bag": "Face.baked#37@100",
+   "mat": 0
+  },
+  {
+   "ad": "I",
+   "preset": "i",
+   "bag": "Face.baked#38@100",
+   "mat": 0
+  },
+  {
+   "ad": "U",
+   "preset": "u",
+   "bag": "Face.baked#39@100",
+   "mat": 0
+  },
+  {
+   "ad": "E",
+   "preset": "e",
+   "bag": "Face.baked#40@100",
+   "mat": 0
+  },
+  {
+   "ad": "O",
+   "preset": "o",
+   "bag": "Face.baked#41@100",
+   "mat": 0
+  },
+  {
+   "ad": "Blink",
+   "preset": "blink",
+   "bag": "Face.baked#13@100",
+   "mat": 0
+  },
+  {
+   "ad": "Blink_L",
+   "preset": "blink_l",
+   "bag": "Face.baked#15@100",
+   "mat": 0
+  },
+  {
+   "ad": "Blink_R",
+   "preset": "blink_r",
+   "bag": "Face.baked#14@100",
+   "mat": 0
+  },
+  {
+   "ad": "Angry",
+   "preset": "angry",
+   "bag": "Face.baked#1@100",
+   "mat": 0
+  },
+  {
+   "ad": "Fun",
+   "preset": "fun",
+   "bag": "Face.baked#2@100",
+   "mat": 0
+  },
+  {
+   "ad": "Joy",
+   "preset": "joy",
+   "bag": "Face.baked#3@100",
+   "mat": 0
+  },
+  {
+   "ad": "Sorrow",
+   "preset": "sorrow",
+   "bag": "Face.baked#4@100",
+   "mat": 0
+  },
+  {
+   "ad": "Surprised",
+   "preset": "unknown",
+   "bag": "Face.baked#5@100",
+   "mat": 0
+  },
+  {
+   "ad": "Extra",
+   "preset": "unknown",
+   "bag": "Face.baked#25@100 Face.baked#55@100",
+   "mat": 0
+  },
+  {
+   "ad": "smug",
+   "preset": "unknown",
+   "bag": "Face.baked#31@75 Face.baked#30@20.000000298023224 Face.baked#13@21.99999988079071 Face.baked#12@34.99999940395355 Face.baked#6@15.000000596046448",
+   "mat": 0
+  },
+  {
+   "ad": "tongue",
+   "preset": "unknown",
+   "bag": "Face.baked#37@55.000001192092896 Face.baked#31@30.000001192092896 Face.baked#56@100",
+   "mat": 0
+  },
+  {
+   "ad": "tongue_ac",
+   "preset": "unknown",
+   "bag": "Face.baked#37@55.000001192092896 Face.baked#31@30.000001192092896 Face.baked#57@100",
+   "mat": 0
+  },
+  {
+   "ad": "squint",
+   "preset": "unknown",
+   "bag": "Face.baked#13@44.999998807907104 Face.baked#17@15.000000596046448 Face.baked#12@44.999998807907104 Face.baked#6@34.99999940395355 Face.baked#40@11.999999731779099 Face.baked#28@25",
+   "mat": 0
+  }
+ ],
+ "morphAdlari": [
+  "Face.M_F00_000_00_Fcl_ALL_Neutral",
+  "Face.M_F00_000_00_Fcl_ALL_Angry",
+  "Face.M_F00_000_00_Fcl_ALL_Fun",
+  "Face.M_F00_000_00_Fcl_ALL_Joy",
+  "Face.M_F00_000_00_Fcl_ALL_Sorrow",
+  "Face.M_F00_000_00_Fcl_ALL_Surprised",
+  "Face.M_F00_000_00_Fcl_BRW_Angry",
+  "Face.M_F00_000_00_Fcl_BRW_Fun",
+  "Face.M_F00_000_00_Fcl_BRW_Joy",
+  "Face.M_F00_000_00_Fcl_BRW_Sorrow",
+  "Face.M_F00_000_00_Fcl_BRW_Surprised",
+  "Face.M_F00_000_00_Fcl_EYE_Natural",
+  "Face.M_F00_000_00_Fcl_EYE_Angry",
+  "Face.M_F00_000_00_Fcl_EYE_Close",
+  "Face.M_F00_000_00_Fcl_EYE_Close_R",
+  "Face.M_F00_000_00_Fcl_EYE_Close_L",
+  "Face.M_F00_000_00_Fcl_Eye_Fun",
+  "Face.M_F00_000_00_Fcl_EYE_Joy",
+  "Face.M_F00_000_00_Fcl_EYE_Joy_R",
+  "Face.M_F00_000_00_Fcl_EYE_Joy_L",
+  "Face.M_F00_000_00_Fcl_EYE_Sorrow",
+  "Face.M_F00_000_00_Fcl_EYE_Surprised",
+  "Face.M_F00_000_00_Fcl_EYE_Spread",
+  "Face.M_F00_000_00_Fcl_EYE_Iris_Hide",
+  "Face.M_F00_000_00_Fcl_EYE_Highlight_Hide",
+  "Face.M_F00_000_00_Fcl_EYE_Extra",
+  "Face.M_F00_000_00_Fcl_MTH_Up",
+  "Face.M_F00_000_00_Fcl_MTH_Down",
+  "Face.M_F00_000_00_Fcl_MTH_Angry",
+  "Face.M_F00_000_00_Fcl_MTH_Neutral",
+  "Face.M_F00_000_00_Fcl_MTH_Fun",
+  "Face.M_F00_000_00_Fcl_MTH_Joy",
+  "Face.M_F00_000_00_Fcl_MTH_Sorrow",
+  "Face.M_F00_000_00_Fcl_MTH_Surprised",
+  "Face.M_F00_000_00_Fcl_MTH_SkinFung",
+  "Face.M_F00_000_00_Fcl_MTH_SkinFung_R",
+  "Face.M_F00_000_00_Fcl_MTH_SkinFung_L",
+  "Face.M_F00_000_00_Fcl_MTH_A",
+  "Face.M_F00_000_00_Fcl_MTH_I",
+  "Face.M_F00_000_00_Fcl_MTH_U",
+  "Face.M_F00_000_00_Fcl_MTH_E",
+  "Face.M_F00_000_00_Fcl_MTH_O",
+  "Face.M_F00_000_00_Fcl_HA_Hide",
+  "Face.M_F00_000_00_Fcl_HA_Fung1",
+  "Face.M_F00_000_00_Fcl_HA_Fung1_Low",
+  "Face.M_F00_000_00_Fcl_HA_Fung1_Up",
+  "Face.M_F00_000_00_Fcl_HA_Fung2",
+  "Face.M_F00_000_00_Fcl_HA_Fung2_Low",
+  "Face.M_F00_000_00_Fcl_HA_Fung2_Up",
+  "Face.M_F00_000_00_Fcl_HA_Fung3",
+  "Face.M_F00_000_00_Fcl_HA_Fung3_Up",
+  "Face.M_F00_000_00_Fcl_HA_Fung3_Low",
+  "Face.M_F00_000_00_Fcl_HA_Short",
+  "Face.M_F00_000_00_Fcl_HA_Short_Up",
+  "Face.M_F00_000_00_Fcl_HA_Short_Low",
+  "EyeExtra_01.M_F00_000_00_EyeExtra_On",
+  "Yuz_MTH_Tongue",
+  "Yuz_MTH_TongueAc"
+ ]
+}

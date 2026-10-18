@@ -1,0 +1,486 @@
+{
+ "ilkel": {
+  "hips": {
+   "kemik": "J_Bip_C_Hips",
+   "kemikFigur": [
+    -0.0005,
+    1.0207,
+    0.0092
+   ],
+   "merkezFigur": [
+    -0.0005,
+    1.0384,
+    0.0179
+   ],
+   "merkezKemikYerel": [
+    0,
+    0.0177,
+    0.0087
+   ],
+   "yaricap": [
+    0.191,
+    0.1041,
+    0.1655
+   ],
+   "kose": 367
+  },
+  "spine": {
+   "kemik": "J_Bip_C_Spine",
+   "kemikFigur": [
+    -0.0005,
+    1.0736,
+    0.019
+   ],
+   "merkezFigur": [
+    -0.0005,
+    1.1115,
+    0.0676
+   ],
+   "merkezKemikYerel": [
+    0,
+    0.0379,
+    0.0486
+   ],
+   "yaricap": [
+    0.1237,
+    0.0433,
+    0.0949
+   ],
+   "kose": 93
+  },
+  "chest": {
+   "kemik": "J_Bip_C_Chest",
+   "kemikFigur": [
+    -0.0005,
+    1.1876,
+    0.0332
+   ],
+   "merkezFigur": [
+    -0.0005,
+    1.2204,
+    0.0398
+   ],
+   "merkezKemikYerel": [
+    0,
+    0.0328,
+    0.0066
+   ],
+   "yaricap": [
+    0.0978,
+    0.0644,
+    0.0873
+   ],
+   "kose": 302
+  },
+  "upperChest": {
+   "kemik": "J_Bip_C_UpperChest",
+   "kemikFigur": [
+    -0.0005,
+    1.3185,
+    0.0188
+   ],
+   "merkezFigur": [
+    -0.0005,
+    1.3341,
+    0.0284
+   ],
+   "merkezKemikYerel": [
+    0,
+    0.0156,
+    0.0096
+   ],
+   "yaricap": [
+    0.1165,
+    0.0984,
+    0.0929
+   ],
+   "kose": 435
+  },
+  "neck": {
+   "kemik": "J_Bip_C_Neck",
+   "kemikFigur": [
+    -0.0005,
+    1.4331,
+    -0.0146
+   ],
+   "merkezFigur": [
+    -0.0005,
+    1.4471,
+    -0.0123
+   ],
+   "merkezKemikYerel": [
+    0,
+    0.014,
+    0.0023
+   ],
+   "yaricap": [
+    0.0581,
+    0.0423,
+    0.0442
+   ],
+   "kose": 137
+  },
+  "omuzL": {
+   "kemik": "J_Bip_L_Shoulder",
+   "kemikFigur": [
+    0.0219,
+    1.4057,
+    -0.0086
+   ],
+   "merkezFigur": [
+    0.0837,
+    1.4078,
+    -0.0005
+   ],
+   "merkezKemikYerel": [
+    0.0618,
+    0.0021,
+    0.0081
+   ],
+   "yaricap": [
+    0.0345,
+    0.0346,
+    0.0533
+   ],
+   "kose": 95
+  },
+  "omuzR": {
+   "kemik": "J_Bip_R_Shoulder",
+   "kemikFigur": [
+    -0.0229,
+    1.4057,
+    -0.0086
+   ],
+   "merkezFigur": [
+    -0.0847,
+    1.4078,
+    -0.0005
+   ],
+   "merkezKemikYerel": [
+    -0.0618,
+    0.0021,
+    0.0081
+   ],
+   "yaricap": [
+    0.0345,
+    0.0346,
+    0.0533
+   ],
+   "kose": 95
+  },
+  "uylukL": {
+   "kemik": "J_Bip_L_UpperLeg",
+   "kemikFigur": [
+    0.0766,
+    0.9815,
+    0.0012
+   ],
+   "merkezFigur": [
+    0.079,
+    0.7896,
+    0.0034
+   ],
+   "merkezKemikYerel": [
+    0.0024,
+    -0.1919,
+    0.0022
+   ],
+   "yaricap": [
+    0.0734,
+    0.1964,
+    0.0784
+   ],
+   "kose": 182
+  },
+  "uylukR": {
+   "kemik": "J_Bip_R_UpperLeg",
+   "kemikFigur": [
+    -0.0776,
+    0.9815,
+    0.0012
+   ],
+   "merkezFigur": [
+    -0.08,
+    0.7896,
+    0.0034
+   ],
+   "merkezKemikYerel": [
+    -0.0024,
+    -0.1919,
+    0.0022
+   ],
+   "yaricap": [
+    0.0734,
+    0.1964,
+    0.0784
+   ],
+   "kose": 182
+  },
+  "baldirL": {
+   "kemik": "J_Bip_L_LowerLeg",
+   "kemikFigur": [
+    0.0541,
+    0.5865,
+    -0.0075
+   ],
+   "merkezFigur": [
+    0.0536,
+    0.3664,
+    -0.0337
+   ],
+   "merkezKemikYerel": [
+    -0.0005,
+    -0.2201,
+    -0.0262
+   ],
+   "yaricap": [
+    0.0395,
+    0.2296,
+    0.0579
+   ],
+   "kose": 239
+  },
+  "baldirR": {
+   "kemik": "J_Bip_R_LowerLeg",
+   "kemikFigur": [
+    -0.0551,
+    0.5865,
+    -0.0075
+   ],
+   "merkezFigur": [
+    -0.0546,
+    0.3664,
+    -0.0337
+   ],
+   "merkezKemikYerel": [
+    0.0005,
+    -0.2201,
+    -0.0262
+   ],
+   "yaricap": [
+    0.0395,
+    0.2296,
+    0.0579
+   ],
+   "kose": 239
+  }
+ },
+ "etek": [
+  {
+   "y": 1,
+   "on": -0.014,
+   "arka": -0.209,
+   "yan": 0.27,
+   "n": 8
+  },
+  {
+   "y": 0.96,
+   "on": 0.193,
+   "arka": -0.123,
+   "yan": 0.272,
+   "n": 8
+  },
+  {
+   "y": 0.92,
+   "on": 0.229,
+   "arka": -0.254,
+   "yan": 0.306,
+   "n": 19
+  },
+  {
+   "y": 0.88,
+   "on": 0.249,
+   "arka": -0.283,
+   "yan": 0.34,
+   "n": 19
+  },
+  {
+   "y": 0.84,
+   "on": 0.108,
+   "arka": -0.291,
+   "yan": 0.308,
+   "n": 4
+  },
+  {
+   "y": 0.8,
+   "on": 0.269,
+   "arka": -0.329,
+   "yan": 0.376,
+   "n": 21
+  },
+  {
+   "y": 0.76,
+   "on": 0.175,
+   "arka": 0.11,
+   "yan": 0.34,
+   "n": 4
+  },
+  {
+   "y": 0.72,
+   "on": 0.29,
+   "arka": -0.366,
+   "yan": 0.413,
+   "n": 19
+  },
+  {
+   "y": 0.68,
+   "on": 0.182,
+   "arka": -0.158,
+   "yan": 0.447,
+   "n": 8
+  },
+  {
+   "y": 0.64,
+   "on": 0.31,
+   "arka": -0.404,
+   "yan": 0.45,
+   "n": 17
+  },
+  {
+   "y": 0.6,
+   "on": 0.19,
+   "arka": 0.19,
+   "yan": 0.299,
+   "n": 2
+  },
+  {
+   "y": 0.56,
+   "on": 0.32,
+   "arka": 0.271,
+   "yan": 0.217,
+   "n": 4
+  },
+  {
+   "y": 0.52,
+   "on": 0.329,
+   "arka": 0.329,
+   "yan": 0,
+   "n": 1
+  }
+ ],
+ "etekKemikleri": [
+  {
+   "ad": "J_Sec_L_SkirtSide1",
+   "yer": [
+    0.191,
+    1.003,
+    0.017
+   ]
+  },
+  {
+   "ad": "J_Sec_R_SkirtSide1",
+   "yer": [
+    -0.192,
+    1.003,
+    0.017
+   ]
+  },
+  {
+   "ad": "J_Sec_L_SkirtBack1",
+   "yer": [
+    0.08,
+    1.02,
+    -0.134
+   ]
+  },
+  {
+   "ad": "J_Sec_L_SkirtFront1",
+   "yer": [
+    0.072,
+    0.987,
+    0.15
+   ]
+  },
+  {
+   "ad": "J_Sec_R_SkirtBack1",
+   "yer": [
+    -0.081,
+    1.02,
+    -0.134
+   ]
+  },
+  {
+   "ad": "J_Sec_R_SkirtFront1",
+   "yer": [
+    -0.073,
+    0.987,
+    0.15
+   ]
+  }
+ ],
+ "sacKemikSayisi": 119,
+ "yenKemikleri": [
+  {
+   "ad": "J_Sec_L_LowerSleeve",
+   "ebeveyn": "J_Bip_L_LowerArm",
+   "yer": [
+    0.433,
+    1.361,
+    0.009
+   ]
+  },
+  {
+   "ad": "J_Sec_L_LowerSleeve_end",
+   "ebeveyn": "J_Sec_L_LowerSleeve",
+   "yer": [
+    0.439,
+    1.283,
+    0.008
+   ]
+  },
+  {
+   "ad": "J_Sec_L_TipSleeve",
+   "ebeveyn": "J_Bip_L_Hand",
+   "yer": [
+    0.537,
+    1.366,
+    0.008
+   ]
+  },
+  {
+   "ad": "J_Sec_L_TipSleeve_end",
+   "ebeveyn": "J_Sec_L_TipSleeve",
+   "yer": [
+    0.582,
+    1.361,
+    0.011
+   ]
+  },
+  {
+   "ad": "J_Sec_R_LowerSleeve",
+   "ebeveyn": "J_Bip_R_LowerArm",
+   "yer": [
+    -0.434,
+    1.361,
+    0.009
+   ]
+  },
+  {
+   "ad": "J_Sec_R_LowerSleeve_end",
+   "ebeveyn": "J_Sec_R_LowerSleeve",
+   "yer": [
+    -0.44,
+    1.283,
+    0.008
+   ]
+  },
+  {
+   "ad": "J_Sec_R_TipSleeve",
+   "ebeveyn": "J_Bip_R_Hand",
+   "yer": [
+    -0.538,
+    1.366,
+    0.008
+   ]
+  },
+  {
+   "ad": "J_Sec_R_TipSleeve_end",
+   "ebeveyn": "J_Sec_R_TipSleeve",
+   "yer": [
+    -0.583,
+    1.361,
+    0.011
+   ]
+  }
+ ]
+}

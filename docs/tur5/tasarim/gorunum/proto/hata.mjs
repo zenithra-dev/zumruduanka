@@ -1,0 +1,12 @@
+import { chromium } from "playwright";
+import { startServer } from "../../../../../tools/serve.js";
+const server = await startServer("C:/work");
+const browser = await chromium.launch({args: ["--use-gl=swiftshader", "--enable-unsafe-swiftshader"]});
+const page = await browser.newPage({viewport: {width: 1280, height: 720}});
+let n = 0;
+page.on("console", m => { if (m.type() === "error" && n++ < 2){ const t = m.text(); const i = t.indexOf("ERROR"); console.log(t.slice(0, 400), "\n....\n", t.slice(Math.max(0, i - 200), i + 1500)); } });
+page.on("pageerror", e => console.log("SAYFA", e.message));
+await page.goto(server.url + "/zumruduanka/out/tur5/tasarim/gorunum/proto/olc.html");
+await page.waitForFunction(() => window.ready, null, {timeout: 30000});
+console.log(JSON.stringify(await page.evaluate(() => window.setup({}))).slice(0, 600));
+await browser.close(); server.close();

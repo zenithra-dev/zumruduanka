@@ -1,0 +1,886 @@
+{
+ "vrm": "karakter.vrm",
+ "ikiz": {
+  "kural": "ikiz zincir (J_Sec_Hair_<ad>_Govde_<k>) baş zinciriyle aynı dinlenme geometrisinde; çalışma zamanı salınımda <ad>_<k> ile <ad>_Govde_<k>'ya aynı dinlenmeye göre dönüşü verir",
+  "ebeveyn": {
+   "Arka01": "J_Bip_R_Shoulder",
+   "Arka02": "J_Bip_R_Shoulder",
+   "Arka03": "J_Bip_C_UpperChest",
+   "Arka04": "J_Bip_C_UpperChest",
+   "Arka05": "J_Bip_C_UpperChest",
+   "Arka06": "J_Bip_L_Shoulder",
+   "Arka07": "J_Bip_L_Shoulder",
+   "Arka08": "J_Bip_L_Shoulder",
+   "On01": "J_Bip_C_Neck",
+   "On02": "J_Bip_C_Neck",
+   "On03": "J_Bip_C_Neck"
+  },
+  "govde": {
+   "z_ust": 1.56,
+   "z_alt": 1.22,
+   "en": 1.0,
+   "yamuk": 0.2,
+   "omuz_x": 0.09,
+   "On": {
+    "z_ust": 1.5,
+    "z_alt": 1.39,
+    "ebeveyn": "neck"
+   },
+   "Arka01": {
+    "z_ust": 1.56,
+    "z_alt": 1.3
+   },
+   "Arka02": {
+    "z_ust": 1.56,
+    "z_alt": 1.3
+   },
+   "Arka07": {
+    "z_ust": 1.56,
+    "z_alt": 1.3
+   },
+   "Arka08": {
+    "z_ust": 1.56,
+    "z_alt": 1.3
+   }
+  },
+  "dort_ustu_kose": 394,
+  "atilan_en_cok": 0.0661
+ },
+ "salinim_siniri": {
+  "poz": "A",
+  "en_cok": 15,
+  "adim": 1,
+  "kural": "izin_derece: o yönde 1° adımla yeni kesişme olmadan dönülebilen en büyük açı (baş zinciri ve gövde ikizi aynı dönüşle)",
+  "yonler": {
+   "geri": "+y, karakterin arkasına (perçem/çapraz için yüze ve gözlüğe, arka saç için sırttan uzağa)",
+   "ileri": "-y, karakterin önüne (arka saç için sırta doğru)",
+   "sol": "+x, karakterin solu",
+   "sag": "-x, karakterin sağı"
+  },
+  "kipler": {
+   "kok": "yalnız ilk kemik döner",
+   "hepsi": "zincirin her kemiği aynı açıyla döner (uçta açı birikir)"
+  },
+  "zincir": {
+   "Arka01": {
+    "kok": {
+     "geri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "ileri": {
+      "izin_derece": 9,
+      "temas": {
+       "elbise": 26
+      }
+     },
+     "sol": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     }
+    },
+    "hepsi": {
+     "geri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "ileri": {
+      "izin_derece": 3,
+      "temas": {
+       "elbise": 16
+      }
+     },
+     "sol": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     }
+    }
+   },
+   "Arka02": {
+    "kok": {
+     "geri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "ileri": {
+      "izin_derece": 7,
+      "temas": {
+       "elbise": 92
+      }
+     },
+     "sol": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sag": {
+      "izin_derece": 9,
+      "temas": {
+       "elbise": 8
+      }
+     }
+    },
+    "hepsi": {
+     "geri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "ileri": {
+      "izin_derece": 2,
+      "temas": {
+       "elbise": 14
+      }
+     },
+     "sol": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sag": {
+      "izin_derece": 3,
+      "temas": {
+       "elbise": 22
+      }
+     }
+    }
+   },
+   "Arka03": {
+    "kok": {
+     "geri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "ileri": {
+      "izin_derece": 7,
+      "temas": {
+       "elbise": 32
+      }
+     },
+     "sol": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     }
+    },
+    "hepsi": {
+     "geri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "ileri": {
+      "izin_derece": 2,
+      "temas": {
+       "elbise": 24
+      }
+     },
+     "sol": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sag": {
+      "izin_derece": 5,
+      "temas": {
+       "elbise": 8
+      }
+     }
+    }
+   },
+   "Arka04": {
+    "kok": {
+     "geri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "ileri": {
+      "izin_derece": 7,
+      "temas": {
+       "elbise": 10
+      }
+     },
+     "sol": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     }
+    },
+    "hepsi": {
+     "geri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "ileri": {
+      "izin_derece": 2,
+      "temas": {
+       "elbise": 8
+      }
+     },
+     "sol": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     }
+    }
+   },
+   "Arka05": {
+    "kok": {
+     "geri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "ileri": {
+      "izin_derece": 7,
+      "temas": {
+       "elbise": 40
+      }
+     },
+     "sol": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     }
+    },
+    "hepsi": {
+     "geri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "ileri": {
+      "izin_derece": 2,
+      "temas": {
+       "elbise": 22
+      }
+     },
+     "sol": {
+      "izin_derece": 5,
+      "temas": {
+       "elbise": 8
+      }
+     },
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     }
+    }
+   },
+   "Arka06": {
+    "kok": {
+     "geri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "ileri": {
+      "izin_derece": 7,
+      "temas": {
+       "elbise": 88
+      }
+     },
+     "sol": {
+      "izin_derece": 9,
+      "temas": {
+       "elbise": 8
+      }
+     },
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     }
+    },
+    "hepsi": {
+     "geri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "ileri": {
+      "izin_derece": 2,
+      "temas": {
+       "elbise": 10
+      }
+     },
+     "sol": {
+      "izin_derece": 3,
+      "temas": {
+       "elbise": 8
+      }
+     },
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     }
+    }
+   },
+   "Arka07": {
+    "kok": {
+     "geri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "ileri": {
+      "izin_derece": 8,
+      "temas": {
+       "elbise": 78
+      }
+     },
+     "sol": {
+      "izin_derece": 7,
+      "temas": {
+       "elbise": 10
+      }
+     },
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     }
+    },
+    "hepsi": {
+     "geri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "ileri": {
+      "izin_derece": 3,
+      "temas": {
+       "deri": 8,
+       "elbise": 92
+      }
+     },
+     "sol": {
+      "izin_derece": 2,
+      "temas": {
+       "elbise": 8
+      }
+     },
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     }
+    }
+   },
+   "Arka08": {
+    "kok": {
+     "geri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "ileri": {
+      "izin_derece": 13,
+      "temas": {
+       "elbise": 5
+      }
+     },
+     "sol": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     }
+    },
+    "hepsi": {
+     "geri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "ileri": {
+      "izin_derece": 4,
+      "temas": {
+       "elbise": 16
+      }
+     },
+     "sol": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     }
+    }
+   },
+   "Capraz01": {
+    "kok": {
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sol": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "geri": {
+      "izin_derece": 13,
+      "temas": {
+       "gozluk": 34,
+       "cam": 2
+      }
+     },
+     "ileri": {
+      "izin_derece": 15,
+      "temas": null
+     }
+    },
+    "hepsi": {
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sol": {
+      "izin_derece": 10,
+      "temas": {
+       "yuz": 10
+      }
+     },
+     "geri": {
+      "izin_derece": 7,
+      "temas": {
+       "gozluk": 14,
+       "cam": 12
+      }
+     },
+     "ileri": {
+      "izin_derece": 15,
+      "temas": null
+     }
+    }
+   },
+   "Capraz02": {
+    "kok": {
+     "ileri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "geri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sol": {
+      "izin_derece": 15,
+      "temas": null
+     }
+    },
+    "hepsi": {
+     "ileri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "geri": {
+      "izin_derece": 8,
+      "temas": {
+       "cam": 28
+      }
+     },
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sol": {
+      "izin_derece": 15,
+      "temas": null
+     }
+    }
+   },
+   "On01": {
+    "kok": {
+     "ileri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "geri": {
+      "izin_derece": 14,
+      "temas": {
+       "elbise": 10
+      }
+     },
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sol": {
+      "izin_derece": 15,
+      "temas": null
+     }
+    },
+    "hepsi": {
+     "ileri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "geri": {
+      "izin_derece": 7,
+      "temas": {
+       "elbise": 46
+      }
+     },
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sol": {
+      "izin_derece": 15,
+      "temas": null
+     }
+    }
+   },
+   "On02": {
+    "kok": {
+     "sol": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "ileri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "geri": {
+      "izin_derece": 15,
+      "temas": null
+     }
+    },
+    "hepsi": {
+     "sol": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "ileri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "geri": {
+      "izin_derece": 10,
+      "temas": {
+       "elbise": 8
+      }
+     }
+    }
+   },
+   "On03": {
+    "kok": {
+     "sol": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "ileri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "geri": {
+      "izin_derece": 15,
+      "temas": null
+     }
+    },
+    "hepsi": {
+     "sol": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "ileri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "geri": {
+      "izin_derece": 8,
+      "temas": {
+       "elbise": 16
+      }
+     }
+    }
+   },
+   "Orgu01": {
+    "kok": {
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sol": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sol_2": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sag_2": {
+      "izin_derece": 15,
+      "temas": null
+     }
+    },
+    "hepsi": {
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sol": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sol_2": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sag_2": {
+      "izin_derece": 15,
+      "temas": null
+     }
+    }
+   },
+   "Percem01": {
+    "kok": {
+     "sol": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "ileri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "geri": {
+      "izin_derece": 9,
+      "temas": {
+       "yuz": 10
+      }
+     }
+    },
+    "hepsi": {
+     "sol": {
+      "izin_derece": 9,
+      "temas": {
+       "yuz": 4
+      }
+     },
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "ileri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "geri": {
+      "izin_derece": 5,
+      "temas": {
+       "yuz": 20
+      }
+     }
+    }
+   },
+   "Percem02": {
+    "kok": {
+     "sol": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "ileri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "geri": {
+      "izin_derece": 5,
+      "temas": {
+       "gozluk": 16
+      }
+     }
+    },
+    "hepsi": {
+     "sol": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "ileri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "geri": {
+      "izin_derece": 2,
+      "temas": {
+       "gozluk": 8
+      }
+     }
+    }
+   },
+   "Percem03": {
+    "kok": {
+     "sol": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "ileri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "geri": {
+      "izin_derece": 7,
+      "temas": {
+       "gozluk": 8
+      }
+     }
+    },
+    "hepsi": {
+     "sol": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "ileri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "geri": {
+      "izin_derece": 4,
+      "temas": {
+       "gozluk": 20
+      }
+     }
+    }
+   },
+   "Percem04": {
+    "kok": {
+     "sol": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "ileri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "geri": {
+      "izin_derece": 3,
+      "temas": {
+       "gozluk": 10
+      }
+     }
+    },
+    "hepsi": {
+     "sol": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "sag": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "ileri": {
+      "izin_derece": 15,
+      "temas": null
+     },
+     "geri": {
+      "izin_derece": 2,
+      "temas": {
+       "gozluk": 40,
+       "cam": 3
+      }
+     }
+    }
+   }
+  },
+  "en_dar": {
+   "kok": {
+    "Arka01": 9,
+    "Arka02": 7,
+    "Arka03": 7,
+    "Arka04": 7,
+    "Arka05": 7,
+    "Arka06": 7,
+    "Arka07": 7,
+    "Arka08": 13,
+    "Capraz01": 13,
+    "Capraz02": 15,
+    "On01": 14,
+    "On02": 15,
+    "On03": 15,
+    "Orgu01": 15,
+    "Percem01": 9,
+    "Percem02": 5,
+    "Percem03": 7,
+    "Percem04": 3
+   },
+   "hepsi": {
+    "Arka01": 3,
+    "Arka02": 2,
+    "Arka03": 2,
+    "Arka04": 2,
+    "Arka05": 2,
+    "Arka06": 2,
+    "Arka07": 2,
+    "Arka08": 4,
+    "Capraz01": 7,
+    "Capraz02": 8,
+    "On01": 7,
+    "On02": 10,
+    "On03": 8,
+    "Orgu01": 15,
+    "Percem01": 5,
+    "Percem02": 2,
+    "Percem03": 4,
+    "Percem04": 2
+   }
+  }
+ },
+ "dil": {
+  "gruplar": [
+   "tongue_ac",
+   "tongue"
+  ],
+  "yol": "s 0..1: s<=0.5 iken tongue_ac=2s; sonra tongue_ac=2-2s, tongue=2s-1 (iki doğrusal parça; tongue tek başına 0..1 sürülürse 0.5-0.9 arasında dil dudaktan geçer)"
+ }
+}

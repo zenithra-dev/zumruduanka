@@ -1,0 +1,2327 @@
+{
+ "dosya": "C:/work/karakter/cikti/karakter.vrm",
+ "bayt": 19762020,
+ "jsonBayt": 143590,
+ "binBayt": 19616884,
+ "asset": {
+  "generator": "saturday06_blender_vrm_exporter_experimental_4.10.2",
+  "version": "2.0"
+ },
+ "extensionsUsed": [
+  "KHR_materials_unlit",
+  "VRM"
+ ],
+ "vrmMeta": {
+  "title": "Kanade",
+  "version": "",
+  "author": "VRoid Project (AvatarSample_D, CC0) + Zümrüdüanka düzenlemesi",
+  "license": "CC0"
+ },
+ "vrmSpec": "0.0",
+ "exporter": "saturday06_blender_vrm_exporter_experimental_4.10.2",
+ "sahne": [
+  [
+   "Root",
+   "Face",
+   "Body",
+   "Hair001",
+   "Aksesuar_Gozluk",
+   "Aksesuar_GozlukCam",
+   "Aksesuar_Choker",
+   "Aksesuar_Tirnak"
+  ]
+ ],
+ "dugum": 229,
+ "insansiKemik": 54,
+ "sacKemik": 119,
+ "secKemik": 155,
+ "govdeIkiz": 49,
+ "govdeIkizOrnek": [
+  "J_Sec_Hair_On01_Govde_1",
+  "J_Sec_Hair_On01_Govde_2",
+  "J_Sec_Hair_On01_Govde_3",
+  "J_Sec_Hair_On02_Govde_1",
+  "J_Sec_Hair_On02_Govde_2",
+  "J_Sec_Hair_On02_Govde_3"
+ ],
+ "rotDonuk": 0,
+ "rotDonukOrnek": [],
+ "olcekli": [],
+ "kemik": {
+  "hips": {
+   "node": "J_Bip_C_Hips",
+   "p": [
+    0.0005,
+    1.0207,
+    -0.0092
+   ],
+   "par": "Root"
+  },
+  "spine": {
+   "node": "J_Bip_C_Spine",
+   "p": [
+    0.0005,
+    1.0736,
+    -0.019
+   ],
+   "par": "J_Bip_C_Hips"
+  },
+  "chest": {
+   "node": "J_Bip_C_Chest",
+   "p": [
+    0.0005,
+    1.1876,
+    -0.0332
+   ],
+   "par": "J_Bip_C_Spine"
+  },
+  "upperChest": {
+   "node": "J_Bip_C_UpperChest",
+   "p": [
+    0.0005,
+    1.3185,
+    -0.0188
+   ],
+   "par": "J_Bip_C_Chest"
+  },
+  "neck": {
+   "node": "J_Bip_C_Neck",
+   "p": [
+    0.0005,
+    1.4331,
+    0.0146
+   ],
+   "par": "J_Bip_C_UpperChest"
+  },
+  "head": {
+   "node": "J_Bip_C_Head",
+   "p": [
+    0.0005,
+    1.5103,
+    0.0052
+   ],
+   "par": "J_Bip_C_Neck"
+  },
+  "leftEye": {
+   "node": "J_Adj_L_FaceEye",
+   "p": [
+    -0.0197,
+    1.5692,
+    -0.0223
+   ],
+   "par": "J_Bip_C_Head"
+  },
+  "rightEye": {
+   "node": "J_Adj_R_FaceEye",
+   "p": [
+    0.0207,
+    1.5692,
+    -0.0223
+   ],
+   "par": "J_Bip_C_Head"
+  },
+  "leftUpperLeg": {
+   "node": "J_Bip_L_UpperLeg",
+   "p": [
+    -0.0766,
+    0.9815,
+    -0.0012
+   ],
+   "par": "J_Bip_C_Hips"
+  },
+  "leftLowerLeg": {
+   "node": "J_Bip_L_LowerLeg",
+   "p": [
+    -0.0541,
+    0.5865,
+    0.0075
+   ],
+   "par": "J_Bip_L_UpperLeg"
+  },
+  "leftFoot": {
+   "node": "J_Bip_L_Foot",
+   "p": [
+    -0.0429,
+    0.138,
+    0.0323
+   ],
+   "par": "J_Bip_L_LowerLeg"
+  },
+  "leftToes": {
+   "node": "J_Bip_L_ToeBase",
+   "p": [
+    -0.0442,
+    0.0747,
+    -0.0723
+   ],
+   "par": "J_Bip_L_Foot"
+  },
+  "rightUpperLeg": {
+   "node": "J_Bip_R_UpperLeg",
+   "p": [
+    0.0776,
+    0.9815,
+    -0.0012
+   ],
+   "par": "J_Bip_C_Hips"
+  },
+  "rightLowerLeg": {
+   "node": "J_Bip_R_LowerLeg",
+   "p": [
+    0.0551,
+    0.5865,
+    0.0075
+   ],
+   "par": "J_Bip_R_UpperLeg"
+  },
+  "rightFoot": {
+   "node": "J_Bip_R_Foot",
+   "p": [
+    0.0439,
+    0.138,
+    0.0323
+   ],
+   "par": "J_Bip_R_LowerLeg"
+  },
+  "rightToes": {
+   "node": "J_Bip_R_ToeBase",
+   "p": [
+    0.0452,
+    0.0747,
+    -0.0723
+   ],
+   "par": "J_Bip_R_Foot"
+  },
+  "leftShoulder": {
+   "node": "J_Bip_L_Shoulder",
+   "p": [
+    -0.0219,
+    1.4057,
+    0.0086
+   ],
+   "par": "J_Bip_C_UpperChest"
+  },
+  "leftUpperArm": {
+   "node": "J_Bip_L_UpperArm",
+   "p": [
+    -0.1082,
+    1.3909,
+    0.0033
+   ],
+   "par": "J_Bip_L_Shoulder"
+  },
+  "leftLowerArm": {
+   "node": "J_Bip_L_LowerArm",
+   "p": [
+    -0.3272,
+    1.3807,
+    0.0014
+   ],
+   "par": "J_Bip_L_UpperArm"
+  },
+  "leftHand": {
+   "node": "J_Bip_L_Hand",
+   "p": [
+    -0.5408,
+    1.3802,
+    -0.0162
+   ],
+   "par": "J_Bip_L_LowerArm"
+  },
+  "rightShoulder": {
+   "node": "J_Bip_R_Shoulder",
+   "p": [
+    0.0229,
+    1.4057,
+    0.0086
+   ],
+   "par": "J_Bip_C_UpperChest"
+  },
+  "rightUpperArm": {
+   "node": "J_Bip_R_UpperArm",
+   "p": [
+    0.1092,
+    1.3909,
+    0.0033
+   ],
+   "par": "J_Bip_R_Shoulder"
+  },
+  "rightLowerArm": {
+   "node": "J_Bip_R_LowerArm",
+   "p": [
+    0.3282,
+    1.3807,
+    0.0014
+   ],
+   "par": "J_Bip_R_UpperArm"
+  },
+  "rightHand": {
+   "node": "J_Bip_R_Hand",
+   "p": [
+    0.5418,
+    1.3802,
+    -0.0162
+   ],
+   "par": "J_Bip_R_LowerArm"
+  },
+  "leftThumbProximal": {
+   "node": "J_Bip_L_Thumb1",
+   "p": [
+    -0.5428,
+    1.3743,
+    -0.0338
+   ],
+   "par": "J_Bip_L_Hand"
+  },
+  "leftThumbIntermediate": {
+   "node": "J_Bip_L_Thumb2",
+   "p": [
+    -0.5758,
+    1.3722,
+    -0.0658
+   ],
+   "par": "J_Bip_L_Thumb1"
+  },
+  "leftThumbDistal": {
+   "node": "J_Bip_L_Thumb3",
+   "p": [
+    -0.5974,
+    1.3711,
+    -0.0842
+   ],
+   "par": "J_Bip_L_Thumb2"
+  },
+  "leftIndexProximal": {
+   "node": "J_Bip_L_Index1",
+   "p": [
+    -0.6047,
+    1.3855,
+    -0.0377
+   ],
+   "par": "J_Bip_L_Hand"
+  },
+  "leftIndexIntermediate": {
+   "node": "J_Bip_L_Index2",
+   "p": [
+    -0.6375,
+    1.3854,
+    -0.0429
+   ],
+   "par": "J_Bip_L_Index1"
+  },
+  "leftIndexDistal": {
+   "node": "J_Bip_L_Index3",
+   "p": [
+    -0.6578,
+    1.3848,
+    -0.0454
+   ],
+   "par": "J_Bip_L_Index2"
+  },
+  "leftMiddleProximal": {
+   "node": "J_Bip_L_Middle1",
+   "p": [
+    -0.6069,
+    1.3877,
+    -0.0211
+   ],
+   "par": "J_Bip_L_Hand"
+  },
+  "leftMiddleIntermediate": {
+   "node": "J_Bip_L_Middle2",
+   "p": [
+    -0.6438,
+    1.3865,
+    -0.0236
+   ],
+   "par": "J_Bip_L_Middle1"
+  },
+  "leftMiddleDistal": {
+   "node": "J_Bip_L_Middle3",
+   "p": [
+    -0.6664,
+    1.3843,
+    -0.0246
+   ],
+   "par": "J_Bip_L_Middle2"
+  },
+  "leftRingProximal": {
+   "node": "J_Bip_L_Ring1",
+   "p": [
+    -0.6074,
+    1.3874,
+    -0.0054
+   ],
+   "par": "J_Bip_L_Hand"
+  },
+  "leftRingIntermediate": {
+   "node": "J_Bip_L_Ring2",
+   "p": [
+    -0.6417,
+    1.3868,
+    -0.0056
+   ],
+   "par": "J_Bip_L_Ring1"
+  },
+  "leftRingDistal": {
+   "node": "J_Bip_L_Ring3",
+   "p": [
+    -0.6615,
+    1.3874,
+    -0.0058
+   ],
+   "par": "J_Bip_L_Ring2"
+  },
+  "leftLittleProximal": {
+   "node": "J_Bip_L_Little1",
+   "p": [
+    -0.604,
+    1.3824,
+    0.0104
+   ],
+   "par": "J_Bip_L_Hand"
+  },
+  "leftLittleIntermediate": {
+   "node": "J_Bip_L_Little2",
+   "p": [
+    -0.6354,
+    1.3821,
+    0.0104
+   ],
+   "par": "J_Bip_L_Little1"
+  },
+  "leftLittleDistal": {
+   "node": "J_Bip_L_Little3",
+   "p": [
+    -0.6535,
+    1.3827,
+    0.0113
+   ],
+   "par": "J_Bip_L_Little2"
+  },
+  "rightThumbProximal": {
+   "node": "J_Bip_R_Thumb1",
+   "p": [
+    0.5438,
+    1.3743,
+    -0.0338
+   ],
+   "par": "J_Bip_R_Hand"
+  },
+  "rightThumbIntermediate": {
+   "node": "J_Bip_R_Thumb2",
+   "p": [
+    0.5767,
+    1.3723,
+    -0.0658
+   ],
+   "par": "J_Bip_R_Thumb1"
+  },
+  "rightThumbDistal": {
+   "node": "J_Bip_R_Thumb3",
+   "p": [
+    0.5984,
+    1.3711,
+    -0.0842
+   ],
+   "par": "J_Bip_R_Thumb2"
+  },
+  "rightIndexProximal": {
+   "node": "J_Bip_R_Index1",
+   "p": [
+    0.6057,
+    1.3855,
+    -0.0377
+   ],
+   "par": "J_Bip_R_Hand"
+  },
+  "rightIndexIntermediate": {
+   "node": "J_Bip_R_Index2",
+   "p": [
+    0.6385,
+    1.3854,
+    -0.0429
+   ],
+   "par": "J_Bip_R_Index1"
+  },
+  "rightIndexDistal": {
+   "node": "J_Bip_R_Index3",
+   "p": [
+    0.6587,
+    1.3848,
+    -0.0454
+   ],
+   "par": "J_Bip_R_Index2"
+  },
+  "rightMiddleProximal": {
+   "node": "J_Bip_R_Middle1",
+   "p": [
+    0.6079,
+    1.3877,
+    -0.0211
+   ],
+   "par": "J_Bip_R_Hand"
+  },
+  "rightMiddleIntermediate": {
+   "node": "J_Bip_R_Middle2",
+   "p": [
+    0.6448,
+    1.3865,
+    -0.0236
+   ],
+   "par": "J_Bip_R_Middle1"
+  },
+  "rightMiddleDistal": {
+   "node": "J_Bip_R_Middle3",
+   "p": [
+    0.6674,
+    1.3843,
+    -0.0246
+   ],
+   "par": "J_Bip_R_Middle2"
+  },
+  "rightRingProximal": {
+   "node": "J_Bip_R_Ring1",
+   "p": [
+    0.6084,
+    1.3874,
+    -0.0054
+   ],
+   "par": "J_Bip_R_Hand"
+  },
+  "rightRingIntermediate": {
+   "node": "J_Bip_R_Ring2",
+   "p": [
+    0.6427,
+    1.3868,
+    -0.0056
+   ],
+   "par": "J_Bip_R_Ring1"
+  },
+  "rightRingDistal": {
+   "node": "J_Bip_R_Ring3",
+   "p": [
+    0.6625,
+    1.3874,
+    -0.0058
+   ],
+   "par": "J_Bip_R_Ring2"
+  },
+  "rightLittleProximal": {
+   "node": "J_Bip_R_Little1",
+   "p": [
+    0.605,
+    1.3824,
+    0.0104
+   ],
+   "par": "J_Bip_R_Hand"
+  },
+  "rightLittleIntermediate": {
+   "node": "J_Bip_R_Little2",
+   "p": [
+    0.6364,
+    1.3821,
+    0.0104
+   ],
+   "par": "J_Bip_R_Little1"
+  },
+  "rightLittleDistal": {
+   "node": "J_Bip_R_Little3",
+   "p": [
+    0.6545,
+    1.3827,
+    0.0113
+   ],
+   "par": "J_Bip_R_Little2"
+  }
+ },
+ "boy": {
+  "left": {
+   "shoulder_upperArm": 0.0877,
+   "upperArm": 0.2193,
+   "lowerArm": 0.2143,
+   "thigh": 0.3958,
+   "shin": 0.4492,
+   "foot_toes": 0.1223,
+   "fingers": {
+    "Thumb": [
+     0.0186,
+     0.046,
+     0.0284
+    ],
+    "Index": [
+     0.0676,
+     0.0332,
+     0.0204
+    ],
+    "Middle": [
+     0.0667,
+     0.037,
+     0.0228
+    ],
+    "Ring": [
+     0.0679,
+     0.0343,
+     0.0198
+    ],
+    "Little": [
+     0.0687,
+     0.0314,
+     0.0181
+    ]
+   },
+   "distalChild": {
+    "Thumb": 0.0214,
+    "Index": 0.0242,
+    "Middle": 0.025,
+    "Ring": 0.0214,
+    "Little": 0.0194
+   }
+  },
+  "right": {
+   "shoulder_upperArm": 0.0877,
+   "upperArm": 0.2193,
+   "lowerArm": 0.2143,
+   "thigh": 0.3958,
+   "shin": 0.4492,
+   "foot_toes": 0.1223,
+   "fingers": {
+    "Thumb": [
+     0.0186,
+     0.046,
+     0.0284
+    ],
+    "Index": [
+     0.0676,
+     0.0332,
+     0.0204
+    ],
+    "Middle": [
+     0.0667,
+     0.037,
+     0.0228
+    ],
+    "Ring": [
+     0.0679,
+     0.0343,
+     0.0198
+    ],
+    "Little": [
+     0.0687,
+     0.0314,
+     0.0181
+    ]
+   },
+   "distalChild": {
+    "Thumb": 0.0214,
+    "Index": 0.0242,
+    "Middle": 0.025,
+    "Ring": 0.0214,
+    "Little": 0.0194
+   }
+  }
+ },
+ "omurga": {
+  "hips_spine": 0.0538,
+  "spine_chest": 0.1149,
+  "chest_upperChest": 0.1317,
+  "upperChest_neck": 0.1194,
+  "neck_head": 0.0778,
+  "head_eyeL": 0.068,
+  "hips_upperLegL": 0.0869
+ },
+ "sinir": {
+  "x": [
+   -0.6963202357292175,
+   0.6973194479942322
+  ],
+  "y": [
+   -0.00009562329796608537,
+   1.7323397397994995
+  ],
+  "z": [
+   -0.32941365242004395,
+   0.4035590589046478
+  ]
+ },
+ "ag": [
+  {
+   "i": 0,
+   "name": "Face.baked",
+   "prims": [
+    {
+     "v": 2055,
+     "idx": 496,
+     "mat": "F00_000_00_FaceMouth_00_FACE",
+     "targets": 58,
+     "tN": [
+      "POSITION"
+     ],
+     "attrs": [
+      "JOINTS_0",
+      "NORMAL",
+      "POSITION",
+      "TEXCOORD_0",
+      "WEIGHTS_0"
+     ]
+    },
+    {
+     "v": 2055,
+     "idx": 96,
+     "mat": "F00_000_00_EyeWhite_00_EYE",
+     "targets": 58,
+     "tN": [
+      "POSITION"
+     ],
+     "attrs": [
+      "JOINTS_0",
+      "NORMAL",
+      "POSITION",
+      "TEXCOORD_0",
+      "WEIGHTS_0"
+     ]
+    },
+    {
+     "v": 2055,
+     "idx": 384,
+     "mat": "F00_000_00_FaceEyeline_00_FACE",
+     "targets": 58,
+     "tN": [
+      "POSITION"
+     ],
+     "attrs": [
+      "JOINTS_0",
+      "NORMAL",
+      "POSITION",
+      "TEXCOORD_0",
+      "WEIGHTS_0"
+     ]
+    },
+    {
+     "v": 2055,
+     "idx": 224,
+     "mat": "F00_000_00_FaceEyelash_00_FACE",
+     "targets": 58,
+     "tN": [
+      "POSITION"
+     ],
+     "attrs": [
+      "JOINTS_0",
+      "NORMAL",
+      "POSITION",
+      "TEXCOORD_0",
+      "WEIGHTS_0"
+     ]
+    },
+    {
+     "v": 2055,
+     "idx": 160,
+     "mat": "F00_000_00_FaceBrow_00_FACE",
+     "targets": 58,
+     "tN": [
+      "POSITION"
+     ],
+     "attrs": [
+      "JOINTS_0",
+      "NORMAL",
+      "POSITION",
+      "TEXCOORD_0",
+      "WEIGHTS_0"
+     ]
+    },
+    {
+     "v": 2055,
+     "idx": 192,
+     "mat": "F00_000_00_EyeIris_00_EYE",
+     "targets": 58,
+     "tN": [
+      "POSITION"
+     ],
+     "attrs": [
+      "JOINTS_0",
+      "NORMAL",
+      "POSITION",
+      "TEXCOORD_0",
+      "WEIGHTS_0"
+     ]
+    },
+    {
+     "v": 2055,
+     "idx": 192,
+     "mat": "F00_000_00_EyeHighlight_00_EYE",
+     "targets": 58,
+     "tN": [
+      "POSITION"
+     ],
+     "attrs": [
+      "JOINTS_0",
+      "NORMAL",
+      "POSITION",
+      "TEXCOORD_0",
+      "WEIGHTS_0"
+     ]
+    },
+    {
+     "v": 2055,
+     "idx": 1350,
+     "mat": "F00_000_00_Face_00_SKIN",
+     "targets": 58,
+     "tN": [
+      "POSITION"
+     ],
+     "attrs": [
+      "JOINTS_0",
+      "NORMAL",
+      "POSITION",
+      "TEXCOORD_0",
+      "WEIGHTS_0"
+     ]
+    },
+    {
+     "v": 2055,
+     "idx": 64,
+     "mat": "F00_000_00_EyeExtra_01_EYE",
+     "targets": 58,
+     "tN": [
+      "POSITION"
+     ],
+     "attrs": [
+      "JOINTS_0",
+      "NORMAL",
+      "POSITION",
+      "TEXCOORD_0",
+      "WEIGHTS_0"
+     ]
+    }
+   ],
+   "weights": 0,
+   "targetNames": 58
+  },
+  {
+   "i": 1,
+   "name": "Body.baked",
+   "prims": [
+    {
+     "v": 6641,
+     "idx": 7732,
+     "mat": "F00_002_02_Body_00_SKIN",
+     "targets": 0,
+     "tN": [],
+     "attrs": [
+      "JOINTS_0",
+      "NORMAL",
+      "POSITION",
+      "TEXCOORD_0",
+      "WEIGHTS_0"
+     ]
+    },
+    {
+     "v": 6641,
+     "idx": 2122,
+     "mat": "F00_002_01_Tops_01_CLOTH",
+     "targets": 0,
+     "tN": [],
+     "attrs": [
+      "JOINTS_0",
+      "NORMAL",
+      "POSITION",
+      "TEXCOORD_0",
+      "WEIGHTS_0"
+     ]
+    },
+    {
+     "v": 6641,
+     "idx": 760,
+     "mat": "F00_002_01_Shoes_01_CLOTH",
+     "targets": 0,
+     "tN": [],
+     "attrs": [
+      "JOINTS_0",
+      "NORMAL",
+      "POSITION",
+      "TEXCOORD_0",
+      "WEIGHTS_0"
+     ]
+    },
+    {
+     "v": 6641,
+     "idx": 394,
+     "mat": "F00_000_HairBack_00_HAIR",
+     "targets": 0,
+     "tN": [],
+     "attrs": [
+      "JOINTS_0",
+      "NORMAL",
+      "POSITION",
+      "TEXCOORD_0",
+      "WEIGHTS_0"
+     ]
+    }
+   ],
+   "weights": 0,
+   "targetNames": 0
+  },
+  {
+   "i": 2,
+   "name": "Hair001.baked",
+   "prims": [
+    {
+     "v": 18106,
+     "idx": 172,
+     "mat": "F00_000_Hair_00_HAIR_02",
+     "targets": 0,
+     "tN": [],
+     "attrs": [
+      "JOINTS_0",
+      "NORMAL",
+      "POSITION",
+      "TEXCOORD_0",
+      "WEIGHTS_0"
+     ]
+    },
+    {
+     "v": 18106,
+     "idx": 23218,
+     "mat": "F00_000_Hair_00_HAIR_01",
+     "targets": 0,
+     "tN": [],
+     "attrs": [
+      "JOINTS_0",
+      "NORMAL",
+      "POSITION",
+      "TEXCOORD_0",
+      "WEIGHTS_0"
+     ]
+    }
+   ],
+   "weights": 0,
+   "targetNames": 0
+  },
+  {
+   "i": 3,
+   "name": "Aksesuar_Gozluk",
+   "prims": [
+    {
+     "v": 2590,
+     "idx": 5136,
+     "mat": "Aksesuar_Siyah_Parlak",
+     "targets": 0,
+     "tN": [],
+     "attrs": [
+      "JOINTS_0",
+      "NORMAL",
+      "POSITION",
+      "TEXCOORD_0",
+      "WEIGHTS_0"
+     ]
+    }
+   ],
+   "weights": 0,
+   "targetNames": 0
+  },
+  {
+   "i": 4,
+   "name": "Aksesuar_GozlukCam",
+   "prims": [
+    {
+     "v": 432,
+     "idx": 144,
+     "mat": "Aksesuar_Cam",
+     "targets": 0,
+     "tN": [],
+     "attrs": [
+      "JOINTS_0",
+      "NORMAL",
+      "POSITION",
+      "TEXCOORD_0",
+      "WEIGHTS_0"
+     ]
+    }
+   ],
+   "weights": 0,
+   "targetNames": 0
+  },
+  {
+   "i": 5,
+   "name": "Aksesuar_Choker",
+   "prims": [
+    {
+     "v": 2081,
+     "idx": 2016,
+     "mat": "Aksesuar_Deri",
+     "targets": 0,
+     "tN": [],
+     "attrs": [
+      "JOINTS_0",
+      "NORMAL",
+      "POSITION",
+      "TEXCOORD_0",
+      "WEIGHTS_0"
+     ]
+    },
+    {
+     "v": 2081,
+     "idx": 1672,
+     "mat": "Aksesuar_Gumus",
+     "targets": 0,
+     "tN": [],
+     "attrs": [
+      "JOINTS_0",
+      "NORMAL",
+      "POSITION",
+      "TEXCOORD_0",
+      "WEIGHTS_0"
+     ]
+    },
+    {
+     "v": 2081,
+     "idx": 158,
+     "mat": "Aksesuar_Siyah_Parlak",
+     "targets": 0,
+     "tN": [],
+     "attrs": [
+      "JOINTS_0",
+      "NORMAL",
+      "POSITION",
+      "TEXCOORD_0",
+      "WEIGHTS_0"
+     ]
+    }
+   ],
+   "weights": 0,
+   "targetNames": 0
+  },
+  {
+   "i": 6,
+   "name": "Aksesuar_Tirnak",
+   "prims": [
+    {
+     "v": 2520,
+     "idx": 5000,
+     "mat": "Aksesuar_Siyah_Parlak",
+     "targets": 0,
+     "tN": [],
+     "attrs": [
+      "JOINTS_0",
+      "NORMAL",
+      "POSITION",
+      "TEXCOORD_0",
+      "WEIGHTS_0"
+     ]
+    }
+   ],
+   "weights": 0,
+   "targetNames": 0
+  }
+ ],
+ "agDugum": [
+  {
+   "node": "Face",
+   "mesh": "Face.baked",
+   "skin": 0,
+   "par": null,
+   "p": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "node": "Body",
+   "mesh": "Body.baked",
+   "skin": 1,
+   "par": null,
+   "p": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "node": "Hair001",
+   "mesh": "Hair001.baked",
+   "skin": 2,
+   "par": null,
+   "p": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "node": "Aksesuar_Gozluk",
+   "mesh": "Aksesuar_Gozluk",
+   "skin": 3,
+   "par": null,
+   "p": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "node": "Aksesuar_GozlukCam",
+   "mesh": "Aksesuar_GozlukCam",
+   "skin": 4,
+   "par": null,
+   "p": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "node": "Aksesuar_Choker",
+   "mesh": "Aksesuar_Choker",
+   "skin": 5,
+   "par": null,
+   "p": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "node": "Aksesuar_Tirnak",
+   "mesh": "Aksesuar_Tirnak",
+   "skin": 6,
+   "par": null,
+   "p": [
+    0,
+    0,
+    0
+   ]
+  }
+ ],
+ "skin": [
+  {
+   "i": 0,
+   "joints": 222,
+   "skeleton": "Root"
+  },
+  {
+   "i": 1,
+   "joints": 222,
+   "skeleton": "Root"
+  },
+  {
+   "i": 2,
+   "joints": 222,
+   "skeleton": "Root"
+  },
+  {
+   "i": 3,
+   "joints": 222,
+   "skeleton": "Root"
+  },
+  {
+   "i": 4,
+   "joints": 222,
+   "skeleton": "Root"
+  },
+  {
+   "i": 5,
+   "joints": 222,
+   "skeleton": "Root"
+  },
+  {
+   "i": 6,
+   "joints": 222,
+   "skeleton": "Root"
+  }
+ ],
+ "ibmBagHata": 7.450580596923828e-9,
+ "kose": {
+  "toplam": 93056,
+  "skinli": 93056,
+  "ucgen": 51682,
+  "morphluKose": 18495,
+  "morphBayt": 12872520
+ },
+ "blendShape": [
+  {
+   "name": "Neutral",
+   "preset": "neutral",
+   "binds": [
+    [
+     "Face.baked",
+     0,
+     100
+    ]
+   ],
+   "mats": 0,
+   "isBinary": false
+  },
+  {
+   "name": "A",
+   "preset": "a",
+   "binds": [
+    [
+     "Face.baked",
+     37,
+     100
+    ]
+   ],
+   "mats": 0,
+   "isBinary": false
+  },
+  {
+   "name": "I",
+   "preset": "i",
+   "binds": [
+    [
+     "Face.baked",
+     38,
+     100
+    ]
+   ],
+   "mats": 0,
+   "isBinary": false
+  },
+  {
+   "name": "U",
+   "preset": "u",
+   "binds": [
+    [
+     "Face.baked",
+     39,
+     100
+    ]
+   ],
+   "mats": 0,
+   "isBinary": false
+  },
+  {
+   "name": "E",
+   "preset": "e",
+   "binds": [
+    [
+     "Face.baked",
+     40,
+     100
+    ]
+   ],
+   "mats": 0,
+   "isBinary": false
+  },
+  {
+   "name": "O",
+   "preset": "o",
+   "binds": [
+    [
+     "Face.baked",
+     41,
+     100
+    ]
+   ],
+   "mats": 0,
+   "isBinary": false
+  },
+  {
+   "name": "Blink",
+   "preset": "blink",
+   "binds": [
+    [
+     "Face.baked",
+     13,
+     100
+    ]
+   ],
+   "mats": 0,
+   "isBinary": false
+  },
+  {
+   "name": "Blink_L",
+   "preset": "blink_l",
+   "binds": [
+    [
+     "Face.baked",
+     15,
+     100
+    ]
+   ],
+   "mats": 0,
+   "isBinary": false
+  },
+  {
+   "name": "Blink_R",
+   "preset": "blink_r",
+   "binds": [
+    [
+     "Face.baked",
+     14,
+     100
+    ]
+   ],
+   "mats": 0,
+   "isBinary": false
+  },
+  {
+   "name": "Angry",
+   "preset": "angry",
+   "binds": [
+    [
+     "Face.baked",
+     1,
+     100
+    ]
+   ],
+   "mats": 0,
+   "isBinary": false
+  },
+  {
+   "name": "Fun",
+   "preset": "fun",
+   "binds": [
+    [
+     "Face.baked",
+     2,
+     100
+    ]
+   ],
+   "mats": 0,
+   "isBinary": false
+  },
+  {
+   "name": "Joy",
+   "preset": "joy",
+   "binds": [
+    [
+     "Face.baked",
+     3,
+     100
+    ]
+   ],
+   "mats": 0,
+   "isBinary": false
+  },
+  {
+   "name": "Sorrow",
+   "preset": "sorrow",
+   "binds": [
+    [
+     "Face.baked",
+     4,
+     100
+    ]
+   ],
+   "mats": 0,
+   "isBinary": false
+  },
+  {
+   "name": "Surprised",
+   "preset": "unknown",
+   "binds": [
+    [
+     "Face.baked",
+     5,
+     100
+    ]
+   ],
+   "mats": 0,
+   "isBinary": false
+  },
+  {
+   "name": "Extra",
+   "preset": "unknown",
+   "binds": [
+    [
+     "Face.baked",
+     25,
+     100
+    ],
+    [
+     "Face.baked",
+     55,
+     100
+    ]
+   ],
+   "mats": 0,
+   "isBinary": false
+  },
+  {
+   "name": "smug",
+   "preset": "unknown",
+   "binds": [
+    [
+     "Face.baked",
+     31,
+     75
+    ],
+    [
+     "Face.baked",
+     30,
+     20.000000298023224
+    ],
+    [
+     "Face.baked",
+     13,
+     21.99999988079071
+    ],
+    [
+     "Face.baked",
+     12,
+     34.99999940395355
+    ],
+    [
+     "Face.baked",
+     6,
+     15.000000596046448
+    ]
+   ],
+   "mats": 0,
+   "isBinary": false
+  },
+  {
+   "name": "tongue",
+   "preset": "unknown",
+   "binds": [
+    [
+     "Face.baked",
+     37,
+     55.000001192092896
+    ],
+    [
+     "Face.baked",
+     31,
+     30.000001192092896
+    ],
+    [
+     "Face.baked",
+     56,
+     100
+    ]
+   ],
+   "mats": 0,
+   "isBinary": false
+  },
+  {
+   "name": "tongue_ac",
+   "preset": "unknown",
+   "binds": [
+    [
+     "Face.baked",
+     37,
+     55.000001192092896
+    ],
+    [
+     "Face.baked",
+     31,
+     30.000001192092896
+    ],
+    [
+     "Face.baked",
+     57,
+     100
+    ]
+   ],
+   "mats": 0,
+   "isBinary": false
+  },
+  {
+   "name": "squint",
+   "preset": "unknown",
+   "binds": [
+    [
+     "Face.baked",
+     13,
+     44.999998807907104
+    ],
+    [
+     "Face.baked",
+     17,
+     15.000000596046448
+    ],
+    [
+     "Face.baked",
+     12,
+     44.999998807907104
+    ],
+    [
+     "Face.baked",
+     6,
+     34.99999940395355
+    ],
+    [
+     "Face.baked",
+     40,
+     11.999999731779099
+    ],
+    [
+     "Face.baked",
+     28,
+     25
+    ]
+   ],
+   "mats": 0,
+   "isBinary": false
+  }
+ ],
+ "malzeme": [
+  {
+   "name": "F00_000_00_FaceMouth_00_FACE",
+   "shader": "VRM/MToon",
+   "rq": -1,
+   "keys": [
+    "_NORMALMAP"
+   ],
+   "tags": {
+    "RenderType": "Opaque"
+   },
+   "f": {
+    "_Cutoff": 0.5,
+    "_OutlineWidthMode": 0,
+    "_OutlineWidth": 0,
+    "_BlendMode": 0,
+    "_CullMode": 2,
+    "_ShadeShift": 0,
+    "_ShadeToony": 0.5,
+    "_RimFresnelPower": 1,
+    "_MToonVersion": 32
+   },
+   "tex": [
+    "_BumpMap",
+    "_EmissionMap",
+    "_MainTex",
+    "_ShadeTexture",
+    "_SphereAdd"
+   ]
+  },
+  {
+   "name": "F00_000_00_EyeWhite_00_EYE",
+   "shader": "VRM/MToon",
+   "rq": -1,
+   "keys": [
+    "_NORMALMAP"
+   ],
+   "tags": {
+    "RenderType": "Opaque"
+   },
+   "f": {
+    "_Cutoff": 0.5,
+    "_OutlineWidthMode": 0,
+    "_OutlineWidth": 0,
+    "_BlendMode": 0,
+    "_CullMode": 2,
+    "_ShadeShift": 0,
+    "_ShadeToony": 0.5,
+    "_RimFresnelPower": 1,
+    "_MToonVersion": 32
+   },
+   "tex": [
+    "_BumpMap",
+    "_EmissionMap",
+    "_MainTex",
+    "_ShadeTexture",
+    "_SphereAdd"
+   ]
+  },
+  {
+   "name": "F00_000_00_FaceEyeline_00_FACE",
+   "shader": "VRM/MToon",
+   "rq": 3000,
+   "keys": [
+    "_ALPHABLEND_ON",
+    "_NORMALMAP"
+   ],
+   "tags": {
+    "RenderType": "Transparent"
+   },
+   "f": {
+    "_Cutoff": 0.5,
+    "_OutlineWidthMode": 0,
+    "_OutlineWidth": 0,
+    "_BlendMode": 2,
+    "_CullMode": 0,
+    "_ShadeShift": 0,
+    "_ShadeToony": 0.5,
+    "_RimFresnelPower": 1,
+    "_MToonVersion": 32
+   },
+   "tex": [
+    "_BumpMap",
+    "_EmissionMap",
+    "_MainTex",
+    "_ShadeTexture",
+    "_SphereAdd"
+   ]
+  },
+  {
+   "name": "F00_000_00_FaceEyelash_00_FACE",
+   "shader": "VRM/MToon",
+   "rq": 4500,
+   "keys": [
+    "_ALPHABLEND_ON",
+    "_NORMALMAP"
+   ],
+   "tags": {
+    "RenderType": "Transparent"
+   },
+   "f": {
+    "_Cutoff": 0.5,
+    "_OutlineWidthMode": 0,
+    "_OutlineWidth": 0,
+    "_BlendMode": 2,
+    "_CullMode": 0,
+    "_ShadeShift": 0,
+    "_ShadeToony": 0.5,
+    "_RimFresnelPower": 1,
+    "_MToonVersion": 32
+   },
+   "tex": [
+    "_BumpMap",
+    "_EmissionMap",
+    "_MainTex",
+    "_ShadeTexture",
+    "_SphereAdd"
+   ]
+  },
+  {
+   "name": "F00_000_00_FaceBrow_00_FACE",
+   "shader": "VRM/MToon",
+   "rq": 3000,
+   "keys": [
+    "_ALPHABLEND_ON",
+    "_NORMALMAP"
+   ],
+   "tags": {
+    "RenderType": "Transparent"
+   },
+   "f": {
+    "_Cutoff": 0.5,
+    "_OutlineWidthMode": 0,
+    "_OutlineWidth": 0,
+    "_BlendMode": 2,
+    "_CullMode": 0,
+    "_ShadeShift": 0,
+    "_ShadeToony": 0.5,
+    "_RimFresnelPower": 1,
+    "_MToonVersion": 32
+   },
+   "tex": [
+    "_BumpMap",
+    "_EmissionMap",
+    "_MainTex",
+    "_ShadeTexture",
+    "_SphereAdd"
+   ]
+  },
+  {
+   "name": "F00_000_00_EyeIris_00_EYE",
+   "shader": "VRM/MToon",
+   "rq": 2450,
+   "keys": [
+    "_ALPHATEST_ON",
+    "_NORMALMAP"
+   ],
+   "tags": {
+    "RenderType": "TransparentCutout"
+   },
+   "f": {
+    "_Cutoff": 0.5,
+    "_OutlineWidthMode": 0,
+    "_OutlineWidth": 0,
+    "_BlendMode": 1,
+    "_CullMode": 2,
+    "_ShadeShift": 0,
+    "_ShadeToony": 0.5,
+    "_RimFresnelPower": 1,
+    "_MToonVersion": 32
+   },
+   "tex": [
+    "_BumpMap",
+    "_EmissionMap",
+    "_MainTex",
+    "_ShadeTexture",
+    "_SphereAdd"
+   ]
+  },
+  {
+   "name": "F00_000_00_EyeHighlight_00_EYE",
+   "shader": "VRM/MToon",
+   "rq": 3000,
+   "keys": [
+    "_ALPHABLEND_ON",
+    "_NORMALMAP"
+   ],
+   "tags": {
+    "RenderType": "Transparent"
+   },
+   "f": {
+    "_Cutoff": 0.5,
+    "_OutlineWidthMode": 0,
+    "_OutlineWidth": 0,
+    "_BlendMode": 2,
+    "_CullMode": 0,
+    "_ShadeShift": 0,
+    "_ShadeToony": 0.5,
+    "_RimFresnelPower": 1,
+    "_MToonVersion": 32
+   },
+   "tex": [
+    "_BumpMap",
+    "_EmissionMap",
+    "_MainTex",
+    "_ShadeTexture",
+    "_SphereAdd"
+   ]
+  },
+  {
+   "name": "F00_000_00_Face_00_SKIN",
+   "shader": "VRM/MToon",
+   "rq": -1,
+   "keys": [
+    "MTOON_OUTLINE_COLOR_FIXED",
+    "MTOON_OUTLINE_WIDTH_WORLD",
+    "_NORMALMAP"
+   ],
+   "tags": {
+    "RenderType": "Opaque"
+   },
+   "f": {
+    "_Cutoff": 0.5,
+    "_OutlineWidthMode": 1,
+    "_OutlineWidth": 0.0750000006519258,
+    "_BlendMode": 0,
+    "_CullMode": 2,
+    "_ShadeShift": -1,
+    "_ShadeToony": 0.5,
+    "_RimFresnelPower": 1,
+    "_MToonVersion": 32
+   },
+   "tex": [
+    "_BumpMap",
+    "_EmissionMap",
+    "_MainTex",
+    "_OutlineWidthTexture",
+    "_ShadeTexture",
+    "_SphereAdd"
+   ]
+  },
+  {
+   "name": "F00_000_00_EyeExtra_01_EYE",
+   "shader": "VRM/MToon",
+   "rq": 3000,
+   "keys": [
+    "_ALPHABLEND_ON",
+    "_NORMALMAP"
+   ],
+   "tags": {
+    "RenderType": "Transparent"
+   },
+   "f": {
+    "_Cutoff": 0.5,
+    "_OutlineWidthMode": 0,
+    "_OutlineWidth": 0,
+    "_BlendMode": 2,
+    "_CullMode": 2,
+    "_ShadeShift": 0,
+    "_ShadeToony": 0.5,
+    "_RimFresnelPower": 1,
+    "_MToonVersion": 32
+   },
+   "tex": [
+    "_BumpMap",
+    "_EmissionMap",
+    "_MainTex",
+    "_ShadeTexture",
+    "_SphereAdd"
+   ]
+  },
+  {
+   "name": "F00_002_02_Body_00_SKIN",
+   "shader": "VRM/MToon",
+   "rq": 2450,
+   "keys": [
+    "MTOON_OUTLINE_COLOR_FIXED",
+    "MTOON_OUTLINE_WIDTH_WORLD",
+    "_ALPHATEST_ON",
+    "_NORMALMAP"
+   ],
+   "tags": {
+    "RenderType": "TransparentCutout"
+   },
+   "f": {
+    "_Cutoff": 0.5,
+    "_OutlineWidthMode": 1,
+    "_OutlineWidth": 0.0750000006519258,
+    "_BlendMode": 1,
+    "_CullMode": 2,
+    "_ShadeShift": 0,
+    "_ShadeToony": 0.5,
+    "_RimFresnelPower": 1,
+    "_MToonVersion": 32
+   },
+   "tex": [
+    "_BumpMap",
+    "_EmissionMap",
+    "_MainTex",
+    "_ShadeTexture",
+    "_SphereAdd"
+   ]
+  },
+  {
+   "name": "F00_002_01_Tops_01_CLOTH",
+   "shader": "VRM/MToon",
+   "rq": 2450,
+   "keys": [
+    "MTOON_OUTLINE_COLOR_FIXED",
+    "MTOON_OUTLINE_WIDTH_WORLD",
+    "_ALPHATEST_ON",
+    "_NORMALMAP"
+   ],
+   "tags": {
+    "RenderType": "TransparentCutout"
+   },
+   "f": {
+    "_Cutoff": 0.5,
+    "_OutlineWidthMode": 1,
+    "_OutlineWidth": 0.0750000006519258,
+    "_BlendMode": 1,
+    "_CullMode": 0,
+    "_ShadeShift": 0,
+    "_ShadeToony": 0.5,
+    "_RimFresnelPower": 1,
+    "_MToonVersion": 32
+   },
+   "tex": [
+    "_BumpMap",
+    "_EmissionMap",
+    "_MainTex",
+    "_ShadeTexture",
+    "_SphereAdd"
+   ]
+  },
+  {
+   "name": "F00_002_01_Shoes_01_CLOTH",
+   "shader": "VRM/MToon",
+   "rq": 2450,
+   "keys": [
+    "MTOON_OUTLINE_COLOR_MIXED",
+    "MTOON_OUTLINE_WIDTH_WORLD",
+    "_ALPHATEST_ON",
+    "_NORMALMAP"
+   ],
+   "tags": {
+    "RenderType": "TransparentCutout"
+   },
+   "f": {
+    "_Cutoff": 0.5,
+    "_OutlineWidthMode": 1,
+    "_OutlineWidth": 0.0750000006519258,
+    "_BlendMode": 1,
+    "_CullMode": 0,
+    "_ShadeShift": 0,
+    "_ShadeToony": 0.5,
+    "_RimFresnelPower": 1,
+    "_MToonVersion": 32
+   },
+   "tex": [
+    "_BumpMap",
+    "_EmissionMap",
+    "_MainTex",
+    "_ShadeTexture",
+    "_SphereAdd"
+   ]
+  },
+  {
+   "name": "F00_000_HairBack_00_HAIR",
+   "shader": "VRM/MToon",
+   "rq": 3000,
+   "keys": [
+    "_ALPHABLEND_ON",
+    "_NORMALMAP"
+   ],
+   "tags": {
+    "RenderType": "Transparent"
+   },
+   "f": {
+    "_Cutoff": 0.5,
+    "_OutlineWidthMode": 0,
+    "_OutlineWidth": 0,
+    "_BlendMode": 2,
+    "_CullMode": 2,
+    "_ShadeShift": -1,
+    "_ShadeToony": 0.5,
+    "_RimFresnelPower": 1,
+    "_MToonVersion": 32
+   },
+   "tex": [
+    "_BumpMap",
+    "_EmissionMap",
+    "_MainTex",
+    "_ShadeTexture",
+    "_SphereAdd"
+   ]
+  },
+  {
+   "name": "F00_000_Hair_00_HAIR_01",
+   "shader": "VRM/MToon",
+   "rq": 2450,
+   "keys": [
+    "_ALPHATEST_ON",
+    "_NORMALMAP"
+   ],
+   "tags": {
+    "RenderType": "TransparentCutout"
+   },
+   "f": {
+    "_Cutoff": 0.5,
+    "_OutlineWidthMode": 0,
+    "_OutlineWidth": 0,
+    "_BlendMode": 1,
+    "_CullMode": 0,
+    "_ShadeShift": -1,
+    "_ShadeToony": 0.5,
+    "_RimFresnelPower": 1,
+    "_MToonVersion": 32
+   },
+   "tex": [
+    "_BumpMap",
+    "_EmissionMap",
+    "_MainTex",
+    "_ShadeTexture",
+    "_SphereAdd"
+   ]
+  },
+  {
+   "name": "F00_000_Hair_00_HAIR_02",
+   "shader": "VRM/MToon",
+   "rq": 2450,
+   "keys": [
+    "_ALPHATEST_ON",
+    "_NORMALMAP"
+   ],
+   "tags": {
+    "RenderType": "TransparentCutout"
+   },
+   "f": {
+    "_Cutoff": 0.5,
+    "_OutlineWidthMode": 0,
+    "_OutlineWidth": 0,
+    "_BlendMode": 1,
+    "_CullMode": 0,
+    "_ShadeShift": -1,
+    "_ShadeToony": 0.5,
+    "_RimFresnelPower": 1,
+    "_MToonVersion": 32
+   },
+   "tex": [
+    "_BumpMap",
+    "_EmissionMap",
+    "_MainTex",
+    "_ShadeTexture",
+    "_SphereAdd"
+   ]
+  },
+  {
+   "name": "Aksesuar_Siyah_Parlak",
+   "shader": "VRM/MToon",
+   "rq": -1,
+   "keys": [],
+   "tags": {
+    "RenderType": "Opaque"
+   },
+   "f": {
+    "_Cutoff": 0.5,
+    "_OutlineWidthMode": 0,
+    "_OutlineWidth": 0,
+    "_BlendMode": 0,
+    "_CullMode": 2,
+    "_ShadeShift": -0.10000002384185791,
+    "_ShadeToony": 0.8181817787737894,
+    "_RimFresnelPower": 1,
+    "_MToonVersion": 32
+   },
+   "tex": [
+    "_SphereAdd"
+   ]
+  },
+  {
+   "name": "Aksesuar_Cam",
+   "shader": "VRM/MToon",
+   "rq": 4600,
+   "keys": [
+    "_ALPHABLEND_ON"
+   ],
+   "tags": {
+    "RenderType": "Transparent"
+   },
+   "f": {
+    "_Cutoff": 0.5,
+    "_OutlineWidthMode": 0,
+    "_OutlineWidth": 0,
+    "_BlendMode": 2,
+    "_CullMode": 2,
+    "_ShadeShift": -0.10000002384185791,
+    "_ShadeToony": 0.8181817787737894,
+    "_RimFresnelPower": 1,
+    "_MToonVersion": 32
+   },
+   "tex": [
+    "_MainTex",
+    "_ShadeTexture"
+   ]
+  },
+  {
+   "name": "Aksesuar_Deri",
+   "shader": "VRM/MToon",
+   "rq": -1,
+   "keys": [],
+   "tags": {
+    "RenderType": "Opaque"
+   },
+   "f": {
+    "_Cutoff": 0.5,
+    "_OutlineWidthMode": 0,
+    "_OutlineWidth": 0,
+    "_BlendMode": 0,
+    "_CullMode": 2,
+    "_ShadeShift": -0.10000002384185791,
+    "_ShadeToony": 0.8181817787737894,
+    "_RimFresnelPower": 1,
+    "_MToonVersion": 32
+   },
+   "tex": [
+    "_SphereAdd"
+   ]
+  },
+  {
+   "name": "Aksesuar_Gumus",
+   "shader": "VRM/MToon",
+   "rq": -1,
+   "keys": [],
+   "tags": {
+    "RenderType": "Opaque"
+   },
+   "f": {
+    "_Cutoff": 0.5,
+    "_OutlineWidthMode": 0,
+    "_OutlineWidth": 0,
+    "_BlendMode": 0,
+    "_CullMode": 2,
+    "_ShadeShift": -0.30000001192092896,
+    "_ShadeToony": 0.5384615243539304,
+    "_RimFresnelPower": 1,
+    "_MToonVersion": 32
+   },
+   "tex": [
+    "_SphereAdd"
+   ]
+  }
+ ],
+ "firstPerson": {
+  "bone": "J_Bip_C_Head",
+  "offset": {
+   "x": 0,
+   "y": 0.05999999865889549,
+   "z": 0
+  },
+  "ann": [],
+  "lookAt": "Bone",
+  "lookAtH": {
+   "curve": [
+    0,
+    0,
+    0,
+    1,
+    1,
+    1,
+    1,
+    0
+   ],
+   "xRange": 90,
+   "yRange": 12
+  },
+  "lookAtV": {
+   "curve": [
+    0,
+    0,
+    0,
+    1,
+    1,
+    1,
+    1,
+    0
+   ],
+   "xRange": 90,
+   "yRange": 10
+  }
+ },
+ "secondary": {
+  "groups": 3,
+  "colliders": 12
+ },
+ "gorsel": [
+  {
+   "name": "F00_000_FaceMouth_00",
+   "mime": "image/png",
+   "bytes": 19190,
+   "wh": [
+    512,
+    512
+   ]
+  },
+  {
+   "name": "Shader_NoneNormal",
+   "mime": "image/png",
+   "bytes": 80,
+   "wh": [
+    8,
+    8
+   ]
+  },
+  {
+   "name": "Shader_NoneBlack",
+   "mime": "image/png",
+   "bytes": 81,
+   "wh": [
+    8,
+    8
+   ]
+  },
+  {
+   "name": "F00_000_EyeWhite_00",
+   "mime": "image/png",
+   "bytes": 261446,
+   "wh": [
+    1024,
+    512
+   ]
+  },
+  {
+   "name": "F00_000_FaceEyeline_00",
+   "mime": "image/png",
+   "bytes": 137497,
+   "wh": [
+    1024,
+    256
+   ]
+  },
+  {
+   "name": "Matcap_Rim",
+   "mime": "image/png",
+   "bytes": 69178,
+   "wh": [
+    512,
+    512
+   ]
+  },
+  {
+   "name": "F00_000_FaceEyelash_00",
+   "mime": "image/png",
+   "bytes": 4654,
+   "wh": [
+    1024,
+    256
+   ]
+  },
+  {
+   "name": "F00_000_FaceBrow_00",
+   "mime": "image/png",
+   "bytes": 35961,
+   "wh": [
+    1024,
+    256
+   ]
+  },
+  {
+   "name": "F00_000_EyeIris_00",
+   "mime": "image/png",
+   "bytes": 193440,
+   "wh": [
+    1024,
+    512
+   ]
+  },
+  {
+   "name": "F00_000_EyeHighlight_00",
+   "mime": "image/png",
+   "bytes": 11804,
+   "wh": [
+    1024,
+    512
+   ]
+  },
+  {
+   "name": "F00_000_Face_00",
+   "mime": "image/png",
+   "bytes": 987755,
+   "wh": [
+    1024,
+    1024
+   ]
+  },
+  {
+   "name": "F00_000_00_Face_00_nml",
+   "mime": "image/png",
+   "bytes": 397432,
+   "wh": [
+    1024,
+    1024
+   ]
+  },
+  {
+   "name": "F00_000_00_Face_00_out",
+   "mime": "image/png",
+   "bytes": 9851,
+   "wh": [
+    256,
+    256
+   ]
+  },
+  {
+   "name": "F00_000_00_EyeExtra_01",
+   "mime": "image/png",
+   "bytes": 31878,
+   "wh": [
+    512,
+    256
+   ]
+  },
+  {
+   "name": "F00_002_Body_00",
+   "mime": "image/png",
+   "bytes": 2278924,
+   "wh": [
+    2048,
+    2048
+   ]
+  },
+  {
+   "name": "F00_002_02_Body_00_nml",
+   "mime": "image/png",
+   "bytes": 2222391,
+   "wh": [
+    2048,
+    2048
+   ]
+  },
+  {
+   "name": "F00_002_01_Tops_01",
+   "mime": "image/png",
+   "bytes": 4860307,
+   "wh": [
+    2048,
+    2048
+   ]
+  },
+  {
+   "name": "F00_002_Shoes_01",
+   "mime": "image/png",
+   "bytes": 159335,
+   "wh": [
+    512,
+    512
+   ]
+  },
+  {
+   "name": "F00_000_HairBack_00",
+   "mime": "image/png",
+   "bytes": 268754,
+   "wh": [
+    1024,
+    1024
+   ]
+  },
+  {
+   "name": "F00_000_HairBack_00_nml",
+   "mime": "image/png",
+   "bytes": 349865,
+   "wh": [
+    1024,
+    1024
+   ]
+  },
+  {
+   "name": "Matcap_RimHair",
+   "mime": "image/png",
+   "bytes": 39288,
+   "wh": [
+    512,
+    512
+   ]
+  },
+  {
+   "name": "F00_000_Hair_00_01",
+   "mime": "image/png",
+   "bytes": 595324,
+   "wh": [
+    512,
+    1024
+   ]
+  },
+  {
+   "name": "F00_000_Hair_00_nml",
+   "mime": "image/png",
+   "bytes": 107974,
+   "wh": [
+    512,
+    1024
+   ]
+  },
+  {
+   "name": "F00_000_Hair_00_spe",
+   "mime": "image/png",
+   "bytes": 126661,
+   "wh": [
+    512,
+    1024
+   ]
+  },
+  {
+   "name": "F00_000_Hair_00_02",
+   "mime": "image/png",
+   "bytes": 365334,
+   "wh": [
+    512,
+    1024
+   ]
+  },
+  {
+   "name": "Aksesuar_Matcap_Parlak",
+   "mime": "image/png",
+   "bytes": 5877,
+   "wh": [
+    128,
+    128
+   ]
+  },
+  {
+   "name": "Aksesuar_Cam_Parilti",
+   "mime": "image/png",
+   "bytes": 5873,
+   "wh": [
+    128,
+    128
+   ]
+  },
+  {
+   "name": "Aksesuar_Matcap_Mat",
+   "mime": "image/png",
+   "bytes": 4123,
+   "wh": [
+    128,
+    128
+   ]
+  },
+  {
+   "name": "Kanade_Kucukresim",
+   "mime": "image/png",
+   "bytes": 643850,
+   "wh": [
+    768,
+    768
+   ]
+  }
+ ],
+ "doku": 29,
+ "sampler": [
+  {
+   "magFilter": 9729,
+   "minFilter": 9729,
+   "wrapS": 10497,
+   "wrapT": 10497
+  }
+ ]
+}
