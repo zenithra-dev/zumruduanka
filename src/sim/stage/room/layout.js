@@ -47,9 +47,10 @@ export const LIGHTS = {
   // Köşeden aşağı sarkan uç: arka koşunun başından, başlığın topuzlarının üstünde biter
   kose: [[SHELL.x0 + 0.035, CEIL - 0.04, SHELL.z0 + 0.035], [SHELL.x0 + 0.055, CEIL - 0.55, SHELL.z0 + 0.06], [SHELL.x0 + 0.045, FLOOR + 1.24, SHELL.z0 + 0.05]],
   // Işık saçan dolgu (ampullerin toplamı, 2700 K): iki duvarın tavan hizasında (tavana sıyırır: tavanda sıcak leke yapmaz) ve yüz ile gitar için
-  // önden sıcak dolgu (duvarlara erişmez). Ampullerin duvara ve tavana düşen yakın ışığı ışık haritasında (room/lights.js irr, room/shell.js).
+  // önden sıcak dolgu: karaktere yakın, kısa menzilli; ön ve sağ duvara erişmez (eskisi 0.95, 0.55, 0.95; 2.3 m kaynaksız sıcak leke bırakıyordu),
+  // yüzde ve gitar gövdesinde ışınım ve geliş yönü aynı (fark ≤ %6, ≤ 8°). Ampullerin duvara ve tavana düşen yakın ışığı ışık haritasında (room/lights.js irr, room/shell.js).
   dolgu: [{x: 0.45, y: CEIL - 0.03, z: SHELL.z0 + 0.8, renk: 0xffcc9a, i: 0.32, r: 4.6}, {x: SHELL.x0 + 0.8, y: CEIL - 0.03, z: 0.3, renk: 0xffcc9a, i: 0.26, r: 4.4},
-    {x: 0.95, y: 0.55, z: 0.95, renk: 0xffd2a6, i: 1.1, r: 2.3}]
+    {x: 0.65, y: 0.5, z: 0.65, renk: 0xffd2a6, i: 0.775, r: 1.85}]
 };
 
 // Duvarlar: içeriden bakınca u soldan sağa, v zeminden yukarı (m). Dekor bölgeleri u0-u1, v0-v1; yogunluk kaplanacak alan payı.
@@ -81,7 +82,9 @@ export const CAMERA = {
     {ad: "yatak", x: [-1.35, 0.80], y: [FLOOR, FLOOR + 0.72], z: [-1.45, -0.34]},
     {ad: "yatakBasi", x: [-1.35, -0.60], y: [FLOOR, FLOOR + 1.16], z: [-1.45, -0.34]},
     {ad: "yatakAyak", x: [0.60, 0.80], y: [FLOOR, FLOOR + 0.91], z: [-1.45, -0.34]},
-    {ad: "amfi", x: [0.93, 1.49], y: [FLOOR, FLOOR + 0.44], z: [-1.45, -1.12]}
+    {ad: "amfi", x: [0.93, 1.49], y: [FLOOR, FLOOR + 0.44], z: [-1.45, -1.12]},
+    {ad: "kedi", x: [-1.02, -0.22], y: [FLOOR, FLOOR + 0.89], z: [-1.22, -0.55]},          // battaniyedeki kara kedi (kulak ve bıyık dahil)
+    {ad: "kediYastik", x: [-0.71, 0.42], y: [FLOOR, FLOOR + 0.80], z: [-1.45, -1.08]}      // uzun kedi yastığının üstü
   ],
   subject: [CHAR.x, FLOOR + 1.37, CHAR.z],   // kadrajın konusu (göğüs): dışarıda kalan kamera bu noktaya doğru içeri çekilir
   fovMax: 60, near: 0.35                     // içeri çekilince objektif açılır (en çok fovMax), konuya en az near kalır
