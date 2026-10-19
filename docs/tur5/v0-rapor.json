@@ -1,0 +1,327 @@
+{
+ "where": "/home/user/zumruduanka (bulut oturumu; dal kanade-temel-g8obky, 875f4bc üstünde 5 commit (v0 + denetim düzeltmesi), push yok). Ölçüm çıktıları ve geçici betikler out/tur5/temel/ (git dışı); taban out/tur5/taban/eski.json (23cc6fb, aynı makine).",
+ "commits": [
+  "ee15d1b Tur 5 T0.2: Kanade ölçü tablosu (glb okuyucu, iskelet üreticisi)",
+  "c879aab Tur 5 T0.3-T0.4: Kanade v0 sahnede (VRM, vekil iskelet, aktarım, bağlantı)",
+  "67813fd Tur 5: Kanade v0 onay kareleri",
+  "5d4bc34 Tur 5 T0: Kanade v0 denetim düzeltmeleri",
+  "0683645 Tur 5: onay setine yönetmenin gitar planı"
+ ],
+ "filesChanged": [
+  "src/sim/stage/kanade/glb.js (yeni, T0.2): three'siz VRM/glb okuyucu; tek handFrame (y Middle1'den, z = (Index1 − Little1) × y) ve handTable",
+  "tools/kanade-iskelet.mjs (yeni, T0.2): VRM → src/sim/stage/kanade/iskelet.js üreticisi; --denetle",
+  "src/sim/stage/kanade/iskelet.js (yeni, üretilmiş, T0.2): KANADE ölçü tablosu (222 kemik F'de, kol/bacak, el L/R, avuç, topuk, tırnak, zincirler, ikizler, saç sınırları, elipsoitler, etek konisi, askı ofsetleri, yüz maskesi, restHead, sha1)",
+  "src/sim/stage/kanade/vrm.js (yeni): preloadKanade, parseKanade, kanadeAsset, setKanadeAsset, setMaterialFactory, setExpressionBake, v0Malzeme (Lambert), sap kamerası indeks sıralaması",
+  "src/sim/stage/kanade/vekil.js (yeni): kanadeFigure — fig sözleşmesi, attach/commit/late/setVisible/ready/whenReady, skinPoints",
+  "src/sim/stage/kanade/aktarim.js (yeni): vekil → VRM aktarımı, kalibrasyon, TipSleeve kilidi, etek kökü kilidi, err()",
+  "src/sim/stage/kanade/beden.js (yeni, v0): chainFromL, createBeden (vekil zincir, sh, bacak IK), chainAt",
+  "src/sim/stage/kanade/govde.js (yeni, v0): bodySdFn/bodySd/strapAnchors (elipsoitler + etek konisi)",
+  "src/sim/stage/kanade/kol-ik.js (yeni, v0): kolPole (dirsek kutbu dünyada; A kolu softmin dönme açısını buraya koyar)",
+  "src/sim/stage/kanade/ifade.js (yeni, v0): createIfade (reset/set/tongue/apply/active; ≤ 8 etkin morph)",
+  "src/sim/stage/kanade/ikincil.js (yeni, v0): createIkincil (boş kayıt defteri)",
+  "src/sim/stage/members/kanade/el-tablo.js (yeni): EL yer tutucu (mankenin sayıları) + TWIST 0.5, SWIVEL null",
+  "src/sim/stage/members/claude.js: gövde seçimi (karakter), duruş sayıları m.el'den (EL_MANKEN / EL), Kanade'de vizör/hale yok, headCam Kanade'de setVisible'a bırakılır",
+  "src/sim/stage/members/groove.js: lifeL (rigs.life'ın sayıları birebir taşındı; chainAt da kullanır)",
+  "src/sim/stage/rigs.js: createRigs({karakter}), lifeL importu, ready/whenReady",
+  "src/sim/stage/figures.js: poseArm fig.armState[i] = {S, E, T, n} (yalnız armState olan figürde)",
+  "src/sim/stage/guitar-model.js: YERLESIM.kanade (kollar incelemesi), YERLESIM.oturan null",
+  "src/sim/stage/banner.js: createBanner(scene, M) (gövdeye göre kadro verisi)",
+  "src/sim/sim.js: karakter seçimi (opts.karakter / ?karakter=, varsayılan kanade), YERLESIM, membersFor, ready/whenReady Kanade'yi kapsar, manual render bekçisi, sim.karakter",
+  "src/sim/band/members.js: görünen ad KANADE; MANKEN ve membersFor (manken yolunda CLAUDE)",
+  "src/harness.html: window.preloadKanade",
+  "src/app/app.js: ön-yükleme, ?karakter=manken, yüklenemezse yedek manken + HUD uyarısı",
+  "tools/browser.js: ready() içinde preloadKanade (hata → throw), KARAKTER ortam değişkeni → ?karakter=",
+  "tools/check.js: 'Kanade takılı değil' bekçisi, önizlemede karakter/takılı denetimi",
+  "tools/oda-olcum.mjs: karakterYatak Kanade'de fig.skinPoints ile (manken yolu aynı)",
+  "tools/kanade-test.mjs (yeni): node denetimi (tablo, kalibrasyon, aktarım)",
+  "tools/olcum/kanade.mjs (yeni): tarayıcı ölçümü (süreler, aktarım, morph, commit, sap kamerası, hata yolu)",
+  "docs/tur5/onay/{yakin,genis,gitar,oda}.png (yeni): onay kareleri",
+  "DÜZELTME src/sim/stage/kanade/vekil.js: ready = varlık BU simin tutucusunda mı (takili); commit/late/setVisible yalnız takılıyken; commit'te asset.skeleton.frame = -1; attach'ta aktarım ve kalibrasyon sahneye dokunmadan önce; fig.groove (grooveKanade), fig.model, fig.bust; createIfade(asset, fig)",
+  "DÜZELTME src/sim/stage/kanade/ifade.js: active() kırpmadan ÖNCEki istenen sayı, kirpilan(); createIfade(asset, fig) (yüz kolu bakış kaydı)",
+  "DÜZELTME src/sim/stage/kanade/vrm.js: malzeme.js statik içe aktarılır; renderOrder ve EyeExtra gizleme fabrikadan ÖNCE; setMaterialFactory/setExpressionBake yüklemeden sonra hata; preloadKanade(ms, url, ilerleme): ms ilerlemesiz süre, akışla okuma; bozuk VRM iletisi; sha1 atlanınca uyarı; başlık (tek kullanımlık varlık, skeleton.frame)",
+  "YENİ src/sim/stage/kanade/malzeme.js: v0 Lambert malzemesi ve renderQueue → renderOrder (sira); görünüm kolunun dosyası",
+  "DÜZELTME src/sim/stage/members/plan.js: LO_C/HI_C el tablosundan (regimePlan(mv, events, F, E), regOf(p, E): önbellek olaylar → el tablosu)",
+  "DÜZELTME src/sim/stage/members/claude.js: BX/BZ/RQ ve LO_C/HI_C EL_MANKEN'de (sayılar aynı); regOf(p, m.el); kanadeFigure(scene, {model})",
+  "DÜZELTME src/sim/stage/members/kanade/el-tablo.js: BX, BZ, RQ, LO_C, HI_C (mankenin); ölçüm ucu notu (userData.tip ↔ VRM _end)",
+  "DÜZELTME src/sim/stage/kanade/kol-ik.js: EL.SWIVEL(fig, i, S, T, kutup) kancası; gitar fig.model'den",
+  "DÜZELTME src/sim/stage/members/groove.js: grooveKanade (v0 = groove); src/sim/stage/rigs.js: life fig.groove || M.groove",
+  "DÜZELTME src/sim/stage/kanade/beden.js + aktarim.js: chainFromL'nin isteğe bağlı C.bust = {s} çıktısı fig.bust'a, aktarım J_Sec_L/R_Bust1 ölçeğine (yoksa 1)",
+  "DÜZELTME src/sim/stage/kanade/govde.js (başlık) ve tools/kanade-iskelet.mjs (yorum): v0 yüzey sınırı ve elipsoit kümesinin gerekçesi",
+  "DÜZELTME src/app/app.js: HUD'da 'KANADE YÜKLENİYOR n%', 20 sn ilerlemesizlikte yedek; createSim de yedekle sarılı",
+  "DÜZELTME src/sim/sim.js: render bekçisi iletisi (varlık sonraki sime geçti)",
+  "DÜZELTME tools/check.js: ağ başına istenen morph > 8 hata; önizleme KARAKTER'e göre (?karakter=manken, takılı beklenmez)",
+  "DÜZELTME tools/sync-check.mjs: determinizm durum özeti Kanade'de VRM kemik matrisleri, GPU kemik dizisi, morf etkileri, drawRange ve görünürlük",
+  "DÜZELTME tools/kanade-test.mjs: morph bekçisi öz denetimi (10 istenen → active 10, çizilen 8, kırpılan 2); tools/olcum/ortak.mjs: Kanade'de VRM ağı ölçülür, köşe > 0 şartı",
+  "YENİ docs/tur5/onay/gitar-plani.png: yönetmenin gitar planı (dagkrali 11 sn, member/guitar) — kadraj mankenin (G kolu)"
+ ],
+ "done": [
+  "VRM sha1 doğrulandı: src/assets/kanade/kanade.vrm 788488383e609db371b4e9a8e86f2dd0c79915dc (20 079 264 B) = kaynak.json; .gitattributes '*.vrm binary' var; karakter dosyasına dokunulmadı",
+  "T0.2 veri: glb.js (tek handFrame), tools/kanade-iskelet.mjs → iskelet.js (üretilmiş), --denetle geçer",
+  "T0.3 çalışma zamanı: vrm.js (tek fetch/ayrıştırma, tek kullanımlık varlık, GLTFLoader eklentisi, tek paylaşılan Skeleton, frustumCulled false, sap kamerası indeks sıralaması + drawRange, setMaterialFactory, setExpressionBake, v0 Lambert malzemesi userData.linear), vekil.js, aktarim.js (err), beden.js (chainAt saf), govde.js (elipsoit + etek konisi, 7 askı noktası aynı id), kol-ik.js, ifade.js (Blink + nötr squint göz parçası 0.2 + yen_kivrik_L/R = 1), ikincil.js (boş), el-tablo.js (yer tutucu), YERLESIM.kanade",
+  "kaynak.json yen sözleşmesi uygulandı: Body malzemelerinde morphTargets = true, kıvrıkken J_Sec_<taraf>_TipSleeve ön kola kilitli (slerp/lerp s ile)",
+  "T0.4 bağlantı: harness/browser.js ön-yükleme (hata → araç durur), app.js ön-yükleme ve yedek görünüm, görünen ad KANADE (pankart 'KANADE · GİTAR'), sim.ready/whenReady, render bekçisi yalnız 'Kanade takılı mı' (manual sim), KARAKTER=manken (araçlar) / ?karakter=manken (uygulama) mankeni birebir kurar",
+  "Conflict çözümleri: tek handFrame, tek govde.js, sap kamerası indeks sıralama + drawRange, fig.up = upperChest vekili ve sh her karede, vekiller object.visible = false, varlık tek kullanımlık (klon yok), geç kanca confine'dan sonra (T0.1), ölçüm betiği tools/olcum/kanade.mjs",
+  "Kabul: KARAKTER=manken sync-check tabana göre 0 fark (2097 alan, --fark tablosu boş), ham ses gürültüde; Kanade rng + ses programı 11/11 mankenle aynı, çekim planı 11/11 aynı, ham ses gürültüde; determinizm 6/6 (üç taze sayfa); render N=3 ↔ N=1 10/10 PNG bayt-eşit; aktarım 0.002 mm; kalibrasyon ↔ tablo 0.0009 mm; etkin morph 4; ön-yükleme 0.54 s, ilk kare 2.65 s, commit ort 0.10 ms; npm test geçti (289 sn; taban 198 sn)",
+  "Onay kareleri docs/tur5/onay/ altında; Read ile bakıldı: Kanade görünür ve giyinik, saç, elbise, gözlük, choker, sivri kulaklar yerinde; kara/eksik bölge yok; sap kamerasında yüz/saç gizli, perde ön kolu ve eli görünür (mankendeki sahne ışığı lekesi aynı)",
+  "v0 düzeltmeleri: MeshToon rampası yüzü parlatıp bloom'a sokuyordu → Lambert (×0.8, dokunun 0.1'i ışıksız taban); bacak açılınca uyluğa bağlı etek paneli astarını gösteriyordu → ön/arka etek kökleri kalçaya kilitli",
+  "Denetim düzeltmesi (out/tur5/denetim/duzelt/): K1 morph bekçisi kırpmadan önce sayar (kanade-test bekçi 10/8/2; check.js > 8'de hata); D1 ikinci sim bayat GPU pozu giderildi (ikinci = taze PNG 9a05cf9bbd95, birinci sim artık çizmez: hata); O1 malzeme.js kancası, renderOrder fabrikadan önce, geç kayıt hatası, Material[] notu, yüz kolu bakış yeri; O2 BX/BZ/RQ ve LO_C/HI_C el tablosunda, regOf el tablosu başına, fig.model, SWIVEL kancası; O3 fig.groove ve bust ölçek kanalı; G3/D6 önizlemede yükleme HUD'u, ilerlemesizlik zaman aşımı (asılı istekte 21.5 sn'de yedek; önce 65.6 sn), createSim yedekli, holder aktarımdan sonra; D2 durum özetinde VRM; D4 check önizleme KARAKTER'e göre; D5 ortak öz denetimi; G6 bozuk VRM iletisi; G1 onay setine gitar planı",
+  "Düzeltmeden sonra KARAKTER=manken sync-check ↔ taban 0 fark / 2097 alan, ham ses gürültüde; Kanade müzik ↔ manken 409 alan 0 fark (rng + ses programı 11/11); Kanade ↔ önceki Kanade koşusu (67813fd) 2097 alanda yalnız 18 determinizm 'durum' özeti farklı (özet genişledi), bütün kareler, el, kadraj, askı aynı: davranış değişmedi"
+ ],
+ "metrics": [
+  {
+   "name": "KARAKTER=manken sync-check ↔ taban (23cc6fb, aynı makine; SONG=dagkrali,agit,danny AUDIO=1, 6 kare)",
+   "before": "-",
+   "after": "0 fark / 2097 alan (meta ve ham ses FNV özeti hariç); --fark tablosunda '*' 0",
+   "target": "boş"
+  },
+  {
+   "name": "manken ham ses ↔ taban (ilk, agit, danny; --ham)",
+   "before": "-",
+   "after": "62.504 LSB16 / RMS 1.6e-5 (gürültü); 54.586 LSB16 / RMS 9.6e-6 (gürültü); 34.636 LSB16 / RMS 6.4e-6 (gürültü)",
+   "target": "gürültü tabanı (en büyük 0.004, RMS 5e-5)"
+  },
+  {
+   "name": "manken determinizm / ses programı ↔ taban",
+   "before": "6/6",
+   "after": "6/6; ses programı 11/11 aynı",
+   "target": "aynı"
+  },
+  {
+   "name": "Kanade: createSim + load (+3 kare) sonrası rng durumu ve ses programı özeti ↔ manken (11 şarkı)",
+   "before": "manken",
+   "after": "11/11 aynı; çekim planı 11/11 aynı",
+   "target": "11/11 aynı"
+  },
+  {
+   "name": "Kanade ham ses ↔ manken (ilk, agit, danny)",
+   "before": "-",
+   "after": "28.72 LSB16 / RMS 9.2e-6 (gürültü); 29.62 LSB16 / RMS 9.2e-6 (gürültü); 13.654 LSB16 / RMS 5.6e-6 (gürültü)",
+   "target": "gürültü tabanı"
+  },
+  {
+   "name": "Kanade determinizm (temiz / geçmişli / ileriden: üç taze sayfada aynı kare ve durum özeti)",
+   "before": "6/6",
+   "after": "6/6",
+   "target": "6/6"
+  },
+  {
+   "name": "render çok işçi (N=3, W=0..2) ↔ tek işçi (N=1), dagkrali 24.0-24.31 sn kahraman planı",
+   "before": "-",
+   "after": "10/10 PNG bayt-eşit (f0720-f0729; N=3 işçiler sırayla, NO_AUDIO=1)",
+   "target": "10/10 PNG bayt-eşit"
+  },
+  {
+   "name": "aktarim_mm (dagkrali bütün kareler: omuz, dirsek, bilek, 30 parmak eklemi + 10 uç, gövde zinciri)",
+   "before": "-",
+   "after": "0.002 mm (kol 0.002, parmak 0.002, zincir 0.001; 2445 kare)",
+   "target": "≤ 0.5 mm"
+  },
+  {
+   "name": "kanade-test (node, 60 hash pozu): tablo ↔ VRM, kalibrasyon ↔ tablo, aktarım",
+   "before": "-",
+   "after": "tablo 0.0008 mm, kalibrasyon 0.0009 mm, aktarım 0.0018 mm",
+   "target": "≤ 0.1 / ≤ 0.1 / ≤ 0.5 mm"
+  },
+  {
+   "name": "iskelet --denetle",
+   "before": "-",
+   "after": "{\"sha1\":true,\"bayt\":true,\"kemik\":222,\"eksik\":0,\"dinlenmeFarki_mm\":0,\"tabloAyni\":true,\"karar\":\"geçti\"}",
+   "target": "geçer (sha1, dinlenme ≤ 0.1 mm)"
+  },
+  {
+   "name": "etkin morph (ağ başına, bütün kareler)",
+   "before": "-",
+   "after": "4 (yüz: squint göz parçası + Blink; gövde: yen_kivrik_L/R 2)",
+   "target": "≤ 8"
+  },
+  {
+   "name": "ön-yükleme (fetch + sha1 + GLTFLoader + dokular), swiftshader",
+   "before": "-",
+   "after": "0.536 s (fetch 58 ms), 0.503 s (fetch 47 ms)",
+   "target": "≤ 3 s"
+  },
+  {
+   "name": "ilk kare (createSim + load + ilk çizim: doku yükleme, derleme)",
+   "before": "-",
+   "after": "2.654 s (kurulum 799 + çizim 1856 ms; ikinci kare 338 ms), 2.63 s (kurulum 814 + çizim 1816 ms; ikinci kare 349 ms)",
+   "target": "≤ 6 s"
+  },
+  {
+   "name": "commit süresi (aktarım + ifade + tutucu matrisleri), tarayıcı",
+   "before": "-",
+   "after": "ort 0.104 ms/kare (med 0.1, p90 0.2, max 1; tarayıcı saati 0.1 ms adımlı); node 0.299 ms",
+   "target": "≤ 1 ms/kare"
+  },
+  {
+   "name": "sap kamerası gizlemesi (yüz, saç, aksesuar gizli; gövdede perde ön kolu indeks aralığı)",
+   "before": "-",
+   "after": "199 sap karesinde ihlal 0",
+   "target": "0"
+  },
+  {
+   "name": "hata yolu (VRM yok)",
+   "before": "-",
+   "after": "http://127.0.0.1:46855/assets/kanade/yok.vrm: HTTP 404; sim.ready false; kare: Kanade takılı değil: sayfa sim kurmadan önce preloadKanade() beklemeli (KARAKTER=manken yedek gövde)",
+   "target": "ön-yükleme reddi, araç durur, karaktersiz kare yok"
+  },
+  {
+   "name": "npm test süresi (bu makine)",
+   "before": "198 sn (875f4bc)",
+   "after": "289 sn (Kanade; T0.2 ağacı 191 sn, son ağaç 288 sn), hepsi geçti",
+   "target": "geçer; artış ≤ 5 dk"
+  },
+  {
+   "name": "kurulum rand() sayısı (tohum 1, check.js)",
+   "before": "7468",
+   "after": "7468 (11 şarkıda; kareler 0)",
+   "target": "7468"
+  },
+  {
+   "name": "sync-check süresi (bu makine)",
+   "before": "taban koşusu orkestranın (süre kaydı yok)",
+   "after": "manken 289 sn, Kanade 364 sn",
+   "target": "kayıt"
+  },
+  {
+   "name": "el ölçüleri (v0: Kanade kolu, mankenin el tabloları; ellerin yanlış yerde olması beklenen) perde hata med / pena hata med (cm)",
+   "before": "8.2 / 5.643",
+   "after": "8.2 / 4.012",
+   "target": "A kolu"
+  },
+  {
+   "name": "erişim dışı perde / pena (%), dirsek med perde / pena (°)",
+   "before": "0 / 0, 80.136 / 107.745",
+   "after": "0 / 0, 92.698 / 98.532",
+   "target": "A kolu (erişim dışı ≤ %0.1, dirsek 60-120)"
+  },
+  {
+   "name": "perde parmağı uç med / p90 (mm), parmak sapta >3 mm (%), pena kolu gövdede >5 mm (kare), pena tutuşu (%), palm mute köprü med (mm)",
+   "before": "0.8 / 2.064, 7.33, 0, 100, 7.675",
+   "after": "0.8 / 2.802, 16.54, 1434, 0, 15.502",
+   "target": "A kolu (manken tabanı)"
+  },
+  {
+   "name": "askı: yol med (m), boy oranı en çok, bedene giriş en derin (mm)",
+   "before": "1.379, 1.057, -0.232",
+   "after": "1.309, 1.459, 19.985 (gergin yol ~0.88 m, REST 1.33 m: 0.45 m boş pay sarkıp katlanıyor)",
+   "target": "F kolu (tur 4 askı eşikleri)"
+  },
+  {
+   "name": "kadraj doruk (kafa / sap eli kadrajda / alt bantta %)",
+   "before": "100 / 100 / 0",
+   "after": "100 / 100 / 0",
+   "target": "G kolu"
+  },
+  {
+   "name": "ritim tüm şarkı: kafa eğimi tepeden tepeye (°), nod (Hz)",
+   "before": "30.839, 2.64",
+   "after": "31.52, 2.64",
+   "target": "E kolu (boyun + baş ≤ 20°: v0'da nod ±0.35 rad'a kırpılıyor)"
+  },
+  {
+   "name": "DÜZELTME: KARAKTER=manken sync-check ↔ taban (out/tur5/denetim/duzelt/manken.json ↔ taban/eski.json)",
+   "before": "0 fark / 2097",
+   "after": "0 fark / 2097 alan; --fark '*' 0; ham ses 41.4 / 54.6 / 34.6 LSB16, RMS 1.4e-5 / 1.0e-5 / 7.2e-6 (gürültü)",
+   "target": "boş"
+  },
+  {
+   "name": "DÜZELTME: Kanade müzik bölümü ↔ manken (rng + ses programı, 11 şarkı)",
+   "before": "11/11",
+   "after": "409 alan 0 fark (11/11); ham ses 62.5 / 54.5 / 34.8 LSB16 (gürültü); determinizm 6/6",
+   "target": "11/11 aynı"
+  },
+  {
+   "name": "DÜZELTME: Kanade ↔ önceki Kanade (67813fd, kanade-son.json)",
+   "before": "-",
+   "after": "2097 alanda 18 fark, hepsi determinizm.*.durum (özete VRM durumu eklendi); kareler (PNG), el, kadraj, askı, ses aynı",
+   "target": "davranış aynı"
+  },
+  {
+   "name": "DÜZELTME: aynı sayfada ikinci sim (kaf@12.3 tek kare, sonra dagkrali 47.5)",
+   "before": "PNG 76e544985f55 ≠ taze 9a05cf9bbd95, GPU kemik farkı 2.156; birinci sim hata vermeden Kanade'siz çiziyor",
+   "after": "PNG 9a05cf9bbd95 = taze, kemik farkı 5.7e-8; birinci sim: 'Kanade takılı değil … sonraki bir sime geçti', ready false",
+   "target": "taze ile aynı, eski sim çizmez"
+  },
+  {
+   "name": "DÜZELTME: morph bekçisi (kanade-test; 10 hedefli grup)",
+   "before": "active 8 (kırpma sonrası, bekçi kör)",
+   "after": "active 10, çizilen 8, kırpılan 2; v0 bütün kareler active 4",
+   "target": "istenen > 8 görünür"
+  },
+  {
+   "name": "DÜZELTME: önizleme VRM yüklemesi (app-yukleme.mjs)",
+   "before": "asılı istekte 60 sn kara tuval, HUD 'hazır', 65.6 sn'de yedek",
+   "after": "HUD 'KANADE YÜKLENİYOR 0% → 13% → 63% → 100%'; asılı istekte 21.5 sn'de yedek manken + uyarı; normal yüklemede Kanade takılı (sim 7.2 sn)",
+   "target": "yükleme görünür, ilerleme varken beklenir"
+  },
+  {
+   "name": "DÜZELTME: tools/olcum/kanade.mjs (dagkrali)",
+   "before": "0.002 mm, morph 4, 0.54 s, 2.65 s, 0.104 ms",
+   "after": "aktarım 0.002 mm, morph 4, ön-yükleme 0.66 s, ilk kare 3.36 s, commit ort 0.262 ms (yeni kap: node kanade-test'te HEAD 0.41-0.44 ↔ yeni 0.32-0.37 ms med, fark gürültü), sap kamerası 0/199, hata yolu ✓",
+   "target": "≤ 0.5 mm, ≤ 8, ≤ 3 s, ≤ 6 s, ≤ 1 ms"
+  },
+  {
+   "name": "DÜZELTME: kanade-test (node) / iskelet --denetle / ortak.mjs öz denetimi",
+   "before": "-",
+   "after": "tablo 0.0008, kalibrasyon 0.0009, aktarım 0.0018 mm, bekçi ✓ / geçti (tabloAyni) / 16 kare, 133 köşe, fark 0",
+   "target": "geçer"
+  },
+  {
+   "name": "DÜZELTME: npm test (Kanade / KARAKTER=manken)",
+   "before": "289 sn",
+   "after": "406 sn (bu kap; aynı kapta KARAKTER=manken 282 sn, önceki kapta 289/198: kap ~1.4× yavaş), hepsi geçti / 282 sn, hepsi geçti (önizleme ?karakter=manken, takılı beklenmez)",
+   "target": "geçer"
+  },
+  {
+   "name": "Bilgi (O4): govde.js v0 yüzeyi ↔ dinlenme gövde köşeleri (out/tur5/denetim/kod/govde-ten.mjs yeniden koşuldu)",
+   "before": "-",
+   "after": "|x|<0.17, y 0.94-1.42: %33.5'i yüzeyin 1 cm'den çok dışında; önde %45.1, en çok 32.8 mm; y 1.29'da ağ önü 0.135 ↔ yüzey 0.107. Tek ölçekle büyütme denendi (p90-p98): dışarıda %1-5'e iner ama yüzey yanlarda 5-17 cm taşar: düzeltilmedi, F kolunun",
+   "target": "F kolu (%95 ≤ 1 cm)"
+  }
+ ],
+ "frames": [
+  "docs/tur5/onay/yakin.png — yönetmenin yakın planı (dagkrali 32 sn, member/close): yüz, gözlük, choker, saç tokası, sivri kulaklar",
+  "docs/tur5/onay/genis.png — kulüp geniş planı (dagkrali 69 sn, wide): tam boy Kanade, platform ayakkabılar",
+  "docs/tur5/onay/gitar.png — kahraman planı (dagkrali 24 sn, member/hero): gitar göğüste yüksek, sap ~43°, eşik göz hizasına yakın",
+  "docs/tur5/onay/oda.png — oda mekânında kahraman planı (dagkrali 24 sn)",
+  "out/tur5/temel/onay-aday/sap28.png — sap kamerası (yüz, saç, aksesuar gizli; perde ön kolu, eli, yeni ve tırnakları görünür); karşılaştırma out/tur5/temel/dene/manken-sap28.png",
+  "out/tur5/temel/kare/son-{10.2,16.65,47.5,54.47,72.4,73.35}.png — sync-check'in Kanade kareleri (son koşu)",
+  "out/tur5/temel/aski/aski{0..3}.png — askı arkadan/yandan (F kolu için: sarkan boş pay)",
+  "out/tur5/temel/onay-aday/*.png — onay adayları (y7, y56, m39, g58, g14, ...)",
+  "docs/tur5/onay/gitar-plani.png — yönetmenin gitar planı (dagkrali 11 sn, member/guitar): kadraj mankene göre, sap ve perde eli üst kenarda kesik (G kolu); denetim/duzelt/onay/gitarplani2.png (44.9 sn) aynı durum"
+ ],
+ "contracts": [
+  "fig (kanade/vekil.js; mankenle aynı imzalar): g, up (= üst göğüs vekili), sh[i] (üst kol eklemi up yerelinde, her karede), torso (göğüs vekili), head, hip, headY, restHead (F; v0 = yüz ağının y ortası 1.591: kafa merkezi 1.575 ve göz − 0.02 = 1.549 adaylarından farklı üçüncü tanım; G kolu director.js'te seçer), arms[i] = {up, fo, el} görünmez Cylinder/Sphere (sync-check kalınlık okur), hands[i] = makeHand(K.el.L/R) (0 sol/perde aynalı; userData fingers/tip/r/palm/heel/bones/spec), reach = l2, l1, l2, armLen, legLen, ph (tek rand()), sway, strapSide 1, strapAnchors/bodySd/bodySdFn, nod, stance, pole, armState[i] = {S, E, T, n} (dünya), yen[sol, sağ] (kıvrık payı), life(L), chainAt, groove (grooveKanade; rigs.life ve chainAt aynı işlevi okur), model (gitar), bust (nefes ölçeği ya da null), setVisible(v, headCam), attach(asset), ready (varlık BU simin tutucusunda mı: aynı sayfada sonraki sim alırsa false, manual render hata), whenReady(ms), commit(now, wall), late(ctx), skinPoints({node, adim}), expr, ikincil, vrm = {root, holder, bones, meshes, faceMeshes, asset, err(), err_mm, kalibrasyon_mm, commit_ms}, kanade: true; vekiller hep object.visible = false; holder sahnenin çocuğu, dünyası fig.g · R_y(π)",
+  "chainAt(p, now, wall) (kanade/beden.js): {hips: {q, p}, spine, chest, upperChest, neck, head, shoulderL, shoulderR, upperLegL/R, lowerLegL/R, footL/R: {q}, bust?: {s: Vector3}} — yerel dörtlükler F çerçevesinde (dinlenme kimlik), hips.p figür kökünde; bust (isteğe bağlı) F eksenlerinde ölçek, beden.write fig.bust'a, aktarım J_Sec_L/R_Bust1 ölçeğine yazar (yoksa 1); = chainFromL(lifeL(fig, wall, now, p, fig.groove)), fig.life(L) ile sahneye yazılan BİREBİR aynı işlev, durumsuz. Beden kolu: beden.js sayıları ve bust, members/groove.js grooveKanade (manken groove'u değişmez; rigs.life fig.groove || M.groove)",
+  "govde (kanade/govde.js): strapAnchors(now) → [{id, p, n, t, r}] gogus, omuz, kurek, sirt, bel, kalca, karin (sıra ve id sabit; iskelet.js aski ofsetleri kemiğe bağlı, yüzeye izdüşürülür); bodySd(p); bodySdFn(o) (o.legs: uyluk/baldır elipsoitleri + etek konisi); giysiyi sarmayı HEDEFLER ama v0 yüzeyi önde ~3 cm İÇERİDE (gövde köşelerinin %34'ü 1 cm'den çok dışarıda; önde %45, en çok 33 mm): bu yüzeyle ölçülen boşluklar (A: gitar ↔ beden, D: saç/etek itmesi, askı girişi) F birleşene kadar iyimser; bu karenin vekil duruşundan",
+  "ifade (kanade/ifade.js): createIfade(asset, fig) → {groups, reset(), set(grup, w, parca?: 'goz'|'agiz'), tongue(s) (iki evreli), apply() (her karede sıfırdan, hedef başına [0,1], ağ başına ≤ 8: kırpma yalnız son savunma), active() (ağ başına KIRPMADAN ÖNCE istenen en çok etkin hedef; olcum/kanade.mjs ve npm test > 8'de hata), kirpilan() (düşürülen hedef sayısı)}; grup adları asset.groups (VRM blendShapeMaster ya da setExpressionBake çıktısı: {grup: [{node, index, w}]}); yüz kolu bakışı createIfade içinde fig.ikincil.add('bakis', ctx => ...) ile geç kancaya kaydeder; pişirmeyi ifade.js modül düzeyinde setExpressionBake ile (vekil.js ifade.js'i statik içe aktarır); v0 commit: squint(göz) 0.2·(1−b) + Blink b + yen_kivrik_L/R = fig.yen",
+  "ikincil (kanade/ikincil.js): fig.ikincil.add(ad, fn); fn(ctx) ctx = {now, wall, p, model, strap, cam, headCam, fig, asset}; fig.late'te kayıt sırasıyla, askı ve kamera son yerindeyken (confine'dan sonra); yalnız varlık bu simde takılıyken; kayıt varsa tutucu matrisleri güncellenir; durumsuz, kemiklere dinlenmeden yazar; ikiz kuralı Govde_<k> = <k>. İkincil kolu varsayılan kayıtlarını createIkincil içinde (ikincil.js) kurar; yüz kolunun bakışı ifade.js'ten 'bakis' adıyla gelir",
+  "Malzeme (kanade/malzeme.js, görünüm kolunun dosyası; vrm.js statik içe aktarır): malzeme(mesh, vrmMalzeme (materialProperties), getTex(i) → Promise<Texture>) → Material | Promise<Material>; sira(vrmMalzeme) → renderOrder (yükleyici fabrikadan ÖNCE yazar, fabrika değiştirebilir; EyeExtra gizlemesi de önce). Ağlarda geometry.groups YOK: Material[] ancak fabrika grupları kendisi eklerse çizilir (r128 diziyi yalnız gruplarla çizer, drawRange gruplarla kesişir); kontur (çatışma 7) aynı geometriyi paylaşan ayrı ağ. skinning, morphTargets (morflu ağda) ve userData.linear yükleyici tarafından zorlanır; renkler lineer kurulmalı; mesh.userData {node, mat, n0?, gizli?}; Body/Tırnak indeksleri sap kamerası için sıralı (n0) — sap kamerası bölmesi drawRange ile; doku minFilter LINEAR kalmalı (karakter temizliği mip 0-6). setMaterialFactory(fn) (vrm.js) testler ve geçici değiştirme için; yüklemeden sonra çağrılırsa hata",
+  "setExpressionBake(fn) (kanade/vrm.js): fn(asset) → yeni grup tablosu (C kolu: göz/ağız parçalarına pişirme; yüz 8 alt ağ, kirpik yok); ön-yüklemeden ÖNCE (modül düzeyinde) çağrılır, sonra çağrılırsa hata",
+  "Asset (kanade/vrm.js): {root, meshes (20 SkinnedMesh), faceMeshes (8), bones Map(222), skeleton (tek, paylaşılan), vrm = readVrm(json), json, groups, targetNames, sha1, sure}; preloadKanade(ms, url?, ilerleme?) sayfa başına tek (ms: ilerlemesiz geçebilecek en uzun süre; ilerleme(oran) inen baytlarla); kanadeAsset() eşzamanlı; tek kullanımlık: araçlar sim başına taze sayfa açar (check.js her şarkıda h.fresh); aynı sayfada ikinci sim varlığı kendi tutucusuna alır, önceki sim ready false (manual render hata); skeleton.frame her commit'te −1 (r128 karede bir günceller)",
+  "YERLESIM (stage/guitar-model.js): {manken: {rig, p, r}, kanade: {rig: 0.4, p: [−0.22499, 0.606673, 0.002823], r: [−0.280008, 0.264793, −0.715384]}, oturan: null}; createGuitarModel(scene, yer); sim.js karakter'e göre seçer (r Euler XYZ, rig aynalı taşıyıcı). Ad: sonuc.json [2]/tracks A'daki 'YERLESIM.ayakta' = burada YERLESIM.kanade (A kolu yalnız bu sayıları değiştirir); oturma turunda seçim (karakter, duruş) ikilisine genişler",
+  "EL (members/kanade/el-tablo.js; claude.js m.el okur): KNUCKLE, SY, MID, FRET_LO, FRET_HI, FIST, FIST_M, ZETA, YAW_0, ROLL_0, ZETA_M, YAW_M, ROLL_M, GRIP_AT, THUMB, PM_K, MU_H, HS_MAX, POLE_P, BX, BZ, RQ (duruş geçişi), LO_C, HI_C (duruş planı bedeli, işlev; plan.js regOf(p, E) el tablosu başına önbellek), TWIST (aktarımın büküm payı), SWIVEL (null; kol-ik.js SWIVEL(fig, i, S, T, kutup) → kutup; gitar fig.model'den, beden fig.bodySdFn'den). Manken EL_MANKEN aynı alanlar, aynı sayılar. Ölçüm ucu: parmak ucu = userData.tip (yastık); VRM <F>3_end ondan ≈ yastık yarıçapı kadar içeride (en çok 5.8 mm; aktarım err _end'i (0, l[2], 0) ile karşılaştırır)",
+  "Karakter seçimi: createSim({karakter}) > sayfa ?karakter= > 'kanade'; araçlarda KARAKTER=manken (browser.js ?karakter= ekler, ön-yükleme yapmaz); sim.karakter, sim.members (gövdeye göre), rigs.ready/whenReady; manual sim'de Kanade takılı değilken render() hata atar",
+  "tools/olcum: ortak.mjs (MK, SKIN, kareler, st, r3, openHarness) + kanade.mjs (temel ölçüm örneği); her kol kendi tools/olcum/<kol>.mjs dosyasını yazar; sayfada çalışan kod dizge olarak eval edilir (sunucu kökü src/)",
+  "iskelet.js (KANADE, üretilmiş): vrm {bayt, sha1}, insan, kemik {ad: {p (F), ust}}, kol {L/R: {l1, l2}}, bacak {L/R}, el {L/R: [5 × {b, l, r, d, ab, pa}]}, avuc, topuk, tirnak (uç kemik VRM yerelinde), zincir {yen, etek, sac, ikiz}, sinir (sac.json, F yönleri), elipsoit, etekKoni, aski, yuz {goz 1.540, agiz 1.528}, temas, restHead; VRM değişince node tools/kanade-iskelet.mjs, --denetle",
+  "Ölçüm bekçileri: tools/check.js (npm test) ağ başına istenen morph > 8'de hata; önizleme KARAKTER=manken'de ?karakter=manken ile açılır. sync-check determinizm 'durum' özeti Kanade'de VRM kemik matrisleri, GPU kemik dizisi, morf etkileri, drawRange ve görünürlüğü kapsar"
+ ],
+ "notDone": [
+  "GPU=1 adımları (NaN, kara bölge, kare süresi; MSAA 4 + HalfFloat) bulutta yok: YERELDE yapılacak",
+  "Eller v0'da yanlış yerde (beklenen): el tabloları mankenin; perde hata med 8.2 cm, pena tutuşu %0, pena ön kolu gövdede 1434 kare >5 mm — A kolu (el-tablo.js, kol-ik.js softmin, yerleşim araması)",
+  "Askı Kanade'ye göre ayarlanmadı: gergin yol ~0.88 m, REST 1.33 m (strap.js sabiti, F kolunun) → 0.45 m boş pay sarkıp katlanıyor; boy oranı en çok 1.46, govde.js yüzeyine 20 mm giriş. F kolu: REST (≈0.9-0.95 m) ve bağlantı noktaları (karin pim tarafına)",
+  "Görünüm v0: Lambert + doku (MToon, kontur, mekân tonu, üye ışığı rengi yok) — B kolu; 16 bit derinlik (finish.js cilanın) için yalnız polygonOffset ve iris renderOrder",
+  "Yüz: ruh hali, dil, bakış (göz kemikleri), ifade pişirme yok — C kolu (setExpressionBake kancası hazır)",
+  "İkincil: saç, etek, yen salınımı yok (kayıt defteri boş); saç ikizlerinin (Govde) kafa dönerken gerilmesi görülüyor; etek kökleri kalçaya kilitli (geçici kural) — D kolu",
+  "Beden: göğüs nefesi (Bust ölçeği) yok; dağılım ve nod sınırı ölçüyle ayarlanmadı — E kolu",
+  "Kamera: FRAME/ROOM Kanade'ye göre değil (restHead = yüz ağının y ortası 1.591), sahne yörünge hedefi sabit, sap kamerasında perde yeni klavyenin bir kısmını örtüyor — G kolu",
+  "src/index.html ve app.js CAM_NOTE metinleri ('Claude ve gitarı'), improv adı, README — H kolu (README'ye dokunulmadı)",
+  "Kanade ölçüm tabanı out/tur5/taban-kanade.json yazılmadı (A kolu); bulut koşusu out/tur5/temel/kanade-son.json başlangıç olarak kullanılabilir",
+  "docs/tur5/devam.md 'Bulut oturumu sonucu' bölümü yazılmadı (orkestranın işi); push yok",
+  "Kıvrık yenin gotik katları (Blender) — yerelde",
+  "Denetim bulguları (kol işleri): askı REST gövde başına (O5, G2) — F kolu (strap.js REST/askı sabitleri F'nin; manken 1.33 aynen, Kanade ~0.9-0.95 m; 20 mm giriş O4 yüzeyiyle birlikte yeniden ölçülmeli); govde.js yüzeyinin giysiyi sarması (O4) — F kolu (tek ölçek denemesi yanlarda 5-17 cm taşıyor: ayrı göğüs/karın ilkeli ya da kapsül); FRAME.guitar Kanade'ye göre değil (G1: gitar planında sap ve perde eli kadrajın üstünde kesik; onay setine gitar-plani.png eklendi) — G kolu; eteğin sol eteğinde kara düz katman (G4) — B kolu (MToon gölge rengi), etek ucu ise D; sap kamerasında kol manşeti kenarında ince kara şerit (G5) — B/D; sayfa metinleri 'Claude' (D8, G7) — H kolu; banner.js createBanner(scene, M) değişikliği H'nin birleştirme notuna (D7)",
+  "Ölçülmedi (D7): etek kökü kilidi açıkken bacak açılımında (spread 0.1) uyluk ↔ etek ölçüsü — ikincil kolu etek kuralını kurarken ölçmeli",
+  "Denetçinin D1 notundaki 'check.js tek sayfada 11 sim kuruyor' doğru değil: check.js her şarkıdan sonra h.fresh() çağırır (tools/check.js:96); çatışma 17'nin dayanağı geçerli. Düzeltme yine yapıldı (aynı sayfada çok sim artık doğru ya da hata)"
+ ],
+ "notesForNext": "Kanıt dosyaları out/tur5/temel/: manken-son.json/.log (KARAKTER=manken, HEAD 67813fd) ↔ ../taban/eski.json: arac/karsilastir.mjs (fark-manken.json 0 fark), manken-son-fark.txt (--fark, '*' yok), ham-manken.txt; kanade-son.json/.log ↔ manken-son.json: fark-kanade.json (müzik bölümü 409 alan 0 fark), ham-kanade.txt; kanade-olcum.json (tools/olcum/kanade.mjs); kanade-test.json (node); render/ (n1, n3 kareleri; arac/render-wn.sh); npmtest-*.log/.sure; kare/son-*.png. Geçici betikler out/tur5/temel/arac/ (kareler.mjs, onay.mjs, aski.mjs, aski-dene*.mjs, ton.mjs).\nYeniden koşmak: kabul için 'SONG=dagkrali,agit,danny AUDIO=1 T=\"10.2,16.65,72.4,47.5,54.47,73.35\" OUT=... [KARAKTER=manken] node tools/sync-check.mjs', sonra 'node out/tur5/temel/arac/karsilastir.mjs a.json b.json' ve '--ham'. Kanade ölçümü 'node tools/olcum/kanade.mjs', node denetimi 'node tools/kanade-test.mjs' ve 'node tools/kanade-iskelet.mjs --denetle'.\nDikkat: (1) Object.assign alıcıyı değer olarak kopyalar (fig.ready defineProperty ile). (2) vekil.js rigs.js'ten blinkAt alır (döngüsel içe aktarma; yalnız çalışma anında kullanılır, modül düzeyinde kullanmayın). (3) r128 morphTargetInfluences düz dizidir (.set yok). (4) MeshToon'un varsayılan rampası arkadan gelen ışığı da 0.7 ile yansıtır: anime yüzü bloom'a sokuyor. (5) Tarayıcıda performance.now 0.1 ms adımlı: commit süresini ortalamayla okuyun. (6) Ön-yükleme her taze sayfada ~0.5 s, ilk kare ~2.7 s: npm test 198 → 289 sn, sync-check 290 → 365 sn.\nSözleşmeleri donmuş saymak için öneri: A kolu el-tablo.js sayılarını ve kol-ik.js'i (softmin) doldururken claude.js'in m.el okumasına ve fig.armState'e dokunmasın. (LO_C/HI_C artık EL'de: regimePlan(mv, events, F, E), regOf(p, E).) F kolu askı REST'ini gövde başına yapacaksa strap.js'e fig.strapRest gibi bir alan ekleyebilir (manken 1.33 aynen). D kolu fig.ikincil'e kayıt ekler; aktarım her karede kemiklere dinlenmeden yazdığı için ikincil sonra yazmalı (late), etek kökü kilidini (aktarim.js etek) kendi kuralıyla değiştirebilir. Yerelde: git fetch, GPU=1 kontrolleri, onay karelerini kullanıcıya göster (gitar yerleşimi kararı), sonra paralel kollar.\nDenetim düzeltmesi: kanıtlar out/tur5/denetim/duzelt/ (ikinci-sim-once/sonra.json, app-yukleme.json, kanade-olcum.json, manken.json ↔ taban: fark-manken.json, manken-fark.txt, ham-manken.txt; kanade.json: fark-kanade-muzik.json, fark-kanade-onceki.json, ham-kanade.txt; npmtest*.log). Kollar için yeni kancalar: B → kanade/malzeme.js (malzeme, sira); C → createIfade(asset, fig) içinde fig.ikincil.add('bakis', …), pişirme ifade.js modül düzeyinde setExpressionBake; A → el-tablo.js (BX/BZ/RQ, LO_C/HI_C, SWIVEL) ve kol-ik.js (fig.model); E → members/groove.js grooveKanade ve chainFromL C.bust; D → ikincil.js createIkincil içinde varsayılan kayıtlar. Bu kancalar için T0 dosyalarına (vekil.js, vrm.js, aktarim.js, claude.js, plan.js, rigs.js) dokunmak gerekmez."
+}
