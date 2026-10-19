@@ -9,7 +9,7 @@
 //   sim.ready                        // kare çizmeye hazır mı: dokular ve Kanade
 //   createSim({..., karakter})       // gitaristin gövdesi: "kanade" (varsayılan; VRM, sayfa sim kurmadan önce preloadKanade ile yükler) ya da
 //                                    // "manken" (tur 4'ün gövdesi: yedek ve ölçüm tabanı). Verilmezse sayfa adresindeki ?karakter=
-// manual sim'de Kanade takılı değilken render() hata atar (karaktersiz kare yazılmaz).
+// manual sim'de Kanade takılı değilken render() hata atar (karaktersiz kare yazılmaz; aynı sayfada sonraki sim varlığı alınca öncekiler de).
 //
 // Tarayıcıda now = audio.ctx.currentTime, wall = performance.now()/1000; render aracında ikisi de kare zamanı.
 // manual: true → şarkı sonunda kendiliğinden durmaz (araç yönetir).
@@ -124,7 +124,7 @@ export function createSim(opts = {}){
     return m === "head" ? S.headCam : m === "stage" ? S.stageCam : S.groupCam;
   }
   function render(){
-    if (manual && !rigs.ready) throw new Error("Kanade takılı değil: sayfa sim kurmadan önce preloadKanade() beklemeli (KARAKTER=manken yedek gövde)");
+    if (manual && !rigs.ready) throw new Error("Kanade takılı değil: sayfa sim kurmadan önce preloadKanade() beklemeli ya da varlık aynı sayfadaki sonraki bir sime geçti (KARAKTER=manken yedek gövde)");
     const cam = activeCam();
     // Vurgu flaşı (rigs.flash, zamanın saf fonksiyonu): Finish pozlamasına ve bloom'a kısa darbe
     if (S.composer){ S.renderPass.camera = cam; S.finish.flash(rigs.flash); S.bloomPass.strength = 0.42 + 0.25 * rigs.flash; S.composer.render(); }

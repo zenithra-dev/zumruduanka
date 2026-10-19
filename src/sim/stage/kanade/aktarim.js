@@ -1,6 +1,7 @@
 // Vekil → VRM aktarımı (her karede fig.commit içinde; dinlenmeden yazar, durum yok). Çerçeveler: F figür (+z ön), VRM 0.0 -z'ye bakar; tutucu
 // (holder) sahnenin çocuğu, dünyası fig.g · R_y(π) (aynalı gitar taşıyıcısının ya da fig.g'nin altına konmaz). Bütün VRM dinlenme dönüşleri kimlik.
 //   Zincir (kalça, omurga, boyun, kafa, köprücükler, bacaklar): yerel dörtlük eşleniği q_V = (−x, y, −z, w); kalça konumu (−x, y, −z).
+//   Göğüs nefesi: fig.bust (F eksenlerinde ölçek ya da null; beden.js chainFromL C.bust) J_Sec_L/R_Bust1'in ölçeğine (eksen işareti ölçeği değiştirmez).
 //   Kol (fig.armState: S omuz, E dirsek, T bilek, n bükülme düzleminin normali): iki vektör tabanı B(u, w) (x̂ = û, ẑ = w'nin û'ya dik bileşeni):
 //     üst kol R = B(E − S, n)·B(u0, w0)⁻¹; ön kol aynı yolla, el bükümünün TWIST payı ön kola (γ: elin taşıdığı w0'ın n'e göre açısı, ön kol ekseninde).
 //   El ve parmaklar: W_VRM = P_now · C, C = P_rest⁻¹ (P: vekil boğumun det düzeltmeli dünya dönüşü; P_rest kalibrasyonda, VRM kök çerçevesinde:
@@ -27,7 +28,7 @@ export function createAktarim(fig, asset, holder, N, {twist = 0.5} = {}){
   const PV = n => posOf(world[idx[n]]), PF = n => new THREE.Vector3().fromArray(toF(PV(n)));
   // Kemikleri dinlenmeye döndür (varlık önceki bir simde pozlanmış olabilir): dinlenme ötelemesi, kimlik dönüş
   asset.json.nodes.forEach(n => { const b = asset.bones.get(n.name); if (!b) return; b.position.fromArray(n.translation || [0, 0, 0]); b.quaternion.identity(); b.scale.set(1, 1, 1); });
-  const chain = Object.entries(ZINCIR).map(([k, n]) => [N[k], B(n)]), hipsB = B(ZINCIR.hips);
+  const chain = Object.entries(ZINCIR).map(([k, n]) => [N[k], B(n)]), hipsB = B(ZINCIR.hips), bust = ["L", "R"].map(s => B(`J_Sec_${s}_Bust1`));
   const etek = ["L", "R"].flatMap(s => ["Front", "Back"].map(k => { const b = B(`J_Sec_${s}_Skirt${k}0`); return {b, t: b.position.clone(), leg: B(`J_Bip_${s}_UpperLeg`)}; }));
   const S = ["L", "R"].map((s, i) => {
     const up = B(`J_Bip_${s}_UpperArm`), lo = B(`J_Bip_${s}_LowerArm`), hand = B(`J_Bip_${s}_Hand`), tip = B(`J_Sec_${s}_TipSleeve`);
@@ -62,6 +63,7 @@ export function createAktarim(fig, asset, holder, N, {twist = 0.5} = {}){
     const qf = fig.g.quaternion, Qh = holder.quaternion.copy(qf).multiply(RPI); holder.position.copy(fig.g.position);
     for (const [p, b] of chain){ const q = p.quaternion; b.quaternion.set(-q.x, q.y, -q.z, q.w); }
     const hp = N.hips.position; hipsB.position.set(-hp.x, hp.y, -hp.z);
+    for (const b of bust) if (fig.bust) b.scale.copy(fig.bust); else b.scale.set(1, 1, 1);
     for (const e of etek){ const q = qi.copy(e.leg.quaternion).invert(); e.b.quaternion.copy(q); e.b.position.copy(e.t).applyQuaternion(q); }
     qUC.copy(qf).multiply(N.hips.quaternion).multiply(N.spine.quaternion).multiply(N.chest.quaternion).multiply(N.upperChest.quaternion);
     for (const A of S){

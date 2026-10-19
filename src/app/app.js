@@ -9,10 +9,14 @@ const gl = $("gl");
 // Tohum: ?seed=5 ile sabitlenebilir; verilmezse her açılışta farklı (doğaçlama her seferinde yeni).
 const seed = +(new URLSearchParams(location.search).get("seed") || (Date.now() >>> 0));
 await loadFonts(4000);   // oda dokularının yazıları vendor yazı tipleriyle çizilsin (yetişmezse yüklenince çizilir)
-// Gitaristin gövdesi: Kanade (VRM, sim kurulmadan önce yüklenir) ya da ?karakter=manken. VRM yüklenemezse yedek görünüm: manken ve uyarı.
-let karakter = new URLSearchParams(location.search).get("karakter") || "kanade", yedek = null;
-if (karakter !== "manken") try { await preloadKanade(60000); } catch (e){ console.error("Kanade yüklenemedi:", e.message); yedek = e.message; karakter = "manken"; }
-const sim = createSim({canvas: gl, seed, karakter});
+// Gitaristin gövdesi: Kanade (VRM, sim kurulmadan önce yüklenir; HUD'da ilerleme) ya da ?karakter=manken. VRM 20 sn boyunca hiç ilerlemezse,
+// bozuksa ya da takılamazsa yedek görünüm: manken ve uyarı (yavaş ama inen bağlantı beklenir).
+let karakter = new URLSearchParams(location.search).get("karakter") || "kanade", yedek = null, sim;
+const yukle = x => { $("hudText").textContent = `YÖNETMEN · KANADE YÜKLENİYOR ${Math.round(100 * x)}%`; };
+const yedege = e => { console.error("Kanade yüklenemedi:", e.message); yedek = e.message; karakter = "manken"; };
+if (karakter !== "manken"){ yukle(0); try { await preloadKanade(20000, undefined, yukle); } catch (e){ yedege(e); } }
+try { sim = createSim({canvas: gl, seed, karakter}); }
+catch (e){ if (karakter === "manken") throw e; yedege(e); sim = createSim({canvas: gl, seed, karakter}); }
 window.sim = sim;
 const { songs: SONGS, members: MEMBER } = sim;
 

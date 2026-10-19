@@ -4,8 +4,9 @@
 //   const h = await openHarness();
 //   const A = await kareler(h, {SONG: "dagkrali", T0: 20, T1: 30}, `(sim, p, t, k, A) => { A.push(sim.FIG.claude.head.getWorldPosition(new sim.THREE.Vector3()).y); }`);
 //   console.log(st(A)); await h.close();
-// Tarayıcı açan her koşu oyun kapısından ve tek sıradan geçer (oyun.ps1 && sira.sh dusuk.sh node ...).
-//   node tools/olcum/ortak.mjs      # kendi denetimi: kısa bir kare döngüsü, deri noktası ↔ köşe × matrixWorld (deri bağsız ağda aynı olmalı)
+// Tarayıcı açan her koşu tek sıradan geçer (yerelde oyun.ps1 && sira.sh dusuk.sh node ...; bulutta flock out/tur5/tarayici.lock node ...).
+//   node tools/olcum/ortak.mjs      # kendi denetimi: kısa bir kare döngüsü, deri noktası ↔ köşe × matrixWorld (deri bağsız ağda aynı olmalı);
+//                                   # Kanade'de SKIN VRM ağında ↔ fig.skinPoints (aynı köşe); ölçülen köşe sayısı > 0 olmalı
 import { pathToFileURL } from "node:url";
 import { openHarness } from "../browser.js";
 export { openHarness };
@@ -43,9 +44,10 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href){
     const A = await kareler(h, {SONG: "dagkrali", T0: 20, T1: 20.5}, `(sim, p, t, k, A, skin) => { const f = sim.FIG.claude, V = new sim.THREE.Vector3(), W = new sim.THREE.Vector3();
       let n = 0, d = 0; f.g.traverse(m => { if (!m.isMesh) return; const P = m.geometry.attributes.position;
         for (let i = 0; i < P.count; i++){ skin(m, i, V); W.fromBufferAttribute(P, i).applyMatrix4(m.matrixWorld); d = Math.max(d, V.distanceTo(W)); n++; } });
+      if (f.vrm){ const m = f.vrm.meshes.find(x => x.userData.node === "Body"); f.skinPoints({node: "Body", adim: 50}).forEach((q, j) => { d = Math.max(d, skin(m, 50 * j, V).distanceTo(q)); n++; }); }
       A.push({t, kafa: f.head.getWorldPosition(V).y, n, d}); }`);
     const fark = Math.max(...A.map(a => a.d));
     console.log(`ortak.mjs: ${A.length} kare, kafa yüksekliği ${JSON.stringify(st(A.map(a => r3(a.kafa))))}, ${A[0].n} köşe, deri noktası ↔ köşe en büyük fark ${fark} m`);
-    if (!(A.length > 10 && fark === 0)) process.exitCode = 1;
+    if (!(A.length > 10 && A[0].n > 0 && fark === 0)) process.exitCode = 1;
   } finally { await h.close(); }
 }

@@ -4,6 +4,10 @@
 // Sözleşme figures.js'tekiyle aynı (askı sözleşmesi): strapAnchors(now) → [{id, p, n, t, r}] aynı 7 id ve sırayla (gogus, omuz, kurek, sirt, bel,
 // kalca, karin; iskelet.js aski ofsetleri kemiğe bağlı, yüzeye izdüşürülür), bodySd(p), bodySdFn(o) (o.legs: bacaklar ve etek). Bu karenin vekil
 // duruşundan okunur (zamanın saf fonksiyonu).
+// v0 SINIRI (gövde-askı kolu düzeltir): elipsoitler köşe kutusuna (%2-98) içten oturur, köşegen bölgeleri kaçırır. Dinlenmede gövde köşelerinin
+// (|x| < 0.17, y 0.94-1.42; bodySdFn({legs: true})) %34'ü yüzeyin 1 cm'den çok dışında; önde (z > 0.1) %45, en çok 33 mm; göğüs bandında (y 1.29,
+// gitarın temas noktası) yüzey giysinin ~3 cm içinde. Bu yüzeyle ölçülen boşluklar (gitar ↔ beden, askı girişi, saç/etek itmesi) F birleşene
+// kadar iyimserdir. Tek ölçekle büyütmek çözmez (yanlarda 5-17 cm taşar): ayrı göğüs/karın ilkelleri ya da kapsül birleşimi gerekir.
 import * as THREE from "three";
 import { KANADE as K } from "./iskelet.js";
 

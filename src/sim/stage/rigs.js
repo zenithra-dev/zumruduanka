@@ -1,6 +1,7 @@
 // Sahnedeki kişileri kurar ve her karede canlandırır: nefes/salınım, göz kırpma, enstrüman pozu, ışık şovu.
 // Kişinin kendi geometrisi ve pozu members/ altında; burası ortak olanı yapar. Figür kancaları (varsa, yoksa mankenin yolu):
 //   fig.life(L)              nefes, salınım ve beden dili sayılarını kendi gövdesine uygular (L: life'ın sayıları)
+//   fig.groove(p, t)         gövdenin beden dili (yoksa üyenin M.groove'u; Kanade'nin chainAt'ı aynı işlevi okur)
 //   fig.commit(now, wall)    pozdan (IK) sonra: duruşu kendi gövdesine aktarır (Kanade: vekil → kemikler, ifade); aynı karede ölçüm bayat okumaz
 //   fig.late(ctx)            karenin sonunda (askı ve kamera yerinde, odada confine'dan sonra): ikincil hareket (saç, etek, bakış)
 import * as THREE from "three";
@@ -101,7 +102,7 @@ export function createRigs({scene, model, hemi, drawBanner, karakter}){
   function updateBand(now, wall, p, hemiBase){
     const beat = beatAt(p, now);   // ortak ritim saati: şarkının gerçek vuruşu (çalmıyorken 90 BPM boşta)
     if (wall === undefined) wall = now;
-    MEMBER_RIGS.forEach(M => life(FIG[M.id], wall, now, p, M.groove));
+    MEMBER_RIGS.forEach(M => { const f = FIG[M.id]; life(f, wall, now, p, f.groove || M.groove); });
     Object.values(FIG).forEach(f => blink(f, wall));
     const ctx = {now, wall, p, beat};
     MEMBER_RIGS.forEach(M => M.pose(parts[M.id], ctx));

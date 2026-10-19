@@ -1,7 +1,8 @@
 // Kanade'nin gövde zinciri (v0; beden kolu ayarlar): rigs.life'ın sayılarını (L) vekil zincire dağıtır. Zamanın saf fonksiyonu:
 //   chainAt(p, now, wall) → {hips: {q, p}, spine: {q}, chest, upperChest, neck, head, shoulderL, shoulderR, upperLegL/R, lowerLegL/R, footL/R}
-//   (yerel dönüşler F çerçevesinde, dinlenme kimlik; hips.p figür kökünde kalça). life(L) ile sahneye yazılan BİREBİR aynı çıktı (aynı işlev),
-//   saç ve etek geçmiş anlarda bunu çağırır; durum yok.
+//   (yerel dönüşler F çerçevesinde, dinlenme kimlik; hips.p figür kökünde kalça; isteğe bağlı bust: {s: Vector3} göğüs nefesi ölçeği, F
+//   eksenlerinde: aktarım J_Sec_L/R_Bust1'e yazar, yoksa 1). life(L) ile sahneye yazılan BİREBİR aynı çıktı (aynı işlev), saç ve etek geçmiş
+//   anlarda bunu çağırır; durum yok. L'nin kaynağı fig.groove (members/groove.js grooveKanade; rigs.life de onu okur).
 // Dağılım (iskelet incelemesi): öne eğim rx kalça 0.20, bel 0.25, göğüs 0.30, üst göğüs 0.25; yana rz kalça 0.4, kalanı omurgaya; dönüş ry bel 0.2,
 // göğüs 0.35, üst göğüs 0.45. Kafa eğimi (nod) boyun 0.35 / baş 0.65, boyun + baş en çok NOD_MAX (≈ 20°, kilit görünürlüğü); fazlası göğse.
 // Nefes: üst göğüs geriye −0.006·br, köprücükler 0.008·br yükselir, kalça 4 mm. Köprücük erişimden bağımsız (bu tur). Yaslanma telafisi:
@@ -55,7 +56,7 @@ export function createBeden(fig, lifeOf){
   const ARM = ["L", "R"].map(s => off(`J_Bip_${s}_UpperArm`, `J_Bip_${s}_Shoulder`));
   function write(C){
     for (const k of Object.keys(ZINCIR)) N[k].quaternion.copy(C[k].q);
-    N.hips.position.copy(C.hips.p);
+    N.hips.position.copy(C.hips.p); fig.bust = C.bust ? C.bust.s : null;
     [N.shoulderL, N.shoulderR].forEach((s, i) => { fig.sh[i].copy(ARM[i]).applyQuaternion(s.quaternion).add(s.position); });
   }
   return {N, write, chainAt: (p, now, wall) => chainFromL(lifeOf(p, now, wall))};

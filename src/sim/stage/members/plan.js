@@ -61,10 +61,10 @@ export const planOf = p => { let mv = PLANS.get(p.events); if (!mv) PLANS.set(p.
 // Duruş planı: alçak (0) ile yüksek (1) duruş arasında kare kare (DT) en ucuz yol (Viterbi). Duruşun saniyelik bedeli pencereden: alçak duruş
 // 14. perdeden sonra gövdeye girer, yüksek duruş alçak perdelerde bileği zorlar, ev konumunda alçak durulur. Geçiş R_DUR sürer, bedeli TC artı o
 // aralıkta basan parmaklar, nota başları ve elin yolu: geçiş susuşa ya da sakin bir yere oturur, hızlı kayma dizisine düşmez; pencere kısa süre
-// alçalıp yükselirse duruş değişmez. → [{a, b, to}], olay listesinden bir kez (zamanın saf fonksiyonu).
+// alçalıp yükselirse duruş değişmez. Duruşların perde başına bedeli gövdenin el tablosunda (E.LO_C, E.HI_C: claude.js EL_MANKEN, Kanade el-tablo.js).
+// → [{a, b, to}], olay listesinden ve el tablosundan bir kez (zamanın saf fonksiyonu).
 const DT = 1 / 30, R_DUR = 0.7, TC = 1, ACT = 1.5, ONS = 0.15, MOV = 4, HOME_C = 3;
-const LO_C = p => p <= 14 ? 0 : p === 15 ? 3 : p === 16 ? 10 : 30, HI_C = p => p >= 15 ? 0.1 : p >= 13 ? 0.5 : p >= 11 ? 1.5 : p >= 9 ? 3 : 6;
-export function regimePlan(mv, events, F){
+export function regimePlan(mv, events, F, {LO_C, HI_C}){
   const N = Math.ceil((events.reduce((a, e) => Math.max(a, e.end), 0) + 2) / DT), D = Math.round(R_DUR / DT), fr = t => Math.min(N, Math.max(0, Math.round(t / DT)));
   const act = new Float64Array(N + 1), ons = new Float64Array(N + 1), c = [new Float64Array(N), new Float64Array(N)], S = new Float64Array(N + 1);
   for (const e of events){ const a = F.get(e); if (!(e.f > 0)) continue; ons[fr(e.t)] += ONS;
@@ -88,8 +88,9 @@ export function regimeAt(R, now){
   const g = R[lo - 1], u = sm(Math.min(1, (now - g.a) / (g.b - g.a)));
   return g.to ? u : 1 - u;
 }
-const REGS = new WeakMap();
-export const regOf = p => { let R = REGS.get(p.events); if (!R) REGS.set(p.events, R = regimePlan(planOf(p), p.events, fplanOf(p))); return R; };
+const REGS = new WeakMap();   // olaylar → (el tablosu → plan)
+export const regOf = (p, E) => { let M = REGS.get(p.events); if (!M) REGS.set(p.events, M = new Map()); let R = M.get(E);
+  if (!R) M.set(E, R = regimePlan(planOf(p), p.events, fplanOf(p), E)); return R; };
 
 /* ---------- Perde parmakları ---------- */
 // Perde başına bir parmak: her basılan nota başladığı anki pencerede (handAt) perdesine göre bir parmak alır (işaret pencerenin ilk perdesi,

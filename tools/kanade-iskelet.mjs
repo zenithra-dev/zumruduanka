@@ -85,7 +85,10 @@ export function uret(){
   // (yön anahtarı "sol_2" gibi ekliyse yönü adın kökünden)
   const sinir = {yon: YON, zincir: Object.fromEntries(Object.entries(Z).map(([ad, z]) => [ad, Object.fromEntries(["kok", "hepsi"].map(k => [k, Object.fromEntries(Object.entries(z[k]).map(([y, x]) => [y, x.izin_derece]))]))]))};
 
-  // Beden elipsoitleri (giysiyi sarar: ten + giysi köşeleri), kemik başına, köşe kutusu %2-98; merkez kemiğin F ofseti, yarıçaplar
+  // Beden elipsoitleri (giysiyi sarar: ten + giysi köşeleri), kemik başına, köşe kutusu %2-98; merkez kemiğin F ofseti, yarıçaplar. Kollar
+  // incelemesinin (govde-ilkel.json) kümesinden farkı: elbisenin göğüs köşeleri Bust kemiklerine (70 köşe, 58'i giysi), bel çevresindekiler etek
+  // kök kemiklerine (Skirt*0/1, y ≥ 0.94'te 16 giysi köşesi) bağlı: onlarsız üst göğüs ve kalça giysiyi kaçırır; y < 0.94 etek konisine kalır.
+  // Kutuya içten oturan elipsoit köşegenleri kaçırır (govde.js v0 sınırı: önde ~3 cm içeride); gövde-askı kolu yeniden uydurur.
   const ELIPS = {hips: [/^J_Bip_C_Hips$|Skirt.*[01]$/], spine: [/^J_Bip_C_Spine$/], chest: [/^J_Bip_C_Chest$/], upperChest: [/^J_Bip_C_UpperChest$|Bust/], neck: [/^J_Bip_C_Neck$/],
     shoulderL: [/^J_Bip_L_Shoulder$/], shoulderR: [/^J_Bip_R_Shoulder$/], upperLegL: [/^J_Bip_L_UpperLeg$/], upperLegR: [/^J_Bip_R_UpperLeg$/], lowerLegL: [/^J_Bip_L_LowerLeg$/], lowerLegR: [/^J_Bip_R_LowerLeg$/]};
   const KEM = {hips: "J_Bip_C_Hips", spine: "J_Bip_C_Spine", chest: "J_Bip_C_Chest", upperChest: "J_Bip_C_UpperChest", neck: "J_Bip_C_Neck", shoulderL: "J_Bip_L_Shoulder", shoulderR: "J_Bip_R_Shoulder",

@@ -417,8 +417,11 @@ async function grab(h, T, seq, Q, mask){
     const N = d.length / 4, pct = q => { let c = 0; for (let v = 0; v < 256; v++){ c += hist[v]; if (c >= q * N) return v; } return 255; };
     sim.composite(g, 1280, 720, {broadcast: true, t: T});
     const cam = sim.camMode === "director" ? sim.director.cam : sim.camMode, C = cam === "head" ? sim.cams.head : cam === "stage" ? sim.cams.stage : sim.cams.group;
-    const f = sim.FIG.claude, st = [C.position, C.quaternion, ...f.hands.map(x => x.position), f.head.getWorldPosition(new sim.THREE.Vector3()), sim.model.pick.position]
-      .map(v => v.toArray().map(x => x.toFixed(6)).join(",")).join(";");
+    // Kanade'de VRM'in durumu da (kemik matrisleri, GPU kemik dizisi, morf etkileri, sap kamerası drawRange'i, görünürlük): ikincil ve yüz kolları
+    const f = sim.FIG.claude, V = f.vrm, n6 = a => Array.from(a, x => x.toFixed(6)).join(",");
+    const st = [C.position, C.quaternion, ...f.hands.map(x => x.position), f.head.getWorldPosition(new sim.THREE.Vector3()), sim.model.pick.position]
+      .map(v => v.toArray().map(x => x.toFixed(6)).join(",")).join(";") + (V ? "|" + [...V.bones.values()].map(b => n6(b.matrixWorld.elements)).join(";") + "|" +
+      n6(V.asset.skeleton.boneMatrices) + "|" + V.meshes.map(m => n6(m.morphTargetInfluences || []) + ":" + m.geometry.drawRange.count + ":" + m.visible).join(";") : "");
     let gl = "?"; try { const c = sim.renderer.getContext(), x = c.getExtension("WEBGL_debug_renderer_info"); gl = x ? c.getParameter(x.UNMASKED_RENDERER_WEBGL) : c.getParameter(c.RENDERER); } catch (e){}
     const sh = p.shots.find(s => T >= s.t && T < s.end), png = cv.toDataURL("image/png");
     // Gövde maskesi (yayın karesi alındıktan sonra; tuvali bozar): gövde beyaz, opak her şey siyah, saydamlar gizli, teller siyah ve ışıksız

@@ -1,6 +1,6 @@
 // Kanade temel denetimi (node, tarayıcısız; VRM dokusuz ayrıştırılır): ölçü tablosu (iskelet.js) ↔ VRM, çalışma zamanı kalibrasyonu ↔ tablo ve
 // vekil → VRM aktarım hatası rastgele (hash) pozlarda. Kabul: tablo ve kalibrasyon ≤ 0.1 mm, aktarım ≤ 0.5 mm (30 parmak eklemi + 10 uç, kollar,
-// zincir). Çıkış kodu 1: kabul dışı.
+// zincir). Morph bekçisi: 10 hedef isteyen grupta ifade.js active() kırpmadan önceki sayıyı (10) verir, r128'e 8 gider. Çıkış kodu 1: kabul dışı.
 //   node tools/kanade-test.mjs            # OUT=out/tur5/temel/kanade-test.json yazar (verilirse)
 import fs from "node:fs";
 import path from "node:path";
@@ -43,10 +43,16 @@ for (let k = 0; k < 60; k++){
   const a = performance.now(); fig.commit(k, k); sure.push(performance.now() - a);
   const e = fig.vrm.err(); for (const x of Object.keys(R)) R[x] = Math.max(R[x], e[x]);
 }
+// 4) Morph bekçisi (ifade.js): istenen etkin hedef sayısı kırpmadan önce sayılır; kırpma son savunma
+const { createIfade } = await imp("src/sim/stage/kanade/ifade.js");
+const BM = {userData: {node: "X"}, morphTargetInfluences: new Array(12).fill(0)}, BE = createIfade({meshes: [BM], groups: {g: [...Array(10)].map((_, i) => ({node: "X", index: i, w: 1}))}});
+BE.reset(); BE.set("g", 0.5); BE.apply();
+const bekci = {istenen: BE.active(), cizilen: BM.morphTargetInfluences.filter(v => v > 0).length, kirpilan: BE.kirpilan()};
 const med = a => a.slice().sort((x, y) => x - y)[a.length >> 1];
 const out = {vrm: K.vrm, ayristirma_ms: +tParse.toFixed(0), tablo_mm: +(tablo * 1000).toFixed(4), kalibrasyon_mm: +fig.vrm.kalibrasyon_mm.toFixed(4),
   aktarim: Object.fromEntries(Object.entries(R).map(([k, v]) => [k, +v.toFixed(4)])), poz: sure.length, commit_ms_med: +med(sure).toFixed(3),
-  morph_etkin: fig.expr.active(), kabul: {tablo: tablo * 1000 <= 0.1, kalibrasyon: fig.vrm.kalibrasyon_mm <= 0.1, aktarim: R.mm <= 0.5}};
+  morph_etkin: fig.expr.active(), morph_bekci: bekci,
+  kabul: {tablo: tablo * 1000 <= 0.1, kalibrasyon: fig.vrm.kalibrasyon_mm <= 0.1, aktarim: R.mm <= 0.5, morph: fig.expr.active() <= 8, bekci: bekci.istenen === 10 && bekci.cizilen === 8 && bekci.kirpilan === 2}};
 console.log(JSON.stringify(out, null, 1));
 if (process.env.OUT){ fs.mkdirSync(path.dirname(path.resolve(ROOT, process.env.OUT)), {recursive: true}); fs.writeFileSync(path.resolve(ROOT, process.env.OUT), JSON.stringify(out, null, 1)); }
 process.exit(Object.values(out.kabul).every(Boolean) ? 0 : 1);

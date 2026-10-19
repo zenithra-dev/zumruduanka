@@ -3,8 +3,11 @@
 //   KNUCKLE, SY, MID: perde eli kök hedefi (el çerçevesi), tiz telde iniş, avuç ortası; FRET_LO / FRET_HI: alçak ve yüksek duruşun denetim noktaları
 //   FIST / FIST_M: pena yumruğu (vuruş, palm mute); ZETA, YAW_0, ROLL_0, ZETA_M, YAW_M, ROLL_M: pena tutuşu; GRIP_AT; THUMB: pena başparmağı
 //   PM_K, MU_H: palm mute dönüşü ve payı; HS_MAX: parmak uzanmasında el kayması; POLE_P: palm mute pena dirseğinin kutbu
-//   TWIST: el bükümünün ön kola verilen payı (aktarım, yen ve bilek derisi); SWIVEL: dirsek dönme açısı seçimi (kol-ik.js; v0 yok)
-// Duruş eşikleri LO_C / HI_C bugün members/plan.js'te (regimePlan; el-gitar kolu tabloya taşır).
+//   BX, BZ, RQ: duruş geçişinde sapa kayma, gitardan uzaklaşma, dönüşün başladığı pay; LO_C / HI_C: duruş planının (plan.js regimePlan) perde
+//   başına bedeli (işlev; plan el tablosu başına önbellekte)
+//   TWIST: el bükümünün ön kola verilen payı (aktarım, yen ve bilek derisi); SWIVEL: dirsek dönme açısı seçimi (kol-ik.js okur; v0 null)
+// Ölçüm ucu: parmak ucu = userData.tip (yastık noktası; sync-check ve claude.js hedefi); VRM <F>3_end ondan ≈ yastık yarıçapı (re) kadar içeride
+// (aktarım err ölçüsü _end'i boğumun (0, l[2], 0) ucuyla karşılaştırır; ikisi arası en çok 5.8 mm).
 import * as THREE from "three";
 
 const FIST = [[0, [1.0, 1.35, 0.5]], [0, [1.25, 1.5, 0.75]], [0.05, [1.35, 1.55, 0.75]], [0.1, [1.45, 1.5, 0.7]]];
@@ -19,5 +22,7 @@ export const EL = {
   THUMB: [{v: [0.3801, 0.7174, 0.5839], ph: -0.0715, t: [1.2, 0.35, 1.3109]}, {v: [-0.2549, 0.6832, 0.6843], ph: -0.0496, t: [0.0002, 1.1699, 1.3279]},
     {v: [0.2759, 0.3797, 0.883], ph: 0.2158, t: [-0.0063, 1.5791, 1.5092]}],
   PM_K: [0.0625, 0.1329, 0.0719], MU_H: 0.75, HS_MAX: 0.02, POLE_P: new THREE.Vector3(-0.2, -1, 1.2),
+  BX: 0.05, BZ: 0.02, RQ: 0.2,
+  LO_C: p => p <= 14 ? 0 : p === 15 ? 3 : p === 16 ? 10 : 30, HI_C: p => p >= 15 ? 0.1 : p >= 13 ? 0.5 : p >= 11 ? 1.5 : p >= 9 ? 3 : 6,
   TWIST: 0.5, SWIVEL: null
 };

@@ -15,6 +15,9 @@ export function groove(p, t){
   return {lean, bob: (0.01 + 0.045 * g) * w, head: (0.04 + 0.43 * g) * w - GAZE * (lean - LEAN0), drop: 0.03 * x.mute + 0.025 * g + (0.004 + 0.016 * g) * w, spread: 0.1 * g};
 }
 
+// Kanade'nin beden dili (beden kolu kendi varyantını buraya yazar; vekil.js fig.groove = grooveKanade, rigs.life ve chainAt onu okur). v0: mankenin.
+export const grooveKanade = groove;
+
 // rigs.life'ın sayıları (zamanın saf fonksiyonu; mankende ve Kanade'de aynı, Kanade'nin chainAt'ı da bunu çağırır): üyenin gr(p, t) duruşu üç
 // yerde okunur: kafa şimdiki anın, göğüs LAG sonrasının, pelvis 2·LAG sonrasının duruşunu alır. L = {br nefes, rx/rz/ry üst gövdenin eğimi,
 // drop pelvisin inişi, nod kafanın eğimi, look kafanın yana dönüşü, spread ayakların açılması}.

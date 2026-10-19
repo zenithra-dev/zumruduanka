@@ -40,10 +40,9 @@ function lerpTab(T, x, o){
 // Elin sap boyunca yeri: pencerenin yerinin ±XW sn ortalaması (çok hızlı kaymalar iki-üç kareye yayılır; parmak hedefleri yine notada)
 const XW = 1 / 30;
 function smoothX(mv, now){ let x = 0; for (let k = -2; k <= 2; k++) x += handAt(mv, now + k * XW / 2).x; return x / 5; }
-// Geçiş üç adımda: el önce sapa doğru BX kayar (bx: bilek gövdenin oyuğuna çıkar), sonra döner (rr: r RQ..1-RQ) ve gitardan BZ uzaklaşır
-// (bz), sonra yeni yerine kayar. Yer avuç ortasında (MID) karıştırılır, yön slerp: dönüş avuç ortası çevresinde, el ucu ek sıçrama almaz.
-const BX = 0.05, BZ = 0.02, RQ = 0.2;   // avuç ortası E.MID
-const rotOf = r => sm(Math.min(1, Math.max(0, (r - RQ) / (1 - 2 * RQ))));
+// Geçiş üç adımda: el önce sapa doğru E.BX kayar (bx: bilek gövdenin oyuğuna çıkar), sonra döner (rr: r RQ..1-RQ) ve gitardan E.BZ uzaklaşır
+// (bz), sonra yeni yerine kayar. Yer avuç ortasında (E.MID) karıştırılır, yön slerp: dönüş avuç ortası çevresinde, el ucu ek sıçrama almaz.
+const rotOf = (r, RQ) => sm(Math.min(1, Math.max(0, (r - RQ) / (1 - 2 * RQ))));
 // Bir duruşun (T tablosu) kök hedefi K ve el y'si Y (gitar çerçevesi), dünya yönü q; döner: köklerin x'i
 function fretSide(T, x, o, guitar, sy, up, K, Y, Z, q){
   const [b, ky, kz, rl, ps, dx, gz] = lerpTab(T, x, o), xk = x + dx;
@@ -76,8 +75,8 @@ const halfFb = x => 0.0215 + 0.007 * x / 0.47;   // klavyenin yarı genişliği 
 const STR_R = 0.0008, F_HOVER = 0.009, F_TR = 0.012, UP_L = 0.02, TH_DX = -0.014, TH_Y = 0.004;
 const TH_X1 = 0.4;   // başparmak sap topuğunun gerisinde kalır (gövde arkada)
 const _g = new THREE.Vector3(), _h = new THREE.Vector3(), _t = new THREE.Vector3(), _A = new THREE.Vector3();
-function fretFingers(H, guitar, now, h, by, xk, r, hx){
-  H.updateMatrixWorld(); const rr = rotOf(r), bz = Math.sin(Math.PI * rr) ** 2, xo = hx - winX(h.p);   // xo: kaymada el pencerenin gerisinde kalır
+function fretFingers(H, guitar, now, h, by, xk, r, hx, RQ){
+  H.updateMatrixWorld(); const rr = rotOf(r, RQ), bz = Math.sin(Math.PI * rr) ** 2, xo = hx - winX(h.p);   // xo: kaymada el pencerenin gerisinde kalır
   _A.set(0, 0, -1).transformDirection(guitar.matrixWorld);   // yastık klavyeye doğru bastırır
   for (let j = 0; j < 4; j++){
     const xi = pressX(Math.min(FRETS, h.p + j)) + xo;
@@ -113,14 +112,14 @@ function stretchX(by, p, HS_MAX){
 // uzaklaşma (bz). hx elin sap boyunca yeri, by basılan notalar; döner: kolun hedefi (dünya)
 function fretHand(m, guitar, now, h, by, hx, r){
   const E = m.el; hx += stretchX(by, h.p, E.HS_MAX);
-  const {fig, qf} = m, rr = rotOf(r), bx = sm(Math.min(1, r / RQ)) * sm(Math.min(1, (1 - r) / RQ)), bz = Math.sin(Math.PI * rr) ** 2;
+  const {fig, qf} = m, {BX, BZ, RQ} = E, rr = rotOf(r, RQ), bx = sm(Math.min(1, r / RQ)) * sm(Math.min(1, (1 - r) / RQ)), bz = Math.sin(Math.PI * rr) ** 2;
   const sy = -E.SY * (strAvg(by) - 2.5) / 2.5 + handBend(by, now), up = UP_L * h.l;
   const xa = fretSide(E.FRET_LO, hx, _fa, guitar, sy, up, _Ka, _Ya, _Za, _qa), xb = fretSide(E.FRET_HI, hx, _fb, guitar, sy, up, _Kb, _Yb, _Zb, qf), xk = xa + (xb - xa) * rr - BX * bx;
   _Ka.addScaledVector(_Ya, -E.MID).lerp(_Kb.addScaledVector(_Yb, -E.MID), rr).add(_g.set(-BX * bx, 0, BZ * bz));
   qf.copy(_qa.slerp(qf, rr));
   const fret = guitar.localToWorld(_Ka).addScaledVector(_Y.copy(UPV).applyQuaternion(qf), E.MID);
   poseArm(fig, 0, fret, handPole(fig, 0, fret, qf, E.KNUCKLE), {q: qf, off: E.KNUCKLE});
-  fretFingers(fig.hands[0], guitar, now, h, by, xk, r, hx);
+  fretFingers(fig.hands[0], guitar, now, h, by, xk, r, hx, RQ);
   return fret;
 }
 
@@ -209,7 +208,10 @@ export const EL_MANKEN = {
   ZETA: 1.1, YAW_0: 0.6, ROLL_0: -0.6, ZETA_M: 2.1094, YAW_M: 0.4469, ROLL_M: 0.4874, GRIP_AT: 0.8,
   THUMB: [{v: [0.3801, 0.7174, 0.5839], ph: -0.0715, t: [1.2, 0.35, 1.3109]}, {v: [-0.2549, 0.6832, 0.6843], ph: -0.0496, t: [0.0002, 1.1699, 1.3279]},
     {v: [0.2759, 0.3797, 0.883], ph: 0.2158, t: [-0.0063, 1.5791, 1.5092]}],
-  PM_K: [0.0625, 0.1329, 0.0719], MU_H: 0.75, HS_MAX: 0.02, POLE_P: new THREE.Vector3(-0.2, -1, 1.2)
+  PM_K: [0.0625, 0.1329, 0.0719], MU_H: 0.75, HS_MAX: 0.02, POLE_P: new THREE.Vector3(-0.2, -1, 1.2),
+  BX: 0.05, BZ: 0.02, RQ: 0.2,   // duruş geçişi: sapa kayma, gitardan uzaklaşma, dönüşün başladığı pay
+  // Duruş planının (plan.js regimePlan) perde başına bedeli: alçak duruş 14. perdeden sonra gövdeye girer, yüksek duruş alçak perdelerde bileği zorlar
+  LO_C: p => p <= 14 ? 0 : p === 15 ? 3 : p === 16 ? 10 : 30, HI_C: p => p >= 15 ? 0.1 : p >= 13 ? 0.5 : p >= 11 ? 1.5 : p >= 9 ? 3 : 6
 };
 
 export default {
@@ -218,7 +220,7 @@ export default {
   build({scene, model, karakter}){
     if (karakter !== "manken"){
       // Kanade: görünmez vekil + VRM (vekil.js); mankenle aynı yer, aynı salınım payı, aynı üye ışığı (görünüm kolu Kanade'ye göre seçer)
-      const fig = kanadeFigure(scene, {x: 0.2, z: -0.19, sway: 0.5, bekle: true});
+      const fig = kanadeFigure(scene, {x: 0.2, z: -0.19, sway: 0.5, bekle: true, model});
       const light = new THREE.PointLight(0xffa04a, 0.8, 2.2); light.position.set(0.2, 0.9, 0.4); scene.add(light);
       return {fig, light, visor: null, halo: null, model, extras: [], qf: new THREE.Quaternion(), qp: new THREE.Quaternion(), aim: null, el: EL, grip: gripOf(fig.hands[1], EL)};
     }
@@ -241,7 +243,7 @@ export default {
     m.fig.g.updateMatrixWorld(true);   // omuzlar bu karenin duruşundan (handPole; yoksa önceki karenin omzu: kare geçmişe bağlı olur)
     const tp = pickAt(p ? pickOf(p) : NOPICK, now);
     const h = handAt(p ? planOf(p) : [], now), F = p ? fplanOf(p) : NOFING, by = pressed(p && p.events, now, F);
-    const r = p ? regimeAt(regOf(p), now) : 0, fret = fretHand(m, guitar, now, h, by, p ? smoothX(planOf(p), now) : h.x, r), pk = pickHand(m, pick, tp);
+    const r = p ? regimeAt(regOf(p, m.el), now) : 0, fret = fretHand(m, guitar, now, h, by, p ? smoothX(planOf(p), now) : h.x, r), pk = pickHand(m, pick, tp);
     // press: perde parmaklarının ataması {e: olay, k: parmak (1 işaret .. 4 serçe, 0 başparmak), w: basma payı}; ölçüm (sync-check) okur. reg: yüksek duruş payı
     m.aim = {fretArm: 0, pickArm: 1, fret, fretOff: m.el.KNUCKLE, pick: pk, pickOff: grip.G, x: h.x, home: h.l > 0.5, win: [h.p, h.p + 3], reg: r,
       press: by.flatMap((L, j) => L.map(c => ({e: c.e, k: j + 1, w: c.w})))};

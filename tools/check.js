@@ -1,6 +1,7 @@
 // Duman testi (npm test): her şarkı yüklenir, ilk saniyeleri sese dökülür, baştan/ortadan/sondan birer kare çizilir.
 // Hata, NaN, sessizlik, kara kare, boş ya da kısa çekim listesi, sahnede olmayan üyeye çekim, bozuk ritim saati, vurgusuz şarkı ve rastgele akışın
-// kayması (kurulumun rand() sayısı, karelerin rand() çekmesi) ve takılmamış karakter (Kanade, VRM; KARAKTER=manken yedek gövdede aranmaz) arar; oda
+// kayması (kurulumun rand() sayısı, karelerin rand() çekmesi), takılmamış karakter (Kanade, VRM; KARAKTER=manken yedek gövdede aranmaz) ve ağ başına
+// 8'den çok istenen morph hedefi (ifade.js active(): kırpmadan önceki sayı; r128 fazlasını düşürür) arar; oda
 // mekânında bir şarkı (dokular, kareler, flaş, kamera sınırı); sonra önizleme sayfasını açıp çal/durdur dener.
 // Önce tarayıcısız: bükme ve vibrato eğrisinin ses ile görselde aynı olduğu.
 //   SECS=10 SEED=1 node tools/check.js
@@ -60,9 +61,10 @@ for (const id of ids){
     const C = await import(new URL("sim/music/clock.js", location.href).href), p = sim.playing;
     let mono = true, prev = -Infinity; for (let k = 0; k <= 200; k++){ const b = C.beatAt(p, p.t0 + k / 200 * (p.end - p.t0)); if (!(b > prev)) mono = false; prev = b; }
     const nAcc = C.accents(p).length, clockOk = mono && [0.5, full / 2].every(t => { const x = C.intensity(p, t); return x >= 0 && x <= 1; }) && isFinite(C.accentAt(p, full / 2));
-    const shots = sim.playing.shots, cv = Object.assign(document.createElement("canvas"), {width: 1280, height: 720}), g = cv.getContext("2d"), lum = [], cams = new Set();
+    const shots = sim.playing.shots, cv = Object.assign(document.createElement("canvas"), {width: 1280, height: 720}), g = cv.getContext("2d"), lum = [], cams = new Set(), E = sim.FIG.claude.expr;
+    let morph = 0;
     for (const t of [0.5, full / 2, full - 0.3]){
-      sim.frame(t, t); sim.composite(g, 1280, 720); cams.add(sim.director.cam);
+      sim.frame(t, t); sim.composite(g, 1280, 720); cams.add(sim.director.cam); if (E) morph = Math.max(morph, E.active());
       const d = g.getImageData(0, 0, 1280, 720).data; let s = 0, n = 0;
       for (let i = 0; i < d.length; i += 4 * 101){ s += d[i] + d[i + 1] + d[i + 2]; n++; }
       lum.push(s / n / 3);
@@ -71,7 +73,7 @@ for (const id of ids){
     const buf = await off.startRendering(), L = buf.getChannelData(0); let pk = 0, nan = 0, sq = 0;
     for (let i = 0; i < L.length; i++){ if (!isFinite(L[i])) nan++; pk = Math.max(pk, Math.abs(L[i])); sq += L[i] * L[i]; }
     const f = sim.FIG.claude, kanade = !!(f.vrm && f.vrm.root.parent && sim.ready);
-    return {name: song.name, full, shots: shots.length, lastEnd: shots.length ? shots[shots.length - 1].end : 0, kinds: [...new Set(shots.map(s => s.cam))].join(","), lum, pk, nan, rms: Math.sqrt(sq / L.length), audioCams: [...cams].join(","), nAcc, clockOk, rs, who, kanade};
+    return {name: song.name, full, shots: shots.length, lastEnd: shots.length ? shots[shots.length - 1].end : 0, kinds: [...new Set(shots.map(s => s.cam))].join(","), lum, pk, nan, rms: Math.sqrt(sq / L.length), audioCams: [...cams].join(","), nAcc, clockOk, rs, who, kanade, morph};
   }, [id, SEED, SECS]).catch(e => ({error: e.message}));
   h.page.off("pageerror", onErr);
   const probs = [];
@@ -90,6 +92,7 @@ for (const id of ids){
     if (r.rs[2]) probs.push("kareler " + r.rs[2] + " rand() çekti");
     if (KURULUM_RAND[SEED] !== undefined && r.rs[0] !== KURULUM_RAND[SEED]) probs.push(`kurulum ${r.rs[0]} rand() çekti, beklenen ${KURULUM_RAND[SEED]} (ses programı kayar)`);
     if (KANADE && !r.kanade) probs.push("Kanade takılı değil");
+    if (r.morph > 8) probs.push(`ağ başına ${r.morph} morph hedefi istendi (en çok 8; fazlası kırpılıyor)`);
   }
   row(!probs.length, r.error ? id + ": " + probs.join("; ") :
     `${r.name.padEnd(22)} ${r.full.toFixed(1).padStart(5)} sn  ${String(r.shots).padStart(3)} çekim [${r.kinds}]  tepe ${r.pk.toFixed(2)} rms ${r.rms.toFixed(3)}  parlaklık ${r.lum.map(x => x.toFixed(0)).join("/")}  vurgu ${r.nAcc}  rand ${r.rs.join("/")}` + (probs.length ? "  ← " + probs.join("; ") : ""));
@@ -152,7 +155,7 @@ console.log("Önizleme sayfası:");
   const page = await h.browser.newPage({viewport: {width: 1280, height: 1000}});
   const errs = []; page.on("pageerror", e => errs.push(e.message)); page.on("console", m => { if (m.type() === "error") errs.push(m.text()); });
   try {
-    await page.goto(h.url + "/index.html", {waitUntil: "domcontentloaded"});
+    await page.goto(h.url + "/index.html" + (KANADE ? "" : "?karakter=manken"), {waitUntil: "domcontentloaded"});
     await page.waitForFunction(() => !!window.sim, null, {timeout: 30000});
     await page.click("#song-kaf"); await page.click("#play"); await page.waitForTimeout(1500);
     const s1 = await page.evaluate(() => ({playing: !!window.sim.playing, now: window.sim.audio.ctx.currentTime, hud: document.getElementById("hudText").textContent}));
@@ -163,7 +166,7 @@ console.log("Önizleme sayfası:");
     row(!s2.playing && s2.cam === "head" && s2.env === "summit", "kamera/mekan değiştir ve durdur: " + JSON.stringify(s2));
     await page.click("#env-oda"); await page.waitForTimeout(400);
     const s3 = await page.evaluate(() => ({env: window.sim.envName, doku: window.sim.texReady, karakter: window.sim.karakter, takili: !!window.sim.FIG.claude.vrm}));
-    row(s3.env === "oda" && s3.doku && s3.karakter === "kanade" && s3.takili, "oda mekânı: " + JSON.stringify(s3));
+    row(s3.env === "oda" && s3.doku && s3.karakter === (KANADE ? "kanade" : "manken") && s3.takili === KANADE, "oda mekânı: " + JSON.stringify(s3));
   } catch (e){ row(false, "önizleme: " + e.message); }
   row(!errs.length, errs.length ? "sayfa hataları: " + errs.join(" | ") : "sayfa hatası yok");
   await page.close();
