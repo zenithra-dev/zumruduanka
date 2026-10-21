@@ -34,6 +34,15 @@ const kiy = {ad: KS.ad, varyant: KS.varyant, ag: kAg.length, kiyafetsiz: await h
   kMorph: kAg.map(m => (m.morphTargetInfluences || []).length), n0: asset.meshes.filter(m => m.userData.n0 !== undefined).map(m => m.userData.node + ":" + m.userData.n0),
   gizli: body.reduce((s, m) => s + (m.userData.gizliUcgen || 0), 0), morfluMalzeme: kAg.every(m => [].concat(m.material).every(x => x.morphTargets && x.skinning)),
   ton: Array.from(tonPiksel(new Uint8ClampedArray([255, 255, 255, 255, 0, 0, 0, 128]), {koyu: "#800000", dantel: "#00ff00"}))};
+// Varsayılan dışındaki her kıyafet de yüklenir (ör. dekolte: deri yaması; tabanın teni bütünüyle gizli, yama kıyafet ağında)
+const digerleri = {};
+for (const ad of Object.keys(MAN.kiyafetler).filter(a => a !== KS.ad)){ const D = kiyafetCoz(MAN, {kiyafet: ad});
+  try { const A = await parseKanade(ab, {doku: false, kiyafet: {ab: oku(D.tanim.dosya), tanim: D.tanim, ad: D.ad, varyant: D.varyant, spec: D.spec}});
+    const ka = A.meshes.filter(m => m.userData.kiyafet), bo = A.meshes.filter(m => m.userData.node === "Body");
+    digerleri[ad] = {ag: ka.length, gizli: bo.reduce((s, m) => s + (m.userData.gizliUcgen || 0), 0), beklenen: D.tanim.gizli_deri.ucgen,
+      yen: (A.groups.yen_kivrik_L || []).length > 0, tekIskelet: A.meshes.every(m => m.skeleton === A.skeleton), bodyMorph: bo.some(m => m.morphTargetInfluences && m.morphTargetInfluences.length),
+      yama: D.tanim.deri_yamasi ? ka.some(m => /_SKIN$/.test(A.kiyafet.json.materials[m.userData.mat].name)) : null};
+  } catch (e){ digerleri[ad] = {hata: e.message}; } }
 // 1) Tablo ↔ VRM (three ile ayrıştırılmış, dinlenme): kemik konumları F'de
 asset.root.updateMatrixWorld(true);
 let tablo = 0; for (const [n, b] of Object.entries(K.kemik)){ const o = asset.bones.get(n); if (!o) continue; const w = o.getWorldPosition(new THREE.Vector3());
@@ -66,11 +75,12 @@ const bekci = {istenen: BE.active(), cizilen: BM.morphTargetInfluences.filter(v 
 const med = a => a.slice().sort((x, y) => x - y)[a.length >> 1];
 const out = {vrm: K.vrm, ayristirma_ms: +tParse.toFixed(0), tablo_mm: +(tablo * 1000).toFixed(4), kalibrasyon_mm: +fig.vrm.kalibrasyon_mm.toFixed(4),
   aktarim: Object.fromEntries(Object.entries(R).map(([k, v]) => [k, +v.toFixed(4)])), poz: sure.length, commit_ms_med: +med(sure).toFixed(3),
-  morph_etkin: fig.expr.active(), morph_bekci: bekci, kiyafet: kiy,
+  morph_etkin: fig.expr.active(), morph_bekci: bekci, kiyafet: kiy, kiyafetler: digerleri,
   kabul: {tablo: tablo * 1000 <= 0.1, kalibrasyon: fig.vrm.kalibrasyon_mm <= 0.1, aktarim: R.mm <= 0.5, morph: fig.expr.active() <= 8, bekci: bekci.istenen === 10 && bekci.cizilen === 8 && bekci.kirpilan === 2,
     kiyafet: kiy.ag > 0 && /kıyafetsiz/.test(kiy.kiyafetsiz || "") && !!kiy.bilinmeyen && !!kiy.varyantYok && kiy.bordo && kiy.sarkiSecimi === "asil" && kiy.tekIskelet && !kiy.culled &&
       kiy.yen.length > 0 && kiy.yen.every(n => /^Kiyafet_/.test(n)) && !kiy.bodyMorph && kiy.kMorph.every(n => n === 2) && kiy.gizli === KS.tanim.gizli_deri.ucgen && kiy.morfluMalzeme &&
-      kiy.n0.some(x => /^Kiyafet_/.test(x)) && kiy.ton[1] === 255 && kiy.ton[0] === 0 && kiy.ton[4] === 0 && kiy.ton[7] === 128}};
+      kiy.n0.some(x => /^Kiyafet_/.test(x)) && kiy.ton[1] === 255 && kiy.ton[0] === 0 && kiy.ton[4] === 0 && kiy.ton[7] === 128,
+    kiyafetler: Object.values(digerleri).every(d => !d.hata && d.ag > 0 && d.gizli === d.beklenen && d.yen && d.tekIskelet && !d.bodyMorph && d.yama !== false)}};
 console.log(JSON.stringify(out, null, 1));
 if (process.env.OUT){ fs.mkdirSync(path.dirname(path.resolve(ROOT, process.env.OUT)), {recursive: true}); fs.writeFileSync(path.resolve(ROOT, process.env.OUT), JSON.stringify(out, null, 1)); }
 process.exit(Object.values(out.kabul).every(Boolean) ? 0 : 1);

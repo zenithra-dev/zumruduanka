@@ -42,6 +42,37 @@
     }
    },
    "varsayilan_varyant": "asil"
+  },
+  "dekolte": {
+   "dosya": "kiyafet/dekolte.glb",
+   "bayt": 11751676,
+   "sha1": "e8f63c15e266c8327910fd8d10d009ffcf57f344",
+   "yen_kivrik": true,
+   "gizli_deri": {
+    "tur": "ucgen",
+    "ucgen": 6846,
+    "toplam": 6846
+   },
+   "taban_anahtar": {},
+   "malzemeler": [
+    "F00_002_02_Body_00_SKIN",
+    "F00_002_01_Tops_01_CLOTH",
+    "F00_002_01_Shoes_01_CLOTH"
+   ],
+   "gruplar": [
+    "yen_kivrik_L",
+    "yen_kivrik_R"
+   ],
+   "kose": 20253,
+   "deri_yamasi": {
+    "ucgen": 9572,
+    "sifir_alan": 9,
+    "bolunen": 9
+   },
+   "varyantlar": {
+    "asil": {}
+   },
+   "varsayilan_varyant": "asil"
   }
  },
  "taban": {
