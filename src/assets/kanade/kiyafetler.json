@@ -45,8 +45,8 @@
   },
   "dekolte": {
    "dosya": "kiyafet/dekolte.glb",
-   "bayt": 11751676,
-   "sha1": "e8f63c15e266c8327910fd8d10d009ffcf57f344",
+   "bayt": 11703056,
+   "sha1": "d4fca9eb33edf3ea3cddb9c735aa41dc215c0eb4",
    "yen_kivrik": true,
    "gizli_deri": {
     "tur": "ucgen",
@@ -63,11 +63,11 @@
     "yen_kivrik_L",
     "yen_kivrik_R"
    ],
-   "kose": 20253,
+   "kose": 19848,
    "deri_yamasi": {
-    "ucgen": 9572,
-    "sifir_alan": 9,
-    "bolunen": 9
+    "ucgen": 9152,
+    "sifir_alan": 8,
+    "bolunen": 8
    },
    "varyantlar": {
     "asil": {}
