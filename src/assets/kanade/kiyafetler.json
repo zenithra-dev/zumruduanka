@@ -1,0 +1,52 @@
+{
+ "surum": 1,
+ "varsayilan": "gotik",
+ "kiyafetler": {
+  "gotik": {
+   "dosya": "kiyafet/gotik.glb",
+   "bayt": 5334308,
+   "sha1": "9913de1672d80132b656cbe0d9a79325412a0809",
+   "yen_kivrik": true,
+   "gizli_deri": {
+    "tur": "ucgen",
+    "ucgen": 432,
+    "toplam": 6846
+   },
+   "taban_anahtar": {},
+   "malzemeler": [
+    "F00_002_01_Tops_01_CLOTH",
+    "F00_002_01_Shoes_01_CLOTH"
+   ],
+   "gruplar": [
+    "yen_kivrik_L",
+    "yen_kivrik_R"
+   ],
+   "kose": 1768,
+   "varyantlar": {
+    "asil": {},
+    "bordo": {
+     "F00_002_01_Tops_01_CLOTH": {
+      "koyu": "#541020",
+      "dantel": "#f3e4d8",
+      "ref": 0.12,
+      "ac": 0.8,
+      "esik": [
+       0.3,
+       0.55
+      ]
+     },
+     "F00_002_01_Shoes_01_CLOTH": {
+      "koyu": "#4a0c1a",
+      "dantel": "#e9d8cc"
+     }
+    }
+   },
+   "varsayilan_varyant": "asil"
+  }
+ },
+ "taban": {
+  "dosya": "taban.vrm",
+  "bayt": 13076740,
+  "sha1": "e4aad033e4d19b3b6bd65517ca00b8e4fde681a1"
+ }
+}

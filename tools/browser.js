@@ -18,7 +18,10 @@ async function ready(page){
   // Kanade (VRM) sim kurulmadan önce yüklenir; createSim onu eşzamanlı takar. Yüklenemezse araç durur (karaktersiz kare üretilmez).
   // KARAKTER=manken: yedek gövde (tur 4'ün mankeni), yükleme yok. Eski kaynakta (SRC) preloadKanade yoksa atlanır.
   if (KARAKTER !== "manken"){
-    const e = await page.evaluate(ms => window.preloadKanade ? window.preloadKanade(ms).then(() => null, e => String(e && e.message || e)) : null, 60000);
+    // Kıyafet: KIYAFET / KIYAFET_VARYANT ortam değişkeni > şarkının (SONG) kiyafet / kiyafet_varyant alanı > kiyafetler.json varsayılanı
+    const ayar = {kiyafet: process.env.KIYAFET || null, kiyafet_varyant: process.env.KIYAFET_VARYANT || null, sarki: process.env.SONG || ""};
+    const e = await page.evaluate(([ms, a]) => !window.preloadKanade ? null : window.preloadKanade(ms, undefined, null,
+      window.kiyafetSecimi ? window.kiyafetSecimi(a.sarki !== "" && window.findSong ? window.findSong(a.sarki) : null, a) : undefined).then(() => null, e => String(e && e.message || e)), [60000, ayar]);
     if (e) throw new Error("Kanade yüklenemedi: " + e);
   }
 }

@@ -2,7 +2,7 @@
 import { createSim } from "../sim/sim.js";
 import { NAMES } from "../sim/music/theory.js";
 import { loadFonts } from "../sim/stage/canvas-tex.js";
-import { preloadKanade } from "../sim/stage/kanade/vrm.js";
+import { preloadKanade, kiyafetSecimi } from "../sim/stage/kanade/vrm.js";
 
 const $ = id => document.getElementById(id);
 const gl = $("gl");
@@ -14,7 +14,8 @@ await loadFonts(4000);   // oda dokularının yazıları vendor yazı tipleriyle
 let karakter = new URLSearchParams(location.search).get("karakter") || "kanade", yedek = null, sim;
 const yukle = x => { $("hudText").textContent = `YÖNETMEN · KANADE YÜKLENİYOR ${Math.round(100 * x)}%`; };
 const yedege = e => { console.error("Kanade yüklenemedi:", e.message); yedek = e.message; karakter = "manken"; };
-if (karakter !== "manken"){ yukle(0); try { await preloadKanade(20000, undefined, yukle); } catch (e){ yedege(e); } }
+if (karakter !== "manken"){ yukle(0); const q = new URLSearchParams(location.search);   // ?kiyafet=gotik&kiyafet_varyant=bordo (yoksa kiyafetler.json varsayılanı)
+  try { await preloadKanade(20000, undefined, yukle, kiyafetSecimi(null, {kiyafet: q.get("kiyafet"), kiyafet_varyant: q.get("kiyafet_varyant")})); } catch (e){ yedege(e); } }
 try { sim = createSim({canvas: gl, seed, karakter}); }
 catch (e){ if (karakter === "manken") throw e; yedege(e); sim = createSim({canvas: gl, seed, karakter}); }
 window.sim = sim;

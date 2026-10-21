@@ -17,9 +17,9 @@
 import { createSim, findSong, songLength, SONGS } from "./sim/sim.js";
 import { encodeWav, peakOf } from "./sim/audio/wav.js";
 import { loadFonts } from "./sim/stage/canvas-tex.js";
-import { preloadKanade } from "./sim/stage/kanade/vrm.js";
+import { preloadKanade, kiyafetSecimi } from "./sim/stage/kanade/vrm.js";
 window.loadFonts = loadFonts;   // araçlar (browser.js) sim kurmadan önce bütün doku yazı tiplerini bekler
-window.preloadKanade = preloadKanade;   // ve Kanade'yi (VRM) yükler: createSim onu eşzamanlı takar (?karakter=manken: yedek gövde, yüklenmez)
+window.preloadKanade = preloadKanade; window.kiyafetSecimi = kiyafetSecimi;   // ve Kanade'yi (VRM) yükler: createSim onu eşzamanlı takar (?karakter=manken: yedek gövde, yüklenmez)
 window.createSim = createSim; window.findSong = findSong; window.songLength = songLength; window.SONG_IDS = SONGS.map(s => s.id);
 window.encodeWav = encodeWav; window.peakOf = peakOf;
 </script>

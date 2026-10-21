@@ -1,6 +1,7 @@
 // Kanade temel denetimi (node, tarayıcısız; VRM dokusuz ayrıştırılır): ölçü tablosu (iskelet.js) ↔ VRM, çalışma zamanı kalibrasyonu ↔ tablo ve
 // vekil → VRM aktarım hatası rastgele (hash) pozlarda. Kabul: tablo ve kalibrasyon ≤ 0.1 mm, aktarım ≤ 0.5 mm (30 parmak eklemi + 10 uç, kollar,
-// zincir). Morph bekçisi: 10 hedef isteyen grupta ifade.js active() kırpmadan önceki sayıyı (10) verir, r128'e 8 gider. Çıkış kodu 1: kabul dışı.
+// zincir). Kıyafet (taban + varsayılan kıyafet, kiyafetler.json): kıyafetsiz yükleme hata, tek iskelet, yen_kivrik kıyafette, Body morfsuz, gizli
+// deri, varyant çözümü, bilinmeyen kıyafet hata. Morph bekçisi: 10 hedef isteyen grupta ifade.js active() kırpmadan önceki sayıyı (10) verir, r128'e 8 gider. Çıkış kodu 1: kabul dışı.
 //   node tools/kanade-test.mjs            # OUT=out/tur5/temel/kanade-test.json yazar (verilirse)
 import fs from "node:fs";
 import path from "node:path";
@@ -17,8 +18,22 @@ const { KANADE: K } = await imp("src/sim/stage/kanade/iskelet.js");
 const { kanadeFigure } = await imp("src/sim/stage/kanade/vekil.js");
 const { poseArm, bendFinger } = await imp("src/sim/stage/figures.js");
 
-const buf = fs.readFileSync(path.join(ROOT, "src/assets/kanade/kanade.vrm")), ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.length);
-const t0 = performance.now(), asset = await parseKanade(ab, {doku: false}), tParse = performance.now() - t0;
+const { kiyafetCoz, kiyafetSecimi, tonPiksel } = await imp("src/sim/stage/kanade/kiyafet.js");
+const AS = path.join(ROOT, "src/assets/kanade"), MAN = JSON.parse(fs.readFileSync(path.join(AS, "kiyafetler.json"), "utf8"));
+const oku = f => { const b = fs.readFileSync(path.join(AS, f)); return b.buffer.slice(b.byteOffset, b.byteOffset + b.length); };
+const ab = oku(MAN.taban.dosya), KS = kiyafetCoz(MAN, kiyafetSecimi(null, {}));
+const t0 = performance.now(), asset = await parseKanade(ab, {doku: false, kiyafet: {ab: oku(KS.tanim.dosya), tanim: KS.tanim, ad: KS.ad, varyant: KS.varyant, spec: KS.spec}}), tParse = performance.now() - t0;
+// Kıyafet sözleşmesi
+const hata = async f => { try { await f(); return null; } catch (e){ return e.message; } };
+const kAg = asset.meshes.filter(m => m.userData.kiyafet), body = asset.meshes.filter(m => m.userData.node === "Body");
+const kiy = {ad: KS.ad, varyant: KS.varyant, ag: kAg.length, kiyafetsiz: await hata(() => parseKanade(ab, {doku: false})),
+  bilinmeyen: await hata(() => kiyafetCoz(MAN, {kiyafet: "yok"})), varyantYok: await hata(() => kiyafetCoz(MAN, {kiyafet: "gotik", varyant: "yok"})),
+  bordo: !!kiyafetCoz(MAN, kiyafetSecimi({kiyafet: "gotik", kiyafet_varyant: "bordo"})).spec, sarkiSecimi: kiyafetSecimi({kiyafet: "gotik", kiyafet_varyant: "bordo"}, {kiyafet_varyant: "asil"}).varyant,
+  tekIskelet: asset.meshes.every(m => m.skeleton === asset.skeleton), culled: asset.meshes.some(m => m.frustumCulled),
+  yen: (asset.groups.yen_kivrik_L || []).map(b => b.node), bodyMorph: body.some(m => m.morphTargetInfluences && m.morphTargetInfluences.length),
+  kMorph: kAg.map(m => (m.morphTargetInfluences || []).length), n0: asset.meshes.filter(m => m.userData.n0 !== undefined).map(m => m.userData.node + ":" + m.userData.n0),
+  gizli: body.reduce((s, m) => s + (m.userData.gizliUcgen || 0), 0), morfluMalzeme: kAg.every(m => [].concat(m.material).every(x => x.morphTargets && x.skinning)),
+  ton: Array.from(tonPiksel(new Uint8ClampedArray([255, 255, 255, 255, 0, 0, 0, 128]), {koyu: "#800000", dantel: "#00ff00"}))};
 // 1) Tablo ↔ VRM (three ile ayrıştırılmış, dinlenme): kemik konumları F'de
 asset.root.updateMatrixWorld(true);
 let tablo = 0; for (const [n, b] of Object.entries(K.kemik)){ const o = asset.bones.get(n); if (!o) continue; const w = o.getWorldPosition(new THREE.Vector3());
@@ -51,8 +66,11 @@ const bekci = {istenen: BE.active(), cizilen: BM.morphTargetInfluences.filter(v 
 const med = a => a.slice().sort((x, y) => x - y)[a.length >> 1];
 const out = {vrm: K.vrm, ayristirma_ms: +tParse.toFixed(0), tablo_mm: +(tablo * 1000).toFixed(4), kalibrasyon_mm: +fig.vrm.kalibrasyon_mm.toFixed(4),
   aktarim: Object.fromEntries(Object.entries(R).map(([k, v]) => [k, +v.toFixed(4)])), poz: sure.length, commit_ms_med: +med(sure).toFixed(3),
-  morph_etkin: fig.expr.active(), morph_bekci: bekci,
-  kabul: {tablo: tablo * 1000 <= 0.1, kalibrasyon: fig.vrm.kalibrasyon_mm <= 0.1, aktarim: R.mm <= 0.5, morph: fig.expr.active() <= 8, bekci: bekci.istenen === 10 && bekci.cizilen === 8 && bekci.kirpilan === 2}};
+  morph_etkin: fig.expr.active(), morph_bekci: bekci, kiyafet: kiy,
+  kabul: {tablo: tablo * 1000 <= 0.1, kalibrasyon: fig.vrm.kalibrasyon_mm <= 0.1, aktarim: R.mm <= 0.5, morph: fig.expr.active() <= 8, bekci: bekci.istenen === 10 && bekci.cizilen === 8 && bekci.kirpilan === 2,
+    kiyafet: kiy.ag > 0 && /kıyafetsiz/.test(kiy.kiyafetsiz || "") && !!kiy.bilinmeyen && !!kiy.varyantYok && kiy.bordo && kiy.sarkiSecimi === "asil" && kiy.tekIskelet && !kiy.culled &&
+      kiy.yen.length > 0 && kiy.yen.every(n => /^Kiyafet_/.test(n)) && !kiy.bodyMorph && kiy.kMorph.every(n => n === 2) && kiy.gizli === KS.tanim.gizli_deri.ucgen && kiy.morfluMalzeme &&
+      kiy.n0.some(x => /^Kiyafet_/.test(x)) && kiy.ton[1] === 255 && kiy.ton[0] === 0 && kiy.ton[4] === 0 && kiy.ton[7] === 128}};
 console.log(JSON.stringify(out, null, 1));
 if (process.env.OUT){ fs.mkdirSync(path.dirname(path.resolve(ROOT, process.env.OUT)), {recursive: true}); fs.writeFileSync(path.resolve(ROOT, process.env.OUT), JSON.stringify(out, null, 1)); }
 process.exit(Object.values(out.kabul).every(Boolean) ? 0 : 1);

@@ -1,7 +1,8 @@
-// Kanade ölçü tablosu üreticisi: VRM (src/assets/kanade/kanade.vrm) → src/sim/stage/kanade/iskelet.js (üretilmiş, elle düzenlenmez). three'siz,
+// Kanade ölçü tablosu üreticisi: taban.vrm + varsayılan kıyafet (src/assets/kanade/kiyafetler.json) → src/sim/stage/kanade/iskelet.js (üretilmiş, elle düzenlenmez). three'siz,
 // glb.js ile (yükleyici de aynı okuyucuyu kullanır). Çerçeve F (figür): +z ön, +x figürün solu, y yerden; m.
 //   node tools/kanade-iskelet.mjs              # tabloyu yazar
-//   node tools/kanade-iskelet.mjs --denetle    # yazılı tablo VRM ile uyuşuyor mu (sha1, kaynak.json, dinlenme konumları ≤ 0.1 mm); uyuşmazsa çıkış 1
+//   node tools/kanade-iskelet.mjs --denetle    # yazılı tablo uyuşuyor mu (taban sha1, kiyafetler.json'daki her dosyanın bayt+sha1'i, dinlenme
+//     konumları ≤ 0.1 mm); uyuşmazsa çıkış 1. Deri tabloları (el, elipsoit, etek konisi) taban + varsayılan kıyafetin (gotik) köşelerinden.
 // İçerik: kemikler (F), insansı eşleme, kol ve bacak boyları, el tabloları L/R (tek çerçeve: glb.js handFrame), avuç kutusu, topuk, tırnak uçları,
 // yen/etek/saç zincirleri ve ikizler, sac.json salınım sınırları (F yönleriyle), kemiğe bağlı beden elipsoitleri, etek konisi, askı bağlantı
 // ofsetleri, yüz y maskesi, kafanın dinlenme noktası.
@@ -12,7 +13,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseGlb, accessor, restWorld, posOf, toF, humanoid, handFrame, handTable, FINGERS } from "../src/sim/stage/kanade/glb.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const VRM = path.join(ROOT, "src/assets/kanade/kanade.vrm"), KAYNAK = path.join(ROOT, "src/assets/kanade/kaynak.json"), SAC = path.join(ROOT, "src/assets/kanade/sac.json");
+const ASSET = path.join(ROOT, "src/assets/kanade"), MANIFEST = path.join(ASSET, "kiyafetler.json"), SAC = path.join(ROOT, "src/assets/kanade/sac.json");
 const OUT = path.join(ROOT, "src/sim/stage/kanade/iskelet.js");
 const r6 = x => +x.toFixed(6), v6 = a => a.map(r6);
 // Mankenin parmak ab (yana açılma) ve pa (yastığın avuç yanına açısı) değerleri (figures.js HAND)
@@ -26,9 +27,11 @@ const YUZ = {goz: 1.54, agiz: 1.528};
 const TEMAS = [-0.01, 1.29, 0.147];
 
 export function uret(){
-  const buf = fs.readFileSync(VRM), ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.length);
-  const sha1 = crypto.createHash("sha1").update(buf).digest("hex"), kay = JSON.parse(fs.readFileSync(KAYNAK, "utf8"));
-  if (kay.sha1 !== sha1 || kay.bayt !== buf.length) throw new Error(`kaynak.json ile VRM uyuşmuyor: ${kay.sha1}/${kay.bayt} ↔ ${sha1}/${buf.length}`);
+  const M = JSON.parse(fs.readFileSync(MANIFEST, "utf8")), oku = (k, ad) => { const b = fs.readFileSync(path.join(ASSET, k.dosya)), h = crypto.createHash("sha1").update(b).digest("hex");
+    if (h !== k.sha1 || b.length !== k.bayt) throw new Error(`kiyafetler.json ile ${ad} uyuşmuyor: ${k.sha1}/${k.bayt} ↔ ${h}/${b.length}`); return b; };
+  for (const [ad, k] of Object.entries(M.kiyafetler)) oku(k, "kıyafet " + ad);
+  const buf = oku(M.taban, "taban"), ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.length), sha1 = M.taban.sha1;
+  const kb = oku(M.kiyafetler[M.varsayilan], "kıyafet " + M.varsayilan), K2 = parseGlb(kb.buffer.slice(kb.byteOffset, kb.byteOffset + kb.length));
   const {json, bin} = parseGlb(ab), {world, parent} = restWorld(json), N = json.nodes, idx = {};
   N.forEach((n, i) => { idx[n.name] = i; });
   const P = n => { if (idx[n] === undefined) throw new Error("kemik yok: " + n); return toF(posOf(world[idx[n]])); };
@@ -40,14 +43,15 @@ export function uret(){
   const kol = Object.fromEntries(["L", "R"].map(s => [s, {l1: r6(dist(`J_Bip_${s}_UpperArm`, `J_Bip_${s}_LowerArm`)), l2: r6(dist(`J_Bip_${s}_LowerArm`, `J_Bip_${s}_Hand`))}]));
   const bacak = Object.fromEntries(["L", "R"].map(s => [s, [r6(dist(`J_Bip_${s}_UpperLeg`, `J_Bip_${s}_LowerLeg`)), r6(dist(`J_Bip_${s}_LowerLeg`, `J_Bip_${s}_Foot`))]]));
 
-  // Deri: Body ağının köşeleri (4 ilkel aynı öznitelikleri paylaşır; ilkel 0 ten, 1 giysi, 2 ayakkabı, 3 arka saç), baskın kemik, F konum
-  const skinVerts = meshName => { const mi = json.meshes.findIndex(m => m.name === meshName), m = json.meshes[mi], ni = N.findIndex(n => n.mesh === mi), sk = json.skins[N[ni].skin];
+  // Deri: Body ağının (taban: ten, arka saç) ve varsayılan kıyafetin köşeleri; k ilkel sınıfı: 0 ten, 1 giysi, 2 ayakkabı, 3 arka saç; baskın kemik, F konum
+  const sinif = ad => /_SKIN$/.test(ad) ? 0 : /Shoes/.test(ad) ? 2 : /HAIR/.test(ad) ? 3 : 1;
+  const skinVerts = (meshName, J0 = json, B0 = bin) => { const json = J0, bin = B0, N = json.nodes, mi = json.meshes.findIndex(m => m.name === meshName), m = json.meshes[mi], ni = N.findIndex(n => n.mesh === mi), sk = json.skins[N[ni].skin];
     const A = m.primitives[0].attributes, pos = accessor(json, bin, A.POSITION).array, J = accessor(json, bin, A.JOINTS_0).array, W = accessor(json, bin, A.WEIGHTS_0).array;
-    const prim = new Int8Array(pos.length / 3).fill(-1); m.primitives.forEach((p, k) => { const I = accessor(json, bin, p.indices).array; for (let i = 0; i < I.length; i++) prim[I[i]] = k; });
+    const prim = new Int8Array(pos.length / 3).fill(-1); m.primitives.forEach(p => { const I = accessor(json, bin, p.indices).array, k = sinif(json.materials[p.material].name); for (let i = 0; i < I.length; i++) prim[I[i]] = k; });
     const V = []; for (let v = 0; v < pos.length / 3; v++){ let bw = -1, bj = 0; for (let c = 0; c < 4; c++) if (W[v * 4 + c] > bw){ bw = W[v * 4 + c]; bj = J[v * 4 + c]; }
       V.push({p: toF([pos[v * 3], pos[v * 3 + 1], pos[v * 3 + 2]]), v: [pos[v * 3], pos[v * 3 + 1], pos[v * 3 + 2]], b: N[sk.joints[bj]].name, k: prim[v]}); }
     return V; };
-  const BODY = skinVerts("Body.baked"), NAIL = skinVerts("Aksesuar_Tirnak"), FACE = skinVerts("Face.baked");
+  const BODY = skinVerts("Body.baked").concat(skinVerts(K2.json.meshes[0].name, K2.json, K2.bin)), NAIL = skinVerts("Aksesuar_Tirnak"), FACE = skinVerts("Face.baked");
   const pct = (a, q) => { const s = a.slice().sort((x, y) => x - y); return s.length ? s[Math.min(s.length - 1, Math.floor(q * s.length))] : null; };
   // Noktanın a→b ekseninde parametresi u (0 a, 1 b) ve eksene uzaklığı
   const segU = (q, a, b) => { const ab2 = [0, 1, 2].map(k => b[k] - a[k]), l = ab2.reduce((s, x) => s + x * x, 0), u = [0, 1, 2].reduce((s, k) => s + (q[k] - a[k]) * ab2[k], 0) / l, w = Math.max(0, Math.min(1, u));
